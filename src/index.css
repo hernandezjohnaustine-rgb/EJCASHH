@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --color-brand-black: #05070A;
+  --color-brand-navy: #0A1628;
+  --color-brand-blue: #0066FF;
+  --color-brand-neon: #00F2FF;
+  --color-brand-surface: rgba(255, 255, 255, 0.03);
+}
+
+@layer base {
+  body {
+    @apply bg-brand-black text-white font-sans antialiased;
+    background: radial-gradient(circle at 10% 10%, #0A1628 0%, #05070A 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl transition-all duration-300;
+  }
+  
+  .neon-border {
+    @apply border border-brand-neon/40 shadow-[0_0_15px_rgba(0,242,255,0.4)];
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-br from-[#0066FF] to-[#0044BB] hover:opacity-90 text-white font-bold py-4 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,102,255,0.4)];
+  }
+  
+  .btn-ghost {
+    @apply bg-white/5 hover:bg-white/[0.08] text-white font-medium py-4 px-6 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 border border-white/5;
+  }
+}
+
+/* Custom Hide Scrollbar */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
