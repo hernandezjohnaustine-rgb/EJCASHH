@@ -226,6 +226,7 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
                initial={{ opacity: 0, y: 10 }}
                animate={{ opacity: 1, y: 0 }}
                transition={{ delay: i * 0.05 }}
+               onClick={() => onServiceClick(service.id)}
                className="flex flex-col items-center gap-2 group"
              >
                 <div className="w-16 h-16 glass-card flex items-center justify-center group-hover:scale-110 active:scale-95 transition-all duration-300 border-white/10">
