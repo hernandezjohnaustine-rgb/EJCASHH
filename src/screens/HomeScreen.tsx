@@ -20,7 +20,10 @@ import {
   ChevronRight,
   Copy,
   Scan,
-  Trophy
+  Trophy,
+  Clock,
+  ArrowRight,
+  LayoutGrid
 } from "lucide-react";
 import { Wallet, UserStats, Transaction } from "../types";
 import GlassCard from "../components/GlassCard";
@@ -35,6 +38,7 @@ interface HomeScreenProps {
   transactions: Transaction[];
   onServiceClick: (id: string) => void;
   onViewHistory: () => void;
+  onClaimTrading?: () => void;
 }
 
 const services = [
@@ -51,11 +55,20 @@ const WALLETS = (balance: number, earnings: number): Wallet[] => [
   { label: "Earnings", balance: earnings, type: "earnings", color: "text-brand-primary" },
 ];
 
-export default function HomeScreen({ stats, onActivate, balance, transactions, onServiceClick, onViewHistory }: HomeScreenProps) {
+export default function HomeScreen({ 
+  stats, 
+  onActivate, 
+  balance, 
+  transactions, 
+  onServiceClick, 
+  onViewHistory,
+  onClaimTrading
+}: HomeScreenProps) {
   const [showBalance, setShowBalance] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [activeWalletIdx, setActiveWalletIdx] = useState(0);
+  const [showClaimSuccess, setShowClaimSuccess] = useState(false);
 
   const wallets = WALLETS(balance, stats.totalEarnings);
   const activeWallet = wallets[activeWalletIdx];
@@ -147,6 +160,125 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
         </motion.div>
       </section>
 
+      {/* Trading ROI Dashboard */}
+      {stats.isActivated && (
+        <section className="px-6">
+          <GlassCard className="!p-0 overflow-hidden relative border-brand-primary/20 bg-brand-navy/40 backdrop-blur-2xl shadow-[0_0_50px_rgba(250,204,21,0.05)]">
+             <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                         <TrendingUp className="w-5 h-5 text-brand-primary" />
+                      </div>
+                      <div>
+                         <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Automated Trading</h3>
+                         <p className="text-[8px] text-white/40 font-bold uppercase tracking-tighter">5% Daily Yield (10 Days Cycle)</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-primary/10 rounded-full border border-brand-primary/20">
+                      <div className="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse shadow-[0_0_8px_#FACC15]" />
+                      <span className="text-[8px] text-brand-primary font-black uppercase tracking-widest">Live ROI</span>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                   <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-white/30 uppercase font-black tracking-widest">Active Stake</span>
+                      <p className="text-xl font-display font-bold italic tracking-tight text-white/90">₱{stats.tradingInvested.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                   </div>
+                   <div className="flex flex-col gap-1 text-right">
+                      <span className="text-[9px] text-white/30 uppercase font-black tracking-widest">Accumulated ROI</span>
+                      <p className="text-xl font-display font-bold italic tracking-tight text-brand-primary drop-shadow-[0_0_10px_rgba(250,204,21,0.2)]">
+                        +₱{stats.tradingEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </p>
+                   </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                   <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest px-1">
+                      <span className="text-white/40">Cycle Progress</span>
+                      <span className="text-brand-primary">{stats.tradingDaysCompleted} / 10 days</span>
+                   </div>
+                   
+                   <div className="relative">
+                      {/* Day Markers */}
+                      <div className="absolute inset-0 flex justify-between px-1 items-center z-10 pointer-events-none">
+                        {[...Array(11)].map((_, i) => (
+                          <div 
+                            key={i} 
+                            className={`w-0.5 h-1 rounded-full transition-colors duration-500 ${i <= stats.tradingDaysCompleted ? 'bg-brand-black/40' : 'bg-white/10'}`} 
+                          />
+                        ))}
+                      </div>
+
+                      <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5 relative">
+                         <motion.div 
+                           initial={{ width: 0 }}
+                           animate={{ width: `${(stats.tradingDaysCompleted / 10) * 100}%` }}
+                           transition={{ duration: 1.5, type: "spring", bounce: 0.3 }}
+                           className="h-full bg-gradient-to-r from-brand-primary to-[#EAB308] rounded-full shadow-[0_0_15px_rgba(250,204,21,0.4)]"
+                         />
+                      </div>
+                   </div>
+
+                   <div className="flex justify-between mt-1 px-1">
+                      <p className="text-[8px] text-white/20 font-bold uppercase italic flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" />
+                        Status: Active Cycle
+                      </p>
+                      <p className="text-[8px] text-white/40 font-bold uppercase tracking-tighter">Day {stats.tradingDaysCompleted} Distribution Processed</p>
+                   </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-white/5">
+                   {stats.tradingClaimedToday ? (
+                     <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 py-3 px-4 rounded-xl">
+                        <div className="flex items-center gap-2">
+                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                           <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Profit Claimed</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-500/60 font-bold">+₱18.00 today</span>
+                     </div>
+                   ) : (
+                     <button 
+                       onClick={() => {
+                         onClaimTrading?.();
+                         setShowClaimSuccess(true);
+                         setTimeout(() => setShowClaimSuccess(false), 3000);
+                       }}
+                       className="w-full py-3 bg-brand-primary text-brand-black rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(250,204,21,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
+                     >
+                       <TrendingUp className="w-4 h-4" />
+                       Claim Daily Profit (5%)
+                     </button>
+                   )}
+                </div>
+             </div>
+
+             <AnimatePresence>
+               {showClaimSuccess && (
+                 <motion.div 
+                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                   className="absolute inset-0 bg-brand-black/90 backdrop-blur-md flex flex-col items-center justify-center z-20 text-center px-6"
+                 >
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1.2 }}
+                      className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mb-4"
+                    >
+                       <CheckCircle2 className="w-10 h-10 text-brand-black" />
+                    </motion.div>
+                    <h4 className="text-xl font-display font-black text-brand-primary uppercase italic mb-1">Profit Claimed!</h4>
+                    <p className="text-xs text-white/60 font-bold uppercase tracking-widest">+₱18.00 added to balance</p>
+                 </motion.div>
+               )}
+             </AnimatePresence>
+          </GlassCard>
+        </section>
+      )}
+
       {/* Activation Package Card */}
       <section className="px-6">
         <GlassCard className={`!p-0 overflow-hidden relative border-brand-primary/20 bg-brand-navy/60 backdrop-blur-3xl shadow-[0_0_40px_rgba(250,204,21,0.1)]`}>
@@ -158,24 +290,24 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
           </div>
 
           <div className="p-8">
-            <div className="flex items-center gap-4 mb-6">
-               <div className="w-14 h-14 rounded-3xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center">
+            <div className="flex items-center gap-4 mb-8">
+               <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.1)]">
                   <Zap className="w-7 h-7 text-brand-primary" />
                </div>
                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Activation Package</h3>
-                  <h4 className="text-lg font-display font-bold">BRAND NAME Starter Activation</h4>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">Current Status</p>
+                  <h4 className="text-lg font-display font-bold tracking-tight">BRAND NAME Starter Activation</h4>
                </div>
             </div>
 
-            <div className="flex items-center justify-between mb-8 gap-4 px-1">
-               <div className="flex flex-col gap-1">
-                  <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Registration Fee</p>
-                  <p className="text-3xl font-display font-black text-brand-primary italic tracking-tighter">₱360</p>
+            <div className="space-y-3 mb-8">
+               <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                  <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Registration Fee</span>
+                  <span className="text-2xl font-display font-black text-brand-primary italic">₱360.00</span>
                </div>
-               <div className="flex flex-col gap-1 text-right">
-                  <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Included Product</p>
-                  <p className="text-xs font-bold text-white/80 tracking-tight">Premium Beauty Soap</p>
+               <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                  <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Included Product</span>
+                  <span className="text-sm font-bold text-white/80">Premium Beauty Soap</span>
                </div>
             </div>
 
@@ -191,7 +323,7 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
             )}
 
             <div className="flex flex-col gap-3 py-6 border-t border-white/5">
-               <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-1">Exclusive Benefits</p>
+               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 mb-2">Exclusive Benefits</p>
                {[
                  "Earn 30% Direct Referral Bonus",
                  "Unlock 10-Level Rewards",
@@ -206,22 +338,24 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
                ))}
             </div>
 
-            <div className="mt-4 flex items-center gap-2">
-               <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <div className="mt-4 flex flex-col gap-2">
+               <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black text-brand-primary uppercase tracking-widest">Account Status</span>
+                  <span className="text-[9px] font-black text-brand-primary uppercase tracking-widest">100% Verified</span>
+               </div>
+               <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: stats.isActivated ? '100%' : '0%' }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full bg-brand-primary shadow-[0_0_10px_#FACC15]"
+                    className="h-full bg-brand-primary shadow-[0_0_15px_#FACC15]"
                   />
                </div>
-               <span className="text-[10px] font-black text-brand-primary uppercase tracking-tighter">
-                  {stats.isActivated ? '100%' : '0%'}
-               </span>
             </div>
           </div>
         </GlassCard>
       </section>
+
 
       {/* Quick Actions */}
       <section className="px-6">

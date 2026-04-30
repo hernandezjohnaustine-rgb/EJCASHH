@@ -5,6 +5,7 @@ import GlassCard from "../components/GlassCard";
 export default function ActivationScreen({ onActivate }: { onActivate: () => void }) {
   const benefits = [
     "30% Direct Referral Commission",
+    "5% Daily Trading ROI (10 Days)",
     "10-Level Indirect Income Stream",
     "Daily Login Bonus Activation",
     "Unlock VIP Ranking System",

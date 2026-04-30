@@ -39,7 +39,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
   const referralCode = "UW-USER-2026";
 
   const wallets: WalletType[] = [
-    { label: "Earnings Wallet", balance: 12450.00, type: "earnings", color: "text-brand-primary" },
+    { label: "Earnings Wallet", balance: stats.totalEarnings, type: "earnings", color: "text-brand-primary" },
     { label: "Withdrawal Wallet", balance: 5200.50, type: "withdraw", color: "text-brand-primary" },
     { label: "Cashback Wallet", balance: 840.25, type: "cashback", color: "text-brand-accent" },
   ];

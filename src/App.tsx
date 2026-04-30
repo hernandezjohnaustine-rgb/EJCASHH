@@ -24,7 +24,7 @@ import { UserStats, Transaction } from "./types";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
   const [activeView, setActiveView] = useState<string | null>(null);
   const [balance, setBalance] = useState(85240.50);
@@ -41,8 +41,27 @@ export default function App() {
     directReferrals: 8,
     teamSize: 142,
     totalEarnings: 12450.00,
-    isActivated: false, // Default to false for demo
+    isActivated: false, // Set to false to show the activation button
+    tradingInvested: 360,
+    tradingEarnings: 0, 
+    tradingDaysCompleted: 0,
+    tradingActive: false,
+    tradingClaimedToday: false,
   });
+
+  const handleClaimTrading = () => {
+    setUserStats(prev => {
+      const dailyProfit = prev.tradingInvested * 0.05;
+      return {
+        ...prev,
+        tradingEarnings: prev.tradingEarnings + dailyProfit,
+        totalEarnings: prev.totalEarnings + dailyProfit,
+        tradingDaysCompleted: Math.min(10, prev.tradingDaysCompleted + 1),
+        tradingClaimedToday: true
+      };
+    });
+    setBalance(prev => prev + 18);
+  };
 
   // Mock Loading
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +75,15 @@ export default function App() {
   };
 
   const handleActivation = () => {
-    setUserStats(prev => ({ ...prev, isActivated: true }));
+    setUserStats(prev => ({ 
+      ...prev, 
+      isActivated: true,
+      tradingActive: true,
+      tradingInvested: 360,
+      tradingEarnings: 18.00, // Day 1 earnings
+      tradingDaysCompleted: 1,
+      tradingClaimedToday: true
+    }));
     setActiveTab("home");
   };
 
@@ -206,6 +233,7 @@ export default function App() {
                 transactions={transactions}
                 onServiceClick={(serviceId) => setActiveView(serviceId)}
                 onViewHistory={() => setActiveTab("history")}
+                onClaimTrading={handleClaimTrading}
               />
             </motion.div>
           )}

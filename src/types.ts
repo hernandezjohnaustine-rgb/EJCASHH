@@ -23,4 +23,9 @@ export interface UserStats {
   teamSize: number;
   totalEarnings: number;
   isActivated: boolean;
+  tradingInvested: number;
+  tradingEarnings: number;
+  tradingDaysCompleted: number;
+  tradingActive: boolean;
+  tradingClaimedToday: boolean;
 }
