@@ -8,7 +8,7 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
     "10-Level Indirect Income Stream",
     "Daily Login Bonus Activation",
     "Unlock VIP Ranking System",
-    "Instant UWINS ID Verification"
+    "Instant BRAND NAME ID Verification"
   ];
 
   return (
@@ -21,7 +21,7 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
           <Zap className="w-10 h-10 text-brand-primary animate-pulse" />
         </div>
         <h1 className="text-3xl font-display font-black tracking-tight mb-2">Account Activation</h1>
-        <p className="text-sm text-white/40 font-medium">Activate your account to unlock the full earning potential of UWINS.</p>
+        <p className="text-sm text-white/40 font-medium">Activate your account to unlock the full earning potential of BRAND NAME.</p>
       </header>
 
       <section className="flex flex-col gap-6 relative z-10">
@@ -33,7 +33,10 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
           <div className="text-center mb-8">
             <p className="text-xs text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Activation Package</p>
             <h2 className="text-5xl font-display font-black tracking-tighter">₱360</h2>
-            <p className="text-xs text-brand-primary font-bold tracking-widest mt-2">ONE-TIME PAYMENT</p>
+            <div className="mt-4 inline-flex items-center gap-3 px-4 py-2 bg-brand-primary/5 rounded-2xl border border-brand-primary/10">
+               <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Included Product:</span>
+               <span className="text-[10px] text-brand-primary font-black uppercase tracking-widest">Premium Beauty Soap</span>
+            </div>
           </div>
 
           <div className="flex flex-col gap-4">

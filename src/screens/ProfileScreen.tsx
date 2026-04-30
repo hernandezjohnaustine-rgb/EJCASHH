@@ -38,7 +38,7 @@ export default function ProfileScreen({ onLogout }: { onLogout: () => void }) {
         </div>
 
         <div className="text-center relative z-10">
-           <h2 className="text-xl font-display font-bold tracking-tight">John Austine</h2>
+           <h2 className="text-xl font-display font-bold tracking-tight">User</h2>
            <p className="text-sm text-white/40 mb-3 tracking-wide">@hernandezja_prime</p>
            <div className="flex items-center gap-2 bg-brand-primary/10 py-1.5 px-4 rounded-full border border-brand-primary/20">
               <Shield className="w-3 h-3 text-brand-primary" />

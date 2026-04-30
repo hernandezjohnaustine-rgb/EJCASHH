@@ -93,7 +93,7 @@ export default function QrPayScreen({ onBack }: { onBack: () => void }) {
             className="flex-1 flex flex-col items-center justify-center gap-8 relative z-10"
           >
             <div className="text-center mb-4">
-              <h3 className="text-xl font-display font-bold mb-1">John Austine</h3>
+              <h3 className="text-xl font-display font-bold mb-1">User</h3>
               <p className="text-xs text-white/40 font-medium italic tracking-wide">Elite Member</p>
             </div>
 
@@ -119,7 +119,7 @@ export default function QrPayScreen({ onBack }: { onBack: () => void }) {
 
             <div className="flex flex-col items-center gap-6 w-full max-w-[320px]">
               <div className="text-center px-8">
-                 <p className="text-sm text-white/60 font-medium">Any UWINS user can scan this QR code to send you money instantly.</p>
+                 <p className="text-sm text-white/60 font-medium">Any BRAND NAME user can scan this QR code to send you money instantly.</p>
               </div>
 
               <GlassCard className="w-full flex items-center justify-between py-4 px-6 border-white/10">
@@ -128,7 +128,7 @@ export default function QrPayScreen({ onBack }: { onBack: () => void }) {
                       <Scan className="w-5 h-5 text-brand-primary" />
                    </div>
                    <div>
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">UWINS-ID</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">BRAND NAME-ID</p>
                       <p className="text-sm font-mono font-bold">{userCode}</p>
                    </div>
                 </div>

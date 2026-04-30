@@ -59,7 +59,7 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
 
   const wallets = WALLETS(balance, stats.totalEarnings);
   const activeWallet = wallets[activeWalletIdx];
-  const referralCode = "UW-JOHNAUSTINE-2026";
+  const referralCode = "UW-USER-2026";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralCode);
@@ -73,7 +73,7 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
           <div className="w-8 h-8 rounded-lg bg-brand-navy border border-brand-primary/30 flex items-center justify-center">
              <span className="text-[10px] font-black italic text-brand-primary">UW</span>
           </div>
-          <h1 className="text-xl font-display font-black tracking-[4px]">UWINS</h1>
+          <h1 className="text-xl font-display font-black tracking-[4px]">BRAND NAME</h1>
         </div>
         <p className="text-[10px] text-brand-primary/60 font-bold uppercase tracking-[0.3em]">Fast • Secure • Smart Payments</p>
       </header>
@@ -164,24 +164,31 @@ export default function HomeScreen({ stats, onActivate, balance, transactions, o
                </div>
                <div>
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Activation Package</h3>
-                  <h4 className="text-lg font-display font-bold">UWINS Starter Activation</h4>
+                  <h4 className="text-lg font-display font-bold">BRAND NAME Starter Activation</h4>
                </div>
             </div>
 
-            <div className="flex items-center justify-between mb-8">
-               <div>
+            <div className="flex items-center justify-between mb-8 gap-4 px-1">
+               <div className="flex flex-col gap-1">
                   <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Registration Fee</p>
                   <p className="text-3xl font-display font-black text-brand-primary italic tracking-tighter">₱360</p>
                </div>
-               {!stats.isActivated && (
-                 <button 
-                  onClick={onActivate}
-                  className="px-6 py-3 bg-brand-primary text-brand-black rounded-2xl text-xs font-black uppercase tracking-widest shadow-[0_10px_20px_rgba(250,204,21,0.4)] active:scale-95 transition-all"
-                 >
-                   Activate Now
-                 </button>
-               )}
+               <div className="flex flex-col gap-1 text-right">
+                  <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Included Product</p>
+                  <p className="text-xs font-bold text-white/80 tracking-tight">Premium Beauty Soap</p>
+               </div>
             </div>
+
+            {!stats.isActivated && (
+              <div className="mb-8">
+                <button 
+                 onClick={onActivate}
+                 className="w-full py-4 bg-brand-primary text-brand-black rounded-2xl text-xs font-black uppercase tracking-widest shadow-[0_10px_20px_rgba(250,204,21,0.4)] active:scale-95 transition-all"
+                >
+                  Activate Now
+                </button>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3 py-6 border-t border-white/5">
                <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-1">Exclusive Benefits</p>

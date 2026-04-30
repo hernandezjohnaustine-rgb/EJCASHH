@@ -39,7 +39,7 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
                <div className="relative text-xl font-display font-black italic tracking-tighter text-brand-primary">UW</div>
              </div>
           </motion.div>
-          <h1 className="text-xl font-display font-bold tracking-[2px]">UWINS</h1>
+          <h1 className="text-xl font-display font-bold tracking-[2px]">BRAND NAME</h1>
         </div>
 
         <div className="text-left">

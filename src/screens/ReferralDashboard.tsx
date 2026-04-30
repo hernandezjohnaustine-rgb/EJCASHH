@@ -36,7 +36,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
 }) {
   const [claimed, setClaimed] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const referralCode = "UW-JOHNAUSTINE-2026";
+  const referralCode = "UW-USER-2026";
 
   const wallets: WalletType[] = [
     { label: "Earnings Wallet", balance: 12450.00, type: "earnings", color: "text-brand-primary" },

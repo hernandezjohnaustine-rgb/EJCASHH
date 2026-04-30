@@ -1,7 +1,7 @@
 import { Bell, User } from "lucide-react";
 import { motion } from "motion/react";
 
-export default function Header({ userName = "John Austine" }: { userName?: string }) {
+export default function Header({ userName = "User" }: { userName?: string }) {
   return (
     <header className="flex items-center justify-between px-6 py-4 sticky top-0 z-40 bg-brand-black/50 backdrop-blur-lg">
       <div className="flex items-center gap-3">

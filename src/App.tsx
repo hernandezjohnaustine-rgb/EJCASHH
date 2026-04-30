@@ -72,7 +72,7 @@ export default function App() {
       category: tx.category || "General",
       status: "Completed",
       referenceNo: "UW-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      paymentMethod: tx.paymentMethod || "UWINS Wallet",
+      paymentMethod: tx.paymentMethod || "BRAND NAME Wallet",
     };
     
     setTransactions(prev => [newTx, ...prev]);
@@ -105,7 +105,7 @@ export default function App() {
         </motion.div>
         
         <div className="flex flex-col items-center gap-2">
-           <h1 className="text-2xl font-display font-bold tracking-tight">UWINS</h1>
+           <h1 className="text-2xl font-display font-bold tracking-tight">BRAND NAME</h1>
            <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ left: '-100%' }}

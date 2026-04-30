@@ -42,7 +42,7 @@ export default function QrInviteModal({ isOpen, onClose, referralCode }: QrInvit
 
               <div className="flex flex-col items-center gap-6">
                 <div className="text-center">
-                  <h3 className="text-xl font-display font-bold tracking-tight">Invite to UWINS</h3>
+                  <h3 className="text-xl font-display font-bold tracking-tight">Invite to BRAND NAME</h3>
                   <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-black">Your Unique QR Code</p>
                 </div>
 
