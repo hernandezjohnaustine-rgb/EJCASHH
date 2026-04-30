@@ -6,16 +6,17 @@
   --font-display: "Space Grotesk", sans-serif;
   
   --color-brand-black: #05070A;
-  --color-brand-navy: #0A1628;
-  --color-brand-blue: #0066FF;
-  --color-brand-neon: #00F2FF;
+  --color-brand-navy: #0A0A0A;
+  --color-brand-yellow: #FACC15;
+  --color-brand-primary: #FACC15;
+  --color-brand-accent: #FFFF00;
   --color-brand-surface: rgba(255, 255, 255, 0.03);
 }
 
 @layer base {
   body {
     @apply bg-brand-black text-white font-sans antialiased;
-    background: radial-gradient(circle at 10% 10%, #0A1628 0%, #05070A 100%);
+    background: radial-gradient(circle at 10% 10%, #1A1A1A 0%, #05070A 100%);
     min-height: 100vh;
   }
 }
@@ -26,11 +27,11 @@
   }
   
   .neon-border {
-    @apply border border-brand-neon/40 shadow-[0_0_15px_rgba(0,242,255,0.4)];
+    @apply border border-brand-primary/40 shadow-[0_0_15px_rgba(250,204,21,0.4)];
   }
   
   .btn-primary {
-    @apply bg-gradient-to-br from-[#0066FF] to-[#0044BB] hover:opacity-90 text-white font-bold py-4 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,102,255,0.4)];
+    @apply bg-gradient-to-br from-[#FACC15] to-[#EAB308] hover:opacity-90 text-brand-black font-bold py-4 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(250,204,21,0.4)];
   }
   
   .btn-ghost {

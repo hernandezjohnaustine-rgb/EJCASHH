@@ -6,11 +6,11 @@ import GlassCard from "../components/GlassCard";
 const methods = [
   { id: "gcash", label: "GCash", icon: "G", color: "bg-blue-500" },
   { id: "maya", label: "Maya", icon: "M", color: "bg-green-500" },
-  { id: "bank", label: "Bank Transfer", icon: Landmark, color: "bg-brand-blue" },
+  { id: "bank", label: "Bank Transfer", icon: Landmark, color: "bg-brand-primary" },
   { id: "crypto", label: "Crypto Wallet", icon: "₿", color: "bg-orange-500" },
 ];
 
-export default function WithdrawScreen({ onBack, balance }: { onBack: () => void, balance: number }) {
+export default function WithdrawScreen({ onBack, balance, onConfirm }: { onBack: () => void, balance: number, onConfirm: (amount: number) => void }) {
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState(1);
   const [selectedMethod, setSelectedMethod] = useState("");
@@ -20,11 +20,17 @@ export default function WithdrawScreen({ onBack, balance }: { onBack: () => void
     if (step === 2 && amount) setStep(3);
   };
 
+  const handleConfirm = () => {
+     if (amount) {
+        onConfirm(parseFloat(amount));
+     }
+  };
+
   if (step === 3) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-brand-black p-6 pt-12 animate-in fade-in zoom-in duration-500">
-        <div className="w-24 h-24 rounded-[40px] bg-brand-neon/10 border border-brand-neon/20 flex items-center justify-center mb-8">
-           <CheckCircle2 className="w-12 h-12 text-brand-neon" />
+        <div className="w-24 h-24 rounded-[40px] bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center mb-8">
+           <CheckCircle2 className="w-12 h-12 text-brand-primary" />
         </div>
         <h2 className="text-2xl font-display font-bold mb-2">Withdrawal Initiated</h2>
         <p className="text-sm text-white/40 text-center mb-12 max-w-[280px]">
@@ -58,7 +64,7 @@ export default function WithdrawScreen({ onBack, balance }: { onBack: () => void
         >
            <div className="text-center px-4">
               <p className="text-xs text-white/40 uppercase tracking-widest font-bold mb-1">Available for Withdrawal</p>
-              <h3 className="text-3xl font-display font-black text-brand-neon italic">₱{balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
+              <h3 className="text-3xl font-display font-black text-brand-primary italic">₱{balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
            </div>
 
            <div className="flex flex-col gap-4 mt-4">
@@ -68,7 +74,7 @@ export default function WithdrawScreen({ onBack, balance }: { onBack: () => void
                     <button
                       key={m.id}
                       onClick={() => setSelectedMethod(m.id)}
-                      className={`glass-card !p-5 flex items-center justify-between transition-all ${selectedMethod === m.id ? 'border-brand-neon/40 bg-brand-neon/5' : 'border-white/5 opacity-60'}`}
+                      className={`glass-card !p-5 flex items-center justify-between transition-all ${selectedMethod === m.id ? 'border-brand-primary/40 bg-brand-primary/5' : 'border-white/5 opacity-60'}`}
                     >
                        <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 rounded-2xl ${m.color} flex items-center justify-center font-black text-white italic`}>
@@ -76,7 +82,7 @@ export default function WithdrawScreen({ onBack, balance }: { onBack: () => void
                           </div>
                           <h5 className="font-bold">{m.label}</h5>
                        </div>
-                       {selectedMethod === m.id && <CheckCircle2 className="w-5 h-5 text-brand-neon" />}
+                       {selectedMethod === m.id && <CheckCircle2 className="w-5 h-5 text-brand-primary" />}
                     </button>
                  ))}
               </div>
@@ -106,7 +112,7 @@ export default function WithdrawScreen({ onBack, balance }: { onBack: () => void
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full bg-white/5 border border-white/10 rounded-[32px] py-10 px-12 text-5xl font-display font-black text-center focus:outline-none focus:border-brand-blue/50 transition-all placeholder:text-white/5"
+                className="w-full bg-white/5 border border-white/10 rounded-[32px] py-10 px-12 text-5xl font-display font-black text-center focus:outline-none focus:border-brand-primary/50 transition-all placeholder:text-white/5"
               />
            </div>
 
@@ -129,13 +135,13 @@ export default function WithdrawScreen({ onBack, balance }: { onBack: () => void
              </div>
              <div className="flex items-center justify-between text-xs px-2">
                 <span className="text-white/40">Net Amount</span>
-                <span className="font-bold text-brand-neon">₱{amount ? (parseFloat(amount) - 15).toLocaleString() : '0.00'}</span>
+                <span className="font-bold text-brand-primary">₱{amount ? (parseFloat(amount) - 15).toLocaleString() : '0.00'}</span>
              </div>
           </div>
 
           <button 
             disabled={!amount || parseFloat(amount) > balance}
-            onClick={handleNext}
+            onClick={handleConfirm}
             className="btn-primary w-full mt-4 disabled:opacity-30"
           >
             Confirm Withdrawal

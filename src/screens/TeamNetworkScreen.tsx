@@ -27,7 +27,7 @@ export default function TeamNetworkScreen({ onBack }: { onBack: () => void }) {
           <input
             type="text"
             placeholder="Search team member..."
-            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-blue/30 transition-all font-medium"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-primary/30 transition-all font-medium"
           />
         </div>
       </section>
@@ -60,13 +60,13 @@ export default function TeamNetworkScreen({ onBack }: { onBack: () => void }) {
                    <div>
                       <div className="flex items-center gap-2">
                          <h4 className="text-sm font-bold">{member.name}</h4>
-                         <span className="text-[8px] px-1.5 py-0.5 bg-brand-blue/20 text-brand-blue rounded-md font-black uppercase tracking-tighter">L{member.level}</span>
+                         <span className="text-[8px] px-1.5 py-0.5 bg-brand-primary/20 text-brand-primary rounded-md font-black uppercase tracking-tighter">L{member.level}</span>
                       </div>
                       <p className="text-[10px] text-white/40 font-medium">{member.email}</p>
                    </div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1">
-                   <div className={`w-2 h-2 rounded-full ${member.status === 'Active' ? 'bg-brand-neon animate-pulse' : 'bg-white/10'}`}></div>
+                   <div className={`w-2 h-2 rounded-full ${member.status === 'Active' ? 'bg-brand-primary animate-pulse' : 'bg-white/10'}`}></div>
                    <span className="text-[10px] font-bold text-white/20">{member.date}</span>
                 </div>
              </motion.div>

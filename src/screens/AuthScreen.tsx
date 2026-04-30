@@ -25,7 +25,7 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-screen bg-brand-black flex flex-col p-8 pt-20 relative overflow-hidden">
       {/* Background Orbs */}
-      <div className="absolute top-[-100px] left-[-100px] w-[400px] h-[400px] bg-brand-blue/10 rounded-full blur-[80px] pointer-events-none"></div>
+      <div className="absolute top-[-100px] left-[-100px] w-[400px] h-[400px] bg-brand-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
       
       <div className="flex flex-col items-start gap-12 mb-12 relative z-10 w-full max-w-[300px] mx-auto">
         <div className="flex items-center gap-4">
@@ -34,18 +34,18 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
              animate={{ scale: 1, opacity: 1 }}
              className="w-12 h-12 relative"
           >
-             <div className="absolute inset-0 bg-brand-neon blur-[20px] opacity-20"></div>
-             <div className="absolute inset-0 rounded-xl border border-brand-neon/30 bg-brand-navy flex items-center justify-center overflow-hidden">
-               <div className="relative text-xl font-display font-black italic tracking-tighter text-brand-neon">EJ</div>
+             <div className="absolute inset-0 bg-brand-primary blur-[20px] opacity-20"></div>
+             <div className="absolute inset-0 rounded-xl border border-brand-primary/30 bg-brand-navy flex items-center justify-center overflow-hidden">
+               <div className="relative text-xl font-display font-black italic tracking-tighter text-brand-primary">UW</div>
              </div>
           </motion.div>
-          <h1 className="text-xl font-display font-bold tracking-[2px]">EJCASHH</h1>
+          <h1 className="text-xl font-display font-bold tracking-[2px]">UWINS</h1>
         </div>
 
         <div className="text-left">
           <h2 className="text-4xl font-bold tracking-tight leading-tight">
             Welcome<br/>
-            <span className="text-brand-neon drop-shadow-[0_0_10px_rgba(0,242,255,0.4)]">Back.</span>
+            <span className="text-brand-primary drop-shadow-[0_0_10px_rgba(250,204,21,0.4)]">Back.</span>
           </h2>
           <p className="text-sm text-white/40 mt-4 font-medium">Please enter your 6-digit security PIN to access your account.</p>
         </div>
@@ -58,7 +58,7 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
               key={i} 
               className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${
                 pin.length > i 
-                ? "bg-brand-neon border-brand-neon shadow-[0_0_10px_#00F0FF]" 
+                ? "bg-brand-primary border-brand-primary shadow-[0_0_10px_#FACC15]" 
                 : "border-white/20 bg-transparent"
               }`}
             />
@@ -72,20 +72,20 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
           <button 
             key={num}
             onClick={() => handleKeypad(num.toString())}
-            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold hover:bg-white/5 active:scale-95 transition-all"
+            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold hover:bg-white/5 active:scale-95 transition-all text-white"
           >
             {num}
           </button>
         ))}
         <button 
-           className="w-16 h-16 rounded-full flex items-center justify-center hover:bg-white/5 active:scale-95 transition-all text-brand-neon"
+           className="w-16 h-16 rounded-full flex items-center justify-center hover:bg-white/5 active:scale-95 transition-all text-brand-primary"
            onClick={() => setIsFaceId(!isFaceId)}
         >
           <Fingerprint className="w-8 h-8" />
         </button>
         <button 
           onClick={() => handleKeypad("0")}
-          className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold hover:bg-white/5 active:scale-95 transition-all"
+          className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold hover:bg-white/5 active:scale-95 transition-all text-white"
         >
           0
         </button>

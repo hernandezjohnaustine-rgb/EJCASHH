@@ -27,9 +27,9 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="relative -top-10 bg-brand-blue p-4 rounded-3xl shadow-[0_4px_20px_rgba(0,102,255,0.6)] border-[6px] border-brand-black active:scale-95 transition-transform"
+                className="relative -top-10 bg-brand-primary p-4 rounded-3xl shadow-[0_4px_20px_rgba(250,204,21,0.6)] border-[6px] border-brand-black active:scale-95 transition-transform"
               >
-                <Icon className="w-8 h-8 text-white" />
+                <Icon className="w-8 h-8 text-brand-black" />
               </button>
             );
           }
@@ -40,16 +40,16 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
               onClick={() => setActiveTab(tab.id)}
               className="flex flex-col items-center gap-1 group active:scale-95 transition-transform"
             >
-              <div className={`relative p-2 rounded-2xl transition-all ${isActive ? "text-brand-neon" : "text-white/40 group-hover:text-white/60"}`}>
+              <div className={`relative p-2 rounded-2xl transition-all ${isActive ? "text-brand-primary" : "text-white/40 group-hover:text-white/60"}`}>
                 <Icon className="w-6 h-6" />
                 {isActive && (
                   <motion.div
                     layoutId="nav-active"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-neon rounded-full"
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-primary rounded-full"
                   />
                 )}
               </div>
-              <span className={`text-[10px] font-medium uppercase tracking-wider ${isActive ? "text-brand-neon" : "text-white/40"}`}>
+              <span className={`text-[10px] font-medium uppercase tracking-wider ${isActive ? "text-brand-primary" : "text-white/40"}`}>
                 {tab.label}
               </span>
             </button>

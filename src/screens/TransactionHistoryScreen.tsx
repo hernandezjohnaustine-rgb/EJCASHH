@@ -5,18 +5,16 @@ import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import TransactionDetailModal from "../components/TransactionDetailModal";
 import { Transaction } from "../types";
 
-const transactions: Transaction[] = [
-  { id: 1, type: "out", title: "Starbucks Coffee", date: "Today, 10:45 AM", amount: "-₱185.00", category: "Food & Drinks", status: "Completed" },
-  { id: 2, type: "in", title: "Monthly Salary", date: "Yesterday, 06:00 PM", amount: "+₱42,500.00", category: "Work", status: "Completed" },
-  { id: 3, type: "out", title: "Meralco Bill", date: "April 25, 02:30 PM", amount: "-₱3,420.50", category: "Bills", status: "Completed" },
-  { id: 4, type: "out", title: "Netflix Subscription", date: "April 24, 09:00 AM", amount: "-₱549.00", category: "Entertainment", status: "Completed" },
-  { id: 5, type: "out", title: "7-Eleven Store", date: "April 23, 11:15 PM", amount: "-₱120.00", category: "Shopping", status: "Completed" },
-  { id: 6, type: "in", title: "Gcash Cash-In", date: "April 22, 09:00 AM", amount: "+₱5,000.00", category: "Cash In", status: "Completed" },
-  { id: 7, type: "out", title: "Steam Wallet", date: "April 21, 04:20 PM", amount: "-₱1,000.00", category: "Games", status: "Completed" },
-];
-
-export default function TransactionHistoryScreen({ onBack }: { onBack: () => void }) {
+export default function TransactionHistoryScreen({ onBack, transactions }: { onBack: () => void, transactions: Transaction[] }) {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+
+  const income = transactions
+    .filter(tx => tx.type === 'in')
+    .reduce((acc, tx) => acc + parseFloat(tx.amount.replace(/[₱,+]/g, '')), 0);
+  
+  const outcome = transactions
+    .filter(tx => tx.type === 'out')
+    .reduce((acc, tx) => acc + parseFloat(tx.amount.replace(/[₱,-]/g, '')), 0);
 
   return (
     <div className="flex flex-col gap-6 h-full bg-brand-black p-6 pt-12 overflow-y-auto pb-32">
@@ -26,19 +24,19 @@ export default function TransactionHistoryScreen({ onBack }: { onBack: () => voi
         </button>
         <h2 className="text-lg font-display font-bold tracking-tight uppercase">History</h2>
         <button className="p-2 hover:bg-white/5 rounded-2xl transition-colors">
-          <Download className="w-5 h-5 text-brand-neon" />
+          <Download className="w-5 h-5 text-brand-primary" />
         </button>
       </header>
 
       {/* Stats Summary */}
       <section className="grid grid-cols-2 gap-4">
-         <div className="glass-card !p-4 bg-brand-blue/10 border-brand-blue/20">
+         <div className="glass-card !p-4 bg-brand-primary/10 border-brand-primary/20">
             <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Income</span>
-            <p className="text-lg font-display font-bold text-brand-neon mt-1">₱47,500.00</p>
+            <p className="text-lg font-display font-bold text-brand-primary mt-1">₱{income.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
          </div>
          <div className="glass-card !p-4 bg-red-500/10 border-red-500/20">
             <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Outcome</span>
-            <p className="text-lg font-display font-bold text-red-500 mt-1">₱5,414.50</p>
+            <p className="text-lg font-display font-bold text-red-500 mt-1">₱{outcome.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
          </div>
       </section>
 
@@ -61,13 +59,13 @@ export default function TransactionHistoryScreen({ onBack }: { onBack: () => voi
       <section className="flex flex-col gap-4">
          <div className="flex items-center justify-between px-2">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Past 30 Days</h3>
-            <div className="flex items-center gap-1 text-[10px] text-brand-neon font-bold">
+            <div className="flex items-center gap-1 text-[10px] text-brand-primary font-bold">
                <Calendar className="w-3 h-3" />
                <span>April 2026</span>
             </div>
          </div>
 
-          <div className="flex flex-col gap-3">
+           <div className="flex flex-col gap-3">
             {transactions.map((tx, i) => (
               <motion.div
                 key={tx.id}
@@ -78,8 +76,8 @@ export default function TransactionHistoryScreen({ onBack }: { onBack: () => voi
                 className="glass-card !p-4 flex items-center justify-between group hover:bg-white/10 transition-colors cursor-pointer"
               >
                   <div className="flex items-center gap-4">
-                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.type === 'in' ? 'bg-brand-neon/10' : 'bg-white/5'}`}>
-                        {tx.type === 'in' ? <ArrowDownLeft className="w-5 h-5 text-brand-neon" /> : <ArrowUpRight className="w-5 h-5 text-white/60" />}
+                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.type === 'in' ? 'bg-brand-primary/10' : 'bg-white/5'}`}>
+                        {tx.type === 'in' ? <ArrowDownLeft className="w-5 h-5 text-brand-primary" /> : <ArrowUpRight className="w-5 h-5 text-white/60" />}
                      </div>
                      <div className="text-left">
                         <h4 className="text-sm font-bold tracking-tight">{tx.title}</h4>
@@ -91,7 +89,7 @@ export default function TransactionHistoryScreen({ onBack }: { onBack: () => voi
                      </div>
                   </div>
                   <div className="text-right">
-                     <p className={`text-sm font-display font-bold ${tx.type === 'in' ? 'text-brand-neon' : 'text-white'}`}>
+                     <p className={`text-sm font-display font-bold ${tx.type === 'in' ? 'text-brand-primary' : 'text-white'}`}>
                         {tx.amount}
                      </p>
                   </div>
