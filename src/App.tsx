@@ -26,7 +26,7 @@ import CashInScreen from "./screens/CashInScreen";
 import WithdrawScreen from "./screens/WithdrawScreen";
 import TeamNetworkScreen from "./screens/TeamNetworkScreen";
 import { UserStats, Transaction } from "./types";
-import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
 
 import TradingBotScreen from "./screens/TradingBotScreen";
 import RiderScreen from "./screens/RiderScreen";
@@ -55,6 +55,7 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [firebaseError, setFirebaseError] = useState<{ title: string; message: string; code: string } | null>(null);
 
   useEffect(() => {
     document.documentElement.className = theme;
@@ -70,67 +71,90 @@ export default function App() {
     if (ref) {
       localStorage.setItem("referredBy", ref);
     }
+  }, []);
 
-    // Connection test
+  useEffect(() => {
+    // Connection test & Config check
     const testConnection = async () => {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-        if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration. The client is offline.");
+      } catch (error: any) {
+        if (error.message.includes('the client is offline')) {
+          setFirebaseError({
+            title: "Firestore Offline",
+            message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your Firebase Console.",
+            code: "offline"
+          });
         }
       }
     };
+    
+    // Check if we are in an error state from a previous redirect or popup failure
+    const checkAuthStatus = () => {
+      // Sometimes errors are passed in URLs or stored in localStorage by Firebase
+      // But usually handled by the SDK. We'll listen for specific errors if needed.
+    };
+
     testConnection();
+    checkAuthStatus();
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         
-        // Ensure user exists in Firestore
+        // Ensure user exists in Firestore with retry logic
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        try {
-          const userDoc = await getDoc(userDocRef);
-          
-          if (!userDoc.exists()) {
-            const referredBy = localStorage.getItem("referredBy");
-            const newUser: any = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || "New Member",
-              photoURL: firebaseUser.photoURL,
-              isActivated: false,
-              balance: 0,
-              earningsWallet: 0,
-              referralCode: "EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase(),
-              referredBy: referredBy || null,
-              createdAt: new Date().toISOString(),
-              stats: {
-                vipLevel: 1,
-                directReferrals: 0,
-                teamSize: 0,
-                totalEarnings: 0
-              }
-            };
-            await setDoc(userDocRef, newUser);
-            setUserProfile(newUser);
-            setUserStats(prev => ({ ...prev, isActivated: false }));
-            localStorage.removeItem("referredBy"); // Clean up
-          } else {
-            const data = userDoc.data();
-            setUserProfile(data);
-            setBalance(data.balance || 0);
-            setUserStats(prev => ({
-              ...prev,
-              isActivated: data.isActivated || false,
-              totalEarnings: data.earningsWallet || 0,
-              directReferrals: data.stats?.directReferrals || 0,
-              teamSize: data.stats?.teamSize || 0
-            }));
+        const fetchUserProfile = async (retryCount = 0): Promise<void> => {
+          try {
+            const userDoc = await getDoc(userDocRef);
+            
+            if (!userDoc.exists()) {
+              const referredBy = localStorage.getItem("referredBy");
+              const newUser: any = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName || "New Member",
+                photoURL: firebaseUser.photoURL,
+                isActivated: false,
+                balance: 0,
+                earningsWallet: 0,
+                referralCode: "EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase(),
+                referredBy: referredBy || null,
+                createdAt: new Date().toISOString(),
+                stats: {
+                  vipLevel: 1,
+                  directReferrals: 0,
+                  teamSize: 0,
+                  totalEarnings: 0
+                }
+              };
+              await setDoc(userDocRef, newUser);
+              setUserProfile(newUser);
+              setUserStats(prev => ({ ...prev, isActivated: false }));
+              localStorage.removeItem("referredBy");
+            } else {
+              const data = userDoc.data();
+              setUserProfile(data);
+              setBalance(data.balance || 0);
+              setUserStats(prev => ({
+                ...prev,
+                isActivated: data.isActivated || false,
+                totalEarnings: data.earningsWallet || 0,
+                directReferrals: data.stats?.directReferrals || 0,
+                teamSize: data.stats?.teamSize || 0
+              }));
+            }
+          } catch (error: any) {
+            if (retryCount < 2 && (error.code === 'permission-denied' || error.message?.includes('permissions'))) {
+              console.log(`Retrying profile fetch... (Attempt ${retryCount + 1})`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              return fetchUserProfile(retryCount + 1);
+            }
+            handleFirestoreError(error, OperationType.GET, "users/" + firebaseUser.uid);
           }
-        } catch (error) {
-          handleFirestoreError(error, OperationType.GET, "users/" + firebaseUser.uid);
-        }
+        };
+
+        await fetchUserProfile();
 
         // Real-time user data
         const subUser = onSnapshot(userDocRef, (doc) => {
@@ -256,6 +280,43 @@ export default function App() {
       setActiveTab("history");
     }, 2000);
   };
+
+  if (firebaseError) {
+    return (
+      <div className="min-h-screen bg-brand-black flex items-center justify-center p-6">
+        <div className="glass-card text-center max-w-sm">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold mb-2 text-white">{firebaseError.title}</h2>
+          <p className="text-sm text-brand-text/60 mb-6">{firebaseError.message}</p>
+          <div className="p-4 bg-brand-card/20 rounded-xl text-left font-mono text-[10px] mb-6 border border-brand-border">
+            <p className="text-brand-primary mb-2">// Setup Guide:</p>
+            {firebaseError.code === 'offline' ? (
+              <ul className="space-y-1 list-disc pl-4 text-brand-text/80">
+                <li>Open Firebase Console</li>
+                <li>Go to Firestore Database</li>
+                <li>Click "Create Database"</li>
+                <li>Select "Native Mode"</li>
+              </ul>
+            ) : (
+              <ul className="space-y-1 list-disc pl-4 text-brand-text/80">
+                <li>Go to Auth &gt; Settings</li>
+                <li>Add {window.location.hostname}</li>
+                <li>to "Authorized domains"</li>
+              </ul>
+            )}
+          </div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl hover:bg-brand-primary/90 transition-all active:scale-95"
+          >
+            I've Updated My Console
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

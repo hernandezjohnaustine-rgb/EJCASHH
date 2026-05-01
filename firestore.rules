@@ -15,12 +15,19 @@ service cloud.firestore {
 
     // --- VALIDATION HELPERS ---
     function isValidUser(data) {
-      return data.uid is string && data.uid.size() <= 128
+      return data.keys().hasAll(['uid', 'email', 'isActivated', 'balance', 'earningsWallet', 'referralCode', 'referredBy', 'createdAt', 'stats'])
+        && data.keys().size() >= 9 && data.keys().size() <= 11 // Allowing for optional displayName and photoURL
+        && data.uid is string && data.uid.size() <= 128
         && data.email is string && data.email.size() <= 256
         && data.isActivated is bool
         && data.balance is number
+        && data.earningsWallet is number
         && (data.displayName == null || (data.displayName is string && data.displayName.size() <= 128))
-        && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 512));
+        && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 512))
+        && (data.referralCode == null || (data.referralCode is string && data.referralCode.size() <= 32))
+        && (data.referredBy == null || (data.referredBy is string && data.referredBy.size() <= 128))
+        && (data.createdAt == null || (data.createdAt is string))
+        && (data.stats == null || data.stats is map);
     }
 
     function isValidTransaction(data) {
@@ -38,24 +45,27 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
-      allow get: if isSignedIn(); // Allow checking other's profile for referrals
-      allow list: if isSignedIn(); // Needed for query-by-referral-code
-
+      allow read: if isSignedIn() && (request.auth.uid == userId || true); // Explicitly allowing all signed in users to read profiles for referrals
       allow create: if isOwner(userId) 
-        && incoming().keys().hasAll(['uid', 'email', 'isActivated', 'balance', 'createdAt'])
-        && incoming().isActivated == false;
+        && isValidUser(incoming())
+        && incoming().isActivated == false
+        && incoming().balance == 0
+        && incoming().uid == userId;
 
-      allow update: if (isOwner(userId) || isSignedIn())
-        && (
-          // Owner actions
-          (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
-            'balance', 'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 
-            'tradingDaysCompleted', 'isActivated', 'activatedAt', 'displayName', 'photoURL'
-          ]))
-          ||
-          // Sponsor earning actions (anyone can increment earnings if they are a referral)
-          (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats']))
-        );
+      allow update: if isSignedIn() && (
+        // Action: Self Update
+        (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
+          'balance', 'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 
+          'tradingDaysCompleted', 'isActivated', 'activatedAt', 'displayName', 'photoURL', 'stats'
+        ]))
+        ||
+        // Action: Sponsor earning update
+        (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats']))
+      );
+    }
+
+    match /users {
+      allow list: if isSignedIn();
     }
 
     // Transaction Rules

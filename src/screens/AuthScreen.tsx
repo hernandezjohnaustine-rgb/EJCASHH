@@ -38,7 +38,15 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
       onLogin();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to sign in. Please try again.");
+      if (err.code === "auth/configuration-not-found") {
+        setError("Firebase Error: Please enable 'Google' as a sign-in provider in your Firebase Console (Authentication > Sign-in method).");
+      } else if (err.code === "auth/unauthorized-domain") {
+        setError(`Firebase Error: Unauthorized domain. Please add "${window.location.hostname}" to your Firebase Console (Authentication > Settings > Authorized domains).`);
+      } else if (err.code === "auth/popup-closed-by-user") {
+        setError("Login cancelled. Please try again.");
+      } else {
+        setError(err.message || "Failed to sign in. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
