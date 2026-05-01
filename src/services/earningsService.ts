@@ -9,38 +9,8 @@ import {
   Timestamp,
   increment
 } from "firebase/firestore";
-import { db, auth } from "../lib/firebase";
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: any;
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
+import { db } from "../lib/firebase";
+import { handleFirestoreError, OperationType } from "../lib/firestoreUtils";
 
 const REWARD_STRUCTURE = [
   { level: 1, percent: 0.30, amount: 108.00 }, // Direct
@@ -96,19 +66,25 @@ export async function processActivation(userId: string) {
           transaction.update(sponsorRef, {
             balance: increment(reward.amount),
             earningsWallet: increment(reward.amount),
-            "stats.teamSize": increment(1),
-            ...(depth === 1 ? { "stats.directReferrals": increment(1) } : {})
+            "stats.teamSize": increment(1)
           });
+          if (depth === 1) {
+            transaction.update(sponsorRef, {
+              "stats.directReferrals": increment(1)
+            });
+          }
 
-          const txRef = doc(collection(db, `users/${sponsorDoc.id}/transactions`));
+          const txRef = doc(collection(db, "transactions"));
           transaction.set(txRef, {
+            userId: sponsorDoc.id,
             title: depth === 1 ? "Direct Referral Bonus" : `Indirect Bonus (L${depth})`,
-            amount: `+₱${reward.amount.toFixed(2)}`,
+            amount: reward.amount,
             type: "in",
             category: "Commission",
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            status: "Completed",
             timestamp: Timestamp.now(),
-            fromUser: userData.displayName || "New Member"
+            fromUser: userData.displayName || "New Member",
+            referenceNo: "EJ-REF-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
           });
         }
 

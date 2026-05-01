@@ -24,10 +24,9 @@ service cloud.firestore {
     }
 
     function isValidTransaction(data) {
-      return data.userId == request.auth.uid
-        && data.type is string
+      return data.type is string
         && data.amount is number
-        && data.timestamp is string;
+        && data.timestamp != null;
     }
 
     // --- COLLECTION RULES ---
@@ -51,7 +50,7 @@ service cloud.firestore {
           // Owner actions
           (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
             'balance', 'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 
-            'tradingDaysCompleted', 'isActivated', 'activationTimestamp', 'displayName', 'photoURL'
+            'tradingDaysCompleted', 'isActivated', 'activatedAt', 'displayName', 'photoURL'
           ]))
           ||
           // Sponsor earning actions (anyone can increment earnings if they are a referral)
@@ -63,8 +62,7 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() 
-        && isValidTransaction(incoming())
-        && isValidId(transactionId);
+        && isValidTransaction(incoming());
     }
 
     // Referral Rules

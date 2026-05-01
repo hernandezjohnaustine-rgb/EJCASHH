@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { doc, getDoc, setDoc, onSnapshot, collection, query, where, orderBy, limit, getDocFromServer } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, collection, query, where, orderBy, limit, getDocFromServer, Timestamp } from "firebase/firestore";
 import { auth, db } from "./lib/firebase";
 import { handleFirestoreError, OperationType } from "./lib/firestoreUtils";
 import BottomNav from "./components/BottomNav";
@@ -142,6 +142,8 @@ export default function App() {
               ...prev,
               isActivated: data.isActivated || false,
               totalEarnings: data.earningsWallet || 0,
+              directReferrals: data.stats?.directReferrals || 0,
+              teamSize: data.stats?.teamSize || 0
             }));
           }
         }, (error) => {
@@ -156,12 +158,16 @@ export default function App() {
           limit(20)
         );
         const subTx = onSnapshot(q, (snapshot) => {
-          const txs: any[] = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            amount: `${doc.data().type === 'in' ? '+' : '-'}₱${doc.data().amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-            date: new Date(doc.data().timestamp).toLocaleString(),
-          }));
+          const txs: any[] = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const ts = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+            return {
+              id: doc.id,
+              ...data,
+              amount: `${data.type === 'in' ? '+' : '-'}₱${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+              date: ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            };
+          });
           setTransactions(txs);
         }, (error) => {
           handleFirestoreError(error, OperationType.GET, "transactions");
@@ -207,25 +213,7 @@ export default function App() {
     setActiveTab(tab);
   };
 
-  const handleActivation = async () => {
-    if (!user) return;
-    
-    const userDocRef = doc(db, "users", user.uid);
-    
-    // Create transaction for activation
-    await addTransaction({ 
-      title: "Account Activation Fee", 
-      rawAmount: 360, 
-      category: "Activation", 
-      type: "out",
-      status: "Completed"
-    });
-
-    await setDoc(userDocRef, { 
-      isActivated: true, 
-      activationTimestamp: new Date().toISOString() 
-    }, { merge: true });
-
+  const handleActivation = () => {
     setActiveView(null);
     setActiveTab("home");
   };
@@ -246,7 +234,7 @@ export default function App() {
       status: "Completed",
       referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
       paymentMethod: tx.paymentMethod || "EJCASHH Wallet",
-      timestamp: new Date().toISOString(),
+      timestamp: Timestamp.now(),
     };
 
     try {
@@ -326,7 +314,7 @@ export default function App() {
         addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" });
         // setUserStats update is handled by onSnapshot
       }} />;
-      case "network": return <TeamNetworkScreen onBack={() => setActiveView(null)} />;
+      case "network": return <TeamNetworkScreen onBack={() => setActiveView(null)} referralCode={userProfile?.referralCode || ""} />;
       default: return null;
     }
   };

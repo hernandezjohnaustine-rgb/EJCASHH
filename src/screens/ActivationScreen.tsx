@@ -10,7 +10,7 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
   const [error, setError] = useState<string | null>(null);
 
   const benefits = [
-    "10% Direct Referral Commission",
+    "30% Direct Referral Commission",
     "MLM Profit Sharing (Level 1-10)",
     "Unlock Full Withdrawal Features",
     "Daily Login Bonus Activation",
