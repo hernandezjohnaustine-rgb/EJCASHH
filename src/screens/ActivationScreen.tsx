@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Zap, ShieldCheck, CreditCard, ChevronRight, Check, X, Loader2 } from "lucide-react";
+import { Zap, ShieldCheck, CreditCard, ChevronRight, Check, X, Loader2, AlertCircle } from "lucide-react";
 import GlassCard from "../components/GlassCard";
+import { processActivation } from "../services/earningsService";
 
-export default function ActivationScreen({ onActivate }: { onActivate: () => void }) {
+export default function ActivationScreen({ uid, onActivate }: { uid: string, onActivate: () => void }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const benefits = [
-    "30% Direct Referral Commission",
-    "5% Daily Trading ROI (10 Days)",
-    "10-Level Indirect Income Stream",
+    "10% Direct Referral Commission",
+    "MLM Profit Sharing (Level 1-10)",
+    "Unlock Full Withdrawal Features",
     "Daily Login Bonus Activation",
     "Unlock VIP Ranking System",
     "Instant EJCASHH ID Verification"
@@ -18,10 +20,16 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
 
   const handlePay = async () => {
     setIsProcessing(true);
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsProcessing(false);
-    onActivate();
+    setError(null);
+    try {
+      await processActivation(uid);
+      setIsProcessing(false);
+      onActivate();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to process activation. Please try again.");
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -154,10 +162,14 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
 
                     <button 
                       onClick={handlePay}
+                      disabled={isProcessing}
                       className="btn-primary w-full h-16 text-lg tracking-tight mb-4"
                     >
                       Pay Now
                     </button>
+                    {error && (
+                       <p className="text-[10px] text-center text-red-400 font-bold mb-4 uppercase tracking-widest">{error}</p>
+                    )}
                     <p className="text-[10px] text-center text-white/30 font-bold uppercase tracking-widest">By activating, you agree to our Terms of Earnings.</p>
                  </div>
                )}

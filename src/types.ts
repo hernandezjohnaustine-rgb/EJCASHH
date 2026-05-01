@@ -1,3 +1,13 @@
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  referralCode: string;
+  referredBy?: string;
+  createdAt: string;
+  stats: UserStats;
+}
+
 export interface Transaction {
   id: number;
   type: "in" | "out";

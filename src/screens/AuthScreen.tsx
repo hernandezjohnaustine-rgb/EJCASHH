@@ -1,15 +1,36 @@
-import { motion } from "motion/react";
-import { useState } from "react";
-import { ShieldCheck, LogIn } from "lucide-react";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { motion, AnimatePresence } from "motion/react";
+import { useState, useEffect } from "react";
+import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Github } from "lucide-react";
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  updateProfile 
+} from "firebase/auth";
 import { auth } from "../lib/firebase";
 
 export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check for referral code in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+      setMode("register");
+    }
+  }, []);
 
   const handleGoogleLogin = async () => {
-    setIsLoggingIn(true);
+    setIsLoading(true);
     setError(null);
     try {
       const provider = new GoogleAuthProvider();
@@ -19,75 +40,190 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
       console.error(err);
       setError(err.message || "Failed to sign in. Please try again.");
     } finally {
-      setIsLoggingIn(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (mode === "login") {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName });
+      }
+      onLogin();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Authentication failed. Check your credentials.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-brand-black flex flex-col p-8 pt-20 relative overflow-hidden">
+    <div className="min-h-screen bg-brand-black flex flex-col p-8 pt-10 relative overflow-hidden">
       {/* Background Orbs */}
       <div className="absolute top-[-100px] left-[-100px] w-[400px] h-[400px] bg-brand-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
       
-      <div className="flex flex-col items-center text-center gap-12 mb-12 relative z-10 w-full max-w-[320px] mx-auto">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-8 relative z-10 w-full max-w-[340px] mx-auto">
+        {/* Logo Section */}
+        <div className="flex flex-col items-center gap-3">
           <motion.div
              initial={{ scale: 0.8, opacity: 0 }}
              animate={{ scale: 1, opacity: 1 }}
-             className="w-20 h-20 relative"
+             className="w-16 h-16 relative"
           >
              <div className="absolute inset-0 bg-brand-primary blur-[30px] opacity-20"></div>
              <div className="absolute inset-0 rounded-2xl border border-brand-primary/30 bg-brand-navy flex items-center justify-center overflow-hidden">
-               <div className="relative text-3xl font-display font-black italic tracking-tighter text-brand-primary flex flex-col items-center">
-                  <span className="text-4xl leading-none">EJ</span>
-                  <span className="text-[10px] tracking-[2px] mt-1">CASHH</span>
-               </div>
+                <div className="relative text-2xl font-display font-black italic tracking-tighter text-brand-primary flex flex-col items-center">
+                   <span className="text-3xl leading-none">EJ</span>
+                   <span className="text-[8px] tracking-[2px] mt-1">CASHH</span>
+                </div>
              </div>
           </motion.div>
-          <h1 className="text-2xl font-display font-black tracking-[4px] text-brand-primary">EJCASHH</h1>
-          <p className="text-[10px] text-brand-primary/60 font-bold uppercase tracking-[0.3em] font-sans">Digital Marketing Services</p>
+          <div className="text-center">
+            <h1 className="text-xl font-display font-black tracking-[4px] text-brand-primary">EJCASHH</h1>
+            <p className="text-[8px] text-brand-primary/60 font-bold uppercase tracking-[0.3em]">Fintech Ecosystem</p>
+          </div>
         </div>
 
-        <div className="text-center w-full">
-          <h2 className="text-4xl font-bold tracking-tight leading-tight mb-4">
-            Financial<br/>
-            <span className="text-brand-primary drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">Evolution.</span>
-          </h2>
-          <p className="text-sm text-brand-text/40 font-medium px-4">The ultimate fintech ecosystem with built-in earning opportunities.</p>
+        {/* Tab Switcher */}
+        <div className="w-full h-14 bg-brand-card/5 p-1 rounded-2xl border border-brand-border flex">
+           <button 
+             onClick={() => setMode("login")}
+             className={`flex-1 flex items-center justify-center gap-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "login" ? "bg-brand-primary text-brand-black shadow-lg" : "text-brand-text/40"}`}
+           >
+              <LogIn className="w-4 h-4" />
+              Login
+           </button>
+           <button 
+             onClick={() => setMode("register")}
+             className={`flex-1 flex items-center justify-center gap-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "register" ? "bg-brand-primary text-brand-black shadow-lg" : "text-brand-text/40"}`}
+           >
+              <UserPlus className="w-4 h-4" />
+              Register
+           </button>
         </div>
 
-        <div className="w-full flex flex-col gap-4 mt-8">
-          <button 
-            disabled={isLoggingIn}
-            onClick={handleGoogleLogin}
-            className="w-full h-14 rounded-2xl bg-white text-black font-black flex items-center justify-center gap-3 hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-          >
-            {isLoggingIn ? (
+        {/* Auth Form */}
+        <form onSubmit={handleAuth} className="w-full flex flex-col gap-4">
+          <AnimatePresence mode="wait">
+            {mode === "register" && (
               <motion.div 
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full"
-              />
-            ) : (
-              <>
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                <span>Continue with Google</span>
-              </>
+                key="name"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex flex-col gap-4"
+              >
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="Full Name" 
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
+                  />
+                </div>
+              </motion.div>
             )}
-          </button>
-          
-          {error && (
-            <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest">{error}</p>
+          </AnimatePresence>
+
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
+            <input 
+              required
+              type="email" 
+              placeholder="Email Address" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
+            />
+          </div>
+
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
+            <input 
+              required
+              type="password" 
+              placeholder="Password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
+            />
+          </div>
+
+          {mode === "register" && (
+             <div className="relative">
+               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-brand-primary/40 uppercase">REF</div>
+               <input 
+                 type="text" 
+                 placeholder="Referral Code (Optional)" 
+                 value={referralCode}
+                 onChange={(e) => setReferralCode(e.target.value)}
+                 className="w-full h-14 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/50 transition-all font-mono text-xs font-bold text-brand-primary"
+               />
+             </div>
           )}
+
+          <button 
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-14 bg-brand-primary text-brand-black rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(250,204,21,0.2)] hover:shadow-[0_15px_25px_rgba(250,204,21,0.3)] active:scale-95 transition-all disabled:opacity-50 mt-2"
+          >
+             {isLoading ? (
+               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-5 h-5 border-2 border-brand-black/20 border-t-brand-black rounded-full" />
+             ) : (
+               <>
+                 {mode === "login" ? "Enter Gateway" : "Create Account"}
+                 <ArrowRight className="w-4 h-4" />
+               </>
+             )}
+          </button>
+        </form>
+
+        <div className="relative w-full h-px bg-brand-border/40 my-2">
+           <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-brand-black px-4 text-[10px] text-brand-text/20 font-black uppercase tracking-widest">Or Continue With</span>
         </div>
+
+        <button 
+          onClick={handleGoogleLogin}
+          type="button"
+          className="w-full h-14 rounded-2xl bg-brand-text/5 border border-brand-border text-brand-text flex items-center justify-center gap-3 hover:bg-brand-text/10 transition-all font-bold"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+          <span className="text-sm">Sign in with Google</span>
+        </button>
+
+        {error && (
+          <motion.p 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-red-400 text-[10px] font-bold uppercase tracking-widest text-center px-4"
+          >
+            {error}
+          </motion.p>
+        )}
       </div>
 
       <div className="mt-auto flex flex-col items-center gap-4 relative z-10">
-        <p className="text-[10px] text-brand-text/30 font-medium">By continuing, you agree to our Terms of Service</p>
+        <p className="text-[10px] text-brand-text/30 font-medium text-center">
+          By joining EJCASHH, you participate in our<br/>
+          <span className="text-brand-primary">10-Level Reward Distribution Program</span>
+        </p>
         <div className="flex items-center gap-2 text-brand-text/20">
           <ShieldCheck className="w-4 h-4" />
-          <span className="text-[10px] font-black uppercase tracking-widest">End-to-End Encrypted</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.3em]">Institutional Grade Security</span>
         </div>
       </div>
     </div>
   );
 }
+

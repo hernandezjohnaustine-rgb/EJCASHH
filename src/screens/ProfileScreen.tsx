@@ -5,9 +5,13 @@ interface ProfileScreenProps {
   onLogout: () => void;
   theme: string;
   onToggleTheme: () => void;
+  user: {
+    displayName: string | null;
+    email: string | null;
+  } | null;
 }
 
-export default function ProfileScreen({ onLogout, theme, onToggleTheme }: ProfileScreenProps) {
+export default function ProfileScreen({ onLogout, theme, onToggleTheme, user }: ProfileScreenProps) {
   const isDark = theme === "dark";
   
   const menuItems = [
@@ -46,8 +50,8 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme }: Profil
         </div>
 
         <div className="text-center relative z-10">
-           <h2 className="text-xl font-display font-bold tracking-tight">User</h2>
-           <p className="text-sm text-brand-text/40 mb-3 tracking-wide">@hernandezja_prime</p>
+           <h2 className="text-xl font-display font-bold tracking-tight">{user?.displayName || "Member"}</h2>
+           <p className="text-sm text-brand-text/40 mb-3 tracking-wide">{user?.email}</p>
            <div className="flex items-center gap-2 bg-brand-primary/10 py-1.5 px-4 rounded-full border border-brand-primary/20">
               <Shield className="w-3 h-3 text-brand-primary" />
               <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Elite Member</span>

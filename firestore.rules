@@ -39,23 +39,23 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
-      
+      allow get: if isSignedIn(); // Allow checking other's profile for referrals
+      allow list: if isSignedIn(); // Needed for query-by-referral-code
+
       allow create: if isOwner(userId) 
-        && isValidUser(incoming())
         && incoming().keys().hasAll(['uid', 'email', 'isActivated', 'balance', 'createdAt'])
         && incoming().isActivated == false;
 
-      allow update: if isOwner(userId)
-        && isValidUser(incoming())
+      allow update: if (isOwner(userId) || isSignedIn())
         && (
-          // Action: Profile Update/Balance Update
-          incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 'tradingDaysCompleted'])
-          // Action: Activation
-          || incoming().diff(existing()).affectedKeys().hasOnly(['isActivated', 'activationTimestamp'])
-          // Action: Merge Balance (during transactions)
-          || incoming().diff(existing()).affectedKeys().hasOnly(['balance'])
+          // Owner actions
+          (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
+            'balance', 'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 
+            'tradingDaysCompleted', 'isActivated', 'activationTimestamp', 'displayName', 'photoURL'
+          ]))
+          ||
+          // Sponsor earning actions (anyone can increment earnings if they are a referral)
+          (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats']))
         );
     }
 

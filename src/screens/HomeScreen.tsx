@@ -39,6 +39,7 @@ interface HomeScreenProps {
   onServiceClick: (id: string) => void;
   onViewHistory: () => void;
   onClaimTrading?: () => void;
+  referralCode: string;
 }
 
 const mainServices = [
@@ -68,7 +69,8 @@ export default function HomeScreen({
   transactions, 
   onServiceClick, 
   onViewHistory,
-  onClaimTrading
+  onClaimTrading,
+  referralCode
 }: HomeScreenProps) {
   const [showBalance, setShowBalance] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -78,10 +80,11 @@ export default function HomeScreen({
 
   const wallets = WALLETS(balance, stats.totalEarnings);
   const activeWallet = wallets[activeWalletIdx];
-  const referralCode = "EJ-USER-2026";
+  
+  const shareLink = `${window.location.origin}${window.location.pathname}?ref=${referralCode}`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(referralCode);
+    navigator.clipboard.writeText(shareLink);
   };
 
   return (
@@ -468,8 +471,8 @@ export default function HomeScreen({
                     <PlusCircle className="w-5 h-5 text-brand-primary" />
                 </div>
                 <div className="overflow-hidden">
-                    <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Share Code</p>
-                    <p className="text-xs font-mono font-bold truncate">{referralCode}</p>
+                    <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
+                    <p className="text-xs font-mono font-bold truncate">{shareLink}</p>
                 </div>
               </div>
               <div className="flex gap-2">

@@ -29,14 +29,16 @@ const MLM_LEVELS = [
   { level: "6-10", reward: "1%", income: "₱3.60", label: "Indirect" },
 ];
 
-export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: { 
+export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode }: { 
   stats: UserStats, 
   onWithdraw: () => void,
-  onViewNetwork: () => void
+  onViewNetwork: () => void,
+  referralCode: string
 }) {
   const [claimed, setClaimed] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const referralCode = "EJ-USER-2026";
+  
+  const shareLink = `${window.location.origin}${window.location.pathname}?ref=${referralCode}`;
 
   const wallets: WalletType[] = [
     { label: "Earnings Wallet", balance: stats.totalEarnings, type: "earnings", color: "text-brand-primary" },
@@ -130,13 +132,13 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
                   <Share2 className="w-5 h-5 text-brand-primary" />
                </div>
                <div className="overflow-hidden">
-                  <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Your Code</p>
-                  <p className="text-sm font-mono font-bold truncate">{referralCode}</p>
+                  <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
+                  <p className="text-sm font-mono font-bold truncate">{shareLink}</p>
                </div>
             </div>
                <div className="flex gap-2">
                   <button 
-                    onClick={() => navigator.clipboard.writeText(referralCode)}
+                    onClick={() => navigator.clipboard.writeText(shareLink)}
                     className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
                   >
                      <Copy className="w-4 h-4" />

@@ -54,6 +54,7 @@ export default function App() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     document.documentElement.className = theme;
@@ -63,6 +64,13 @@ export default function App() {
   const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
 
   useEffect(() => {
+    // Capture referral code from URL early
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("referredBy", ref);
+    }
+
     // Connection test
     const testConnection = async () => {
       try {
@@ -85,26 +93,39 @@ export default function App() {
           const userDoc = await getDoc(userDocRef);
           
           if (!userDoc.exists()) {
+            const referredBy = localStorage.getItem("referredBy");
             const newUser: any = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
+              displayName: firebaseUser.displayName || "New Member",
               photoURL: firebaseUser.photoURL,
               isActivated: false,
               balance: 0,
               earningsWallet: 0,
               referralCode: "EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase(),
+              referredBy: referredBy || null,
               createdAt: new Date().toISOString(),
+              stats: {
+                vipLevel: 1,
+                directReferrals: 0,
+                teamSize: 0,
+                totalEarnings: 0
+              }
             };
             await setDoc(userDocRef, newUser);
+            setUserProfile(newUser);
             setUserStats(prev => ({ ...prev, isActivated: false }));
+            localStorage.removeItem("referredBy"); // Clean up
           } else {
             const data = userDoc.data();
+            setUserProfile(data);
             setBalance(data.balance || 0);
             setUserStats(prev => ({
               ...prev,
               isActivated: data.isActivated || false,
               totalEarnings: data.earningsWallet || 0,
+              directReferrals: data.stats?.directReferrals || 0,
+              teamSize: data.stats?.teamSize || 0
             }));
           }
         } catch (error) {
@@ -115,6 +136,7 @@ export default function App() {
         const subUser = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const data = doc.data();
+            setUserProfile(data);
             setBalance(data.balance || 0);
             setUserStats(prev => ({
               ...prev,
@@ -287,7 +309,7 @@ export default function App() {
     // Check for activation for core features
     const coreFeatures = ["send", "bank", "bills", "load", "trading", "rider", "market"];
     if (coreFeatures.includes(activeView || "") && !userStats.isActivated) {
-       return <ActivationScreen onActivate={handleActivation} />;
+       return <ActivationScreen uid={user.uid} onActivate={handleActivation} />;
     }
 
     switch (activeView) {
@@ -382,6 +404,7 @@ export default function App() {
                 onServiceClick={(serviceId) => setActiveView(serviceId)}
                 onViewHistory={() => setActiveTab("history")}
                 onClaimTrading={handleClaimTrading}
+                referralCode={userProfile?.referralCode || ""}
               />
             </motion.div>
           )}
@@ -414,6 +437,7 @@ export default function App() {
                  stats={userStats} 
                  onWithdraw={() => setActiveView("withdraw")}
                  onViewNetwork={() => setActiveView("network")}
+                 referralCode={userProfile?.referralCode || ""}
                />
              </motion.div>
           )}
@@ -424,6 +448,7 @@ export default function App() {
                  onLogout={() => auth.signOut()} 
                  theme={theme}
                  onToggleTheme={toggleTheme}
+                 user={user}
                />
              </motion.div>
           )}
