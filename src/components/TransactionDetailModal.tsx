@@ -69,8 +69,8 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
                 <DetailRow label="Recipient / Merchant" value={transaction.title} />
                 <DetailRow label="Category" value={transaction.category} />
                 <DetailRow label="Date & Time" value={transaction.date} />
-                <DetailRow label="Reference No." value={transaction.referenceNo || `UW-${Math.random().toString(36).substr(2, 9).toUpperCase()}`} copyable />
-                <DetailRow label="Payment Method" value={transaction.paymentMethod || "BRAND NAME Wallet"} />
+                <DetailRow label="Reference No." value={transaction.referenceNo || `EJ-${Math.random().toString(36).substr(2, 9).toUpperCase()}`} copyable />
+                <DetailRow label="Payment Method" value={transaction.paymentMethod || "EJCASHH Wallet"} />
               </div>
 
               <div className="w-full mt-4 flex flex-col gap-3">
@@ -80,7 +80,7 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
                 </button>
                 <div className="flex items-center justify-center gap-2 py-4">
                   <ShieldCheck className="w-4 h-4 text-white/20" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/20">Securely processed by BRAND NAME</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/20">Securely processed by EJCASHH</span>
                 </div>
               </div>
             </div>

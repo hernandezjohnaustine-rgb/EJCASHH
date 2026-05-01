@@ -5,7 +5,7 @@ import GlassCard from "../components/GlassCard";
 
 export default function QrPayScreen({ onBack }: { onBack: () => void }) {
   const [activeMode, setActiveMode] = useState<'scan' | 'myqr'>('scan');
-  const userCode = "8842-1204-UW77";
+  const userCode = "8842-1204-EJ77";
 
   return (
     <div className="min-h-screen bg-brand-black flex flex-col p-6 pt-12 overflow-y-auto pb-24 relative">
@@ -112,14 +112,14 @@ export default function QrPayScreen({ onBack }: { onBack: () => void }) {
                   
                   {/* Subtle Brand Logo in center of QR */}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-brand-black border-4 border-white rounded-xl flex items-center justify-center">
-                    <span className="text-[10px] font-black italic text-brand-primary">UW</span>
+                    <span className="text-[10px] font-black italic text-brand-primary">EJ</span>
                   </div>
                </div>
             </div>
 
             <div className="flex flex-col items-center gap-6 w-full max-w-[320px]">
               <div className="text-center px-8">
-                 <p className="text-sm text-white/60 font-medium">Any BRAND NAME user can scan this QR code to send you money instantly.</p>
+                 <p className="text-sm text-white/60 font-medium">Any EJCASHH user can scan this QR code to send you money instantly.</p>
               </div>
 
               <GlassCard className="w-full flex items-center justify-between py-4 px-6 border-white/10">
@@ -128,7 +128,7 @@ export default function QrPayScreen({ onBack }: { onBack: () => void }) {
                       <Scan className="w-5 h-5 text-brand-primary" />
                    </div>
                    <div>
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">BRAND NAME-ID</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">EJCASHH-ID</p>
                       <p className="text-sm font-mono font-bold">{userCode}</p>
                    </div>
                 </div>
@@ -145,7 +145,7 @@ export default function QrPayScreen({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <section className="mt-auto relative z-10 px-2 opacity-50 text-[10px] text-center text-white/20 font-black uppercase tracking-[0.3em]">
-         Encrypted by UW-Sec Protocol
+         Encrypted by EJ-Sec Protocol
       </section>
     </div>
   );

@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and account details",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "isActivated": { "type": "boolean" },
+        "activationTimestamp": { "type": "string", "format": "date-time" },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" },
+        "balance": { "type": "number" },
+        "earningsWallet": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "isActivated"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial transaction records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["send", "receive", "bill", "load", "transfer", "rider", "commission", "trading", "activation"] },
+        "amount": { "type": "number" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" },
+        "referenceNo": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["userId", "type", "amount", "timestamp"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Referral relationship mapping",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "referrerId": { "type": "string" },
+        "refereeId": { "type": "string" },
+        "level": { "type": "integer" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "TradingPackage": {
+      "title": "Trading Package",
+      "description": "Active trading bot packages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "packageType": { "type": "string", "enum": ["10-day", "15-day", "30-day"] },
+        "investedAmount": { "type": "number" },
+        "dailyReturn": { "type": "number" },
+        "durationDays": { "type": "integer" },
+        "daysCompleted": { "type": "integer" },
+        "status": { "type": "string", "enum": ["active", "completed"] },
+        "lastClaimedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Global transactions log"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Referral relationship log"
+    },
+    "/trading_packages/{packageId}": {
+      "schema": "TradingPackage",
+      "description": "User trading bot instances"
+    }
+  }
+}

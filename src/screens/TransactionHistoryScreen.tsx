@@ -17,13 +17,13 @@ export default function TransactionHistoryScreen({ onBack, transactions }: { onB
     .reduce((acc, tx) => acc + parseFloat(tx.amount.replace(/[₱,-]/g, '')), 0);
 
   return (
-    <div className="flex flex-col gap-6 h-full bg-brand-black p-6 pt-12 overflow-y-auto pb-32">
+    <div className="flex flex-col gap-6 h-full bg-brand-black p-6 pt-12 overflow-y-auto pb-32 text-brand-text">
       <header className="flex items-center justify-between mb-2">
-        <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-2xl transition-colors">
+        <button onClick={onBack} className="p-2 hover:bg-brand-card/10 rounded-2xl transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h2 className="text-lg font-display font-bold tracking-tight uppercase">History</h2>
-        <button className="p-2 hover:bg-white/5 rounded-2xl transition-colors">
+        <button className="p-2 hover:bg-brand-card/10 rounded-2xl transition-colors">
           <Download className="w-5 h-5 text-brand-primary" />
         </button>
       </header>
@@ -31,11 +31,11 @@ export default function TransactionHistoryScreen({ onBack, transactions }: { onB
       {/* Stats Summary */}
       <section className="grid grid-cols-2 gap-4">
          <div className="glass-card !p-4 bg-brand-primary/10 border-brand-primary/20">
-            <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Income</span>
+            <span className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold">Income</span>
             <p className="text-lg font-display font-bold text-brand-primary mt-1">₱{income.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
          </div>
          <div className="glass-card !p-4 bg-red-500/10 border-red-500/20">
-            <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Outcome</span>
+            <span className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold">Outcome</span>
             <p className="text-lg font-display font-bold text-red-500 mt-1">₱{outcome.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
          </div>
       </section>
@@ -43,22 +43,22 @@ export default function TransactionHistoryScreen({ onBack, transactions }: { onB
       {/* Filter & Search */}
       <section className="flex items-center gap-3">
          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text/30" />
             <input 
               type="text" 
               placeholder="Search history..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-xs font-medium focus:outline-none"
+              className="w-full bg-brand-card/5 border border-brand-border rounded-2xl py-3 pl-10 pr-4 text-xs font-medium focus:outline-none"
             />
          </div>
-         <button className="glass-card !p-3 !rounded-2xl flex items-center justify-center">
-            <Filter className="w-4 h-4 text-white/60" />
+         <button className="glass-card !p-3 !rounded-2xl flex items-center justify-center border-brand-border bg-brand-card/5">
+            <Filter className="w-4 h-4 text-brand-text/60" />
          </button>
       </section>
 
       {/* List */}
       <section className="flex flex-col gap-4">
          <div className="flex items-center justify-between px-2">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Past 30 Days</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/30">Past 30 Days</h3>
             <div className="flex items-center gap-1 text-[10px] text-brand-primary font-bold">
                <Calendar className="w-3 h-3" />
                <span>April 2026</span>
@@ -73,23 +73,23 @@ export default function TransactionHistoryScreen({ onBack, transactions }: { onB
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => setSelectedTx(tx)}
-                className="glass-card !p-4 flex items-center justify-between group hover:bg-white/10 transition-colors cursor-pointer"
+                className="glass-card !p-4 flex items-center justify-between group hover:bg-brand-card/10 transition-colors cursor-pointer border-brand-border"
               >
                   <div className="flex items-center gap-4">
-                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.type === 'in' ? 'bg-brand-primary/10' : 'bg-white/5'}`}>
-                        {tx.type === 'in' ? <ArrowDownLeft className="w-5 h-5 text-brand-primary" /> : <ArrowUpRight className="w-5 h-5 text-white/60" />}
+                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.type === 'in' ? 'bg-brand-primary/10' : 'bg-brand-card/10'}`}>
+                        {tx.type === 'in' ? <ArrowDownLeft className="w-5 h-5 text-brand-primary" /> : <ArrowUpRight className="w-5 h-5 text-brand-text/60" />}
                      </div>
                      <div className="text-left">
                         <h4 className="text-sm font-bold tracking-tight">{tx.title}</h4>
                         <div className="flex items-center gap-2 mt-0.5">
-                           <span className="text-[9px] text-white/30 font-medium tracking-wider">{tx.date}</span>
-                           <span className="w-1 h-1 bg-white/10 rounded-full"></span>
-                           <span className="text-[9px] text-white/40 uppercase tracking-widest font-black leading-none">{tx.category}</span>
+                           <span className="text-[9px] text-brand-text/30 font-medium tracking-wider">{tx.date}</span>
+                           <span className="w-1 h-1 bg-brand-text/10 rounded-full"></span>
+                           <span className="text-[9px] text-brand-text/40 uppercase tracking-widest font-black leading-none">{tx.category}</span>
                         </div>
                      </div>
                   </div>
                   <div className="text-right">
-                     <p className={`text-sm font-display font-bold ${tx.type === 'in' ? 'text-brand-primary' : 'text-white'}`}>
+                     <p className={`text-sm font-display font-bold ${tx.type === 'in' ? 'text-brand-primary' : 'text-brand-text'}`}>
                         {tx.amount}
                      </p>
                   </div>

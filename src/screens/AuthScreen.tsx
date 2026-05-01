@@ -1,25 +1,26 @@
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
-import { Eye, EyeOff, Lock, ChevronRight, Fingerprint, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { ShieldCheck, LogIn } from "lucide-react";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
-  const [pin, setPin] = useState("");
-  const [isFaceId, setIsFaceId] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  useEffect(() => {
-    if (pin.length === 6) {
-      setTimeout(onLogin, 500);
+  const handleGoogleLogin = async () => {
+    setIsLoggingIn(true);
+    setError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      onLogin();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to sign in. Please try again.");
+    } finally {
+      setIsLoggingIn(false);
     }
-  }, [pin, onLogin]);
-
-  const handleKeypad = (val: string) => {
-    if (pin.length < 6) {
-      setPin(prev => prev + val);
-    }
-  };
-
-  const handleBackspace = () => {
-    setPin(prev => prev.slice(0, -1));
   };
 
   return (
@@ -27,79 +28,62 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
       {/* Background Orbs */}
       <div className="absolute top-[-100px] left-[-100px] w-[400px] h-[400px] bg-brand-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
       
-      <div className="flex flex-col items-start gap-12 mb-12 relative z-10 w-full max-w-[300px] mx-auto">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col items-center text-center gap-12 mb-12 relative z-10 w-full max-w-[320px] mx-auto">
+        <div className="flex flex-col items-center gap-4">
           <motion.div
              initial={{ scale: 0.8, opacity: 0 }}
              animate={{ scale: 1, opacity: 1 }}
-             className="w-12 h-12 relative"
+             className="w-20 h-20 relative"
           >
-             <div className="absolute inset-0 bg-brand-primary blur-[20px] opacity-20"></div>
-             <div className="absolute inset-0 rounded-xl border border-brand-primary/30 bg-brand-navy flex items-center justify-center overflow-hidden">
-               <div className="relative text-xl font-display font-black italic tracking-tighter text-brand-primary">UW</div>
+             <div className="absolute inset-0 bg-brand-primary blur-[30px] opacity-20"></div>
+             <div className="absolute inset-0 rounded-2xl border border-brand-primary/30 bg-brand-navy flex items-center justify-center overflow-hidden">
+               <div className="relative text-3xl font-display font-black italic tracking-tighter text-brand-primary flex flex-col items-center">
+                  <span className="text-4xl leading-none">EJ</span>
+                  <span className="text-[10px] tracking-[2px] mt-1">CASHH</span>
+               </div>
              </div>
           </motion.div>
-          <h1 className="text-xl font-display font-bold tracking-[2px]">BRAND NAME</h1>
+          <h1 className="text-2xl font-display font-black tracking-[4px] text-brand-primary">EJCASHH</h1>
+          <p className="text-[10px] text-brand-primary/60 font-bold uppercase tracking-[0.3em] font-sans">Digital Marketing Services</p>
         </div>
 
-        <div className="text-left">
-          <h2 className="text-4xl font-bold tracking-tight leading-tight">
-            Welcome<br/>
-            <span className="text-brand-primary drop-shadow-[0_0_10px_rgba(250,204,21,0.4)]">Back.</span>
+        <div className="text-center w-full">
+          <h2 className="text-4xl font-bold tracking-tight leading-tight mb-4">
+            Financial<br/>
+            <span className="text-brand-primary drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">Evolution.</span>
           </h2>
-          <p className="text-sm text-white/40 mt-4 font-medium">Please enter your 6-digit security PIN to access your account.</p>
+          <p className="text-sm text-brand-text/40 font-medium px-4">The ultimate fintech ecosystem with built-in earning opportunities.</p>
         </div>
-      </div>
 
-      <div className="flex flex-col items-center gap-8 mb-auto relative z-10">
-        <div className="flex gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div 
-              key={i} 
-              className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${
-                pin.length > i 
-                ? "bg-brand-primary border-brand-primary shadow-[0_0_10px_#FACC15]" 
-                : "border-white/20 bg-transparent"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Keypad */}
-      <div className="grid grid-cols-3 gap-y-6 gap-x-12 mt-auto mb-8 max-w-[300px] mx-auto">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+        <div className="w-full flex flex-col gap-4 mt-8">
           <button 
-            key={num}
-            onClick={() => handleKeypad(num.toString())}
-            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold hover:bg-white/5 active:scale-95 transition-all text-white"
+            disabled={isLoggingIn}
+            onClick={handleGoogleLogin}
+            className="w-full h-14 rounded-2xl bg-white text-black font-black flex items-center justify-center gap-3 hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
           >
-            {num}
+            {isLoggingIn ? (
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full"
+              />
+            ) : (
+              <>
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                <span>Continue with Google</span>
+              </>
+            )}
           </button>
-        ))}
-        <button 
-           className="w-16 h-16 rounded-full flex items-center justify-center hover:bg-white/5 active:scale-95 transition-all text-brand-primary"
-           onClick={() => setIsFaceId(!isFaceId)}
-        >
-          <Fingerprint className="w-8 h-8" />
-        </button>
-        <button 
-          onClick={() => handleKeypad("0")}
-          className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold hover:bg-white/5 active:scale-95 transition-all text-white"
-        >
-          0
-        </button>
-        <button 
-          onClick={handleBackspace}
-          className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-semibold hover:bg-white/5 active:scale-95 transition-all text-white/40"
-        >
-          ⌫
-        </button>
+          
+          {error && (
+            <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest">{error}</p>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col items-center gap-4">
-        <button className="text-xs font-bold text-white/40 hover:text-white uppercase tracking-widest transition-colors">Forgot PIN?</button>
-        <div className="flex items-center gap-2 text-white/20">
+      <div className="mt-auto flex flex-col items-center gap-4 relative z-10">
+        <p className="text-[10px] text-brand-text/30 font-medium">By continuing, you agree to our Terms of Service</p>
+        <div className="flex items-center gap-2 text-brand-text/20">
           <ShieldCheck className="w-4 h-4" />
           <span className="text-[10px] font-black uppercase tracking-widest">End-to-End Encrypted</span>
         </div>

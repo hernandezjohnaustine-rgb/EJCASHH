@@ -9,7 +9,7 @@ interface QrInviteModalProps {
 }
 
 export default function QrInviteModal({ isOpen, onClose, referralCode }: QrInviteModalProps) {
-  const inviteUrl = `https://uwins.app/join?ref=${referralCode}`;
+  const inviteUrl = `https://ejcashh.app/join?ref=${referralCode}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteUrl);
@@ -42,7 +42,7 @@ export default function QrInviteModal({ isOpen, onClose, referralCode }: QrInvit
 
               <div className="flex flex-col items-center gap-6">
                 <div className="text-center">
-                  <h3 className="text-xl font-display font-bold tracking-tight">Invite to BRAND NAME</h3>
+                  <h3 className="text-xl font-display font-bold tracking-tight">Invite to EJCASHH</h3>
                   <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-black">Your Unique QR Code</p>
                 </div>
 
@@ -54,7 +54,7 @@ export default function QrInviteModal({ isOpen, onClose, referralCode }: QrInvit
                    />
                    <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-12 h-12 bg-brand-navy border-2 border-white rounded-xl flex items-center justify-center shadow-xl">
-                         <span className="text-[10px] font-black italic text-brand-primary">UW</span>
+                         <span className="text-[10px] font-black italic text-brand-primary">EJ</span>
                       </div>
                    </div>
                 </div>

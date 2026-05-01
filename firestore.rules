@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- VALIDATION HELPERS ---
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && data.isActivated is bool
+        && data.balance is number
+        && (data.displayName == null || (data.displayName is string && data.displayName.size() <= 128))
+        && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 512));
+    }
+
+    function isValidTransaction(data) {
+      return data.userId == request.auth.uid
+        && data.type is string
+        && data.amount is number
+        && data.timestamp is string;
+    }
+
+    // --- COLLECTION RULES ---
+
+    // Connection Test
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+
+    // User Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      
+      allow create: if isOwner(userId) 
+        && isValidUser(incoming())
+        && incoming().keys().hasAll(['uid', 'email', 'isActivated', 'balance', 'createdAt'])
+        && incoming().isActivated == false;
+
+      allow update: if isOwner(userId)
+        && isValidUser(incoming())
+        && (
+          // Action: Profile Update/Balance Update
+          incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 'tradingDaysCompleted'])
+          // Action: Activation
+          || incoming().diff(existing()).affectedKeys().hasOnly(['isActivated', 'activationTimestamp'])
+          // Action: Merge Balance (during transactions)
+          || incoming().diff(existing()).affectedKeys().hasOnly(['balance'])
+        );
+    }
+
+    // Transaction Rules
+    match /transactions/{transactionId} {
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && isValidTransaction(incoming())
+        && isValidId(transactionId);
+    }
+
+    // Referral Rules
+    match /referrals/{referralId} {
+      allow read: if isSignedIn() && (resource.data.referrerId == request.auth.uid || resource.data.refereeId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().refereeId == request.auth.uid;
+    }
+
+    // Trading Package Rules
+    match /trading_packages/{packageId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['daysCompleted', 'lastClaimedAt', 'status']);
+    }
+  }
+}

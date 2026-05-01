@@ -36,7 +36,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
 }) {
   const [claimed, setClaimed] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const referralCode = "UW-USER-2026";
+  const referralCode = "EJ-USER-2026";
 
   const wallets: WalletType[] = [
     { label: "Earnings Wallet", balance: stats.totalEarnings, type: "earnings", color: "text-brand-primary" },
@@ -45,13 +45,13 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
   ];
 
   return (
-    <div className="flex flex-col gap-8 pb-32 bg-brand-black">
+    <div className="flex flex-col gap-8 pb-32 bg-brand-black text-brand-text">
       {/* Header Summary */}
       <section className="px-6 pt-4">
         <div className="flex items-center justify-between mb-4">
            <div>
               <h2 className="text-2xl font-display font-bold tracking-tight">Earning Hub</h2>
-              <p className="text-xs text-white/40 font-medium">Multi-Level Reward System</p>
+              <p className="text-xs text-brand-text/40 font-medium">Multi-Level Reward System</p>
            </div>
            <div className={`px-4 py-1.5 rounded-full border border-brand-primary/30 bg-brand-primary/10 flex items-center gap-2`}>
               <Trophy className="w-3 h-3 text-brand-primary" />
@@ -66,16 +66,16 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
                initial={{ opacity: 0, x: 20 }}
                animate={{ opacity: 1, x: 0 }}
                transition={{ delay: i * 0.1 }}
-               className="glass-card min-w-[220px] flex flex-col gap-4 !bg-white/[0.02] border-white/10"
+               className="glass-card min-w-[220px] flex flex-col gap-4 !bg-brand-card/5 border-brand-border"
              >
                 <div className="flex items-center justify-between">
-                   <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center`}>
-                      <Wallet className="w-5 h-5 text-white/40" />
+                   <div className={`w-10 h-10 rounded-xl bg-brand-card/10 flex items-center justify-center`}>
+                      <Wallet className="w-5 h-5 text-brand-text/40" />
                    </div>
-                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">{wallet.type}</div>
+                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/20">{wallet.type}</div>
                 </div>
                 <div>
-                   <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">{wallet.label}</p>
+                   <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold mb-1">{wallet.label}</p>
                    <AnimatedNumber value={wallet.balance} className={`text-xl font-display font-bold ${wallet.color}`} />
                 </div>
                 {wallet.type === 'earnings' && (
@@ -99,9 +99,9 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
         >
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-brand-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Directs</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-text/40">Directs</span>
           </div>
-          <p className="text-2xl font-display font-bold text-white group-hover:text-brand-primary transition-colors">{stats.directReferrals}</p>
+          <p className="text-2xl font-display font-bold group-hover:text-brand-primary transition-colors">{stats.directReferrals}</p>
           <div className="flex items-center gap-1 text-[10px] text-brand-primary font-bold">
             <TrendingUp className="w-3 h-3" />
             <span>+12% this week</span>
@@ -110,40 +110,40 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
 
         <GlassCard 
           onClick={onViewNetwork}
-          className="!p-6 flex flex-col gap-3 group active:scale-95 transition-all cursor-pointer"
+          className="!p-6 flex flex-col gap-3 group active:scale-95 transition-all cursor-pointer border-brand-border"
         >
           <div className="flex items-center gap-3">
             <Network className="w-5 h-5 text-brand-accent" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Team Size</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-text/40">Team Size</span>
           </div>
-          <p className="text-2xl font-display font-bold text-white group-hover:text-brand-accent transition-colors">{stats.teamSize}</p>
-          <p className="text-[10px] text-white/20 font-bold">L1 - L10 depth</p>
+          <p className="text-2xl font-display font-bold group-hover:text-brand-accent transition-colors">{stats.teamSize}</p>
+          <p className="text-[10px] text-brand-text/20 font-bold">L1 - L10 depth</p>
         </GlassCard>
       </section>
 
       {/* Referral Link */}
       <section className="px-6">
-         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/30 mb-4 px-2">Invite Link</h3>
+         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30 mb-4 px-2">Invite Link</h3>
          <GlassCard className="flex items-center justify-between py-4 px-6 border-brand-primary/20 bg-brand-primary/5">
             <div className="flex items-center gap-4 flex-1 mr-4 overflow-hidden">
                <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center shrink-0">
                   <Share2 className="w-5 h-5 text-brand-primary" />
                </div>
                <div className="overflow-hidden">
-                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Your Code</p>
+                  <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Your Code</p>
                   <p className="text-sm font-mono font-bold truncate">{referralCode}</p>
                </div>
             </div>
                <div className="flex gap-2">
                   <button 
                     onClick={() => navigator.clipboard.writeText(referralCode)}
-                    className="p-3 bg-white/5 hover:bg-brand-primary/20 rounded-xl transition-all"
+                    className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
                   >
                      <Copy className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => setIsQrModalOpen(true)}
-                    className="p-3 bg-white/5 hover:bg-brand-primary/20 rounded-xl transition-all"
+                    className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
                   >
                      <Scan className="w-4 h-4" />
                   </button>
@@ -154,30 +154,30 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
       {/* Reward Structure */}
       <section className="px-6 flex flex-col gap-4">
          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/30">MLM Reward Structure</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30">MLM Reward Structure</h3>
             <span className="text-[10px] text-brand-primary font-bold underline cursor-pointer">Learn More</span>
          </div>
          
          <div className="flex flex-col gap-2">
             {MLM_LEVELS.map((lvl) => (
-               <div key={lvl.level} className="glass-card !p-4 flex items-center justify-between !rounded-2xl bg-white/[0.01]">
+               <div key={lvl.level} className="glass-card !p-4 flex items-center justify-between !rounded-2xl bg-brand-card/5 border-brand-border">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-bold text-[10px] text-white/40 border border-white/5">
+                    <div className="w-8 h-8 rounded-lg bg-brand-card/10 flex items-center justify-center font-bold text-[10px] text-brand-text/40 border border-brand-border/20">
                        L{lvl.level}
                     </div>
                     <div>
                        <h4 className="text-xs font-bold">{lvl.label} Level</h4>
-                       <p className="text-[9px] text-white/20 uppercase tracking-widest">From ₱360 Activation</p>
+                       <p className="text-[9px] text-brand-text/20 uppercase tracking-widest">From ₱360 Activation</p>
                     </div>
                   </div>
                   <div className="text-right">
                      <p className="text-sm font-display font-bold text-brand-primary">{lvl.reward}</p>
-                     <p className="text-[10px] font-black uppercase text-white/40 tracking-tighter">{lvl.income}</p>
+                     <p className="text-[10px] font-black uppercase text-brand-text/40 tracking-tighter">{lvl.income}</p>
                   </div>
                </div>
             ))}
             <div className="p-4 text-center">
-               <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest italic">Rewards continue up to Level 10</p>
+               <p className="text-[10px] text-brand-text/20 font-bold uppercase tracking-widest italic">Rewards continue up to Level 10</p>
             </div>
          </div>
       </section>
@@ -192,7 +192,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
                     <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">{claimed ? 'Bonus Claimed' : 'Daily Mission'}</span>
                  </div>
                  <h4 className="text-lg font-display font-bold">{claimed ? 'Success!' : 'Daily Activity Bonus'}</h4>
-                 <p className="text-xs text-white/60">{claimed ? 'Come back tomorrow for more rewards.' : 'Claim your ₱2.00 daily login and activity reward.'}</p>
+                 <p className="text-xs text-brand-text/60">{claimed ? 'Come back tomorrow for more rewards.' : 'Claim your ₱2.00 daily login and activity reward.'}</p>
                  {!claimed && (
                     <button 
                       onClick={() => setClaimed(true)}
@@ -203,7 +203,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork }: 
                  )}
                </div>
                <div className="w-20 h-20 opacity-40">
-                  <Gift className={`w-full h-full text-white ${claimed ? 'animate-bounce' : ''}`} />
+                  <Gift className={`w-full h-full text-brand-text ${claimed ? 'animate-bounce' : ''}`} />
                </div>
             </div>
          </GlassCard>

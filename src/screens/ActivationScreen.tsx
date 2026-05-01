@@ -1,16 +1,28 @@
-import { motion } from "motion/react";
-import { Zap, ShieldCheck, CreditCard, ChevronRight, Check } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Zap, ShieldCheck, CreditCard, ChevronRight, Check, X, Loader2 } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 
 export default function ActivationScreen({ onActivate }: { onActivate: () => void }) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
   const benefits = [
     "30% Direct Referral Commission",
     "5% Daily Trading ROI (10 Days)",
     "10-Level Indirect Income Stream",
     "Daily Login Bonus Activation",
     "Unlock VIP Ranking System",
-    "Instant BRAND NAME ID Verification"
+    "Instant EJCASHH ID Verification"
   ];
+
+  const handlePay = async () => {
+    setIsProcessing(true);
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsProcessing(false);
+    onActivate();
+  };
 
   return (
     <div className="min-h-screen bg-brand-black flex flex-col p-6 pt-12 overflow-y-auto pb-32 relative">
@@ -22,7 +34,7 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
           <Zap className="w-10 h-10 text-brand-primary animate-pulse" />
         </div>
         <h1 className="text-3xl font-display font-black tracking-tight mb-2">Account Activation</h1>
-        <p className="text-sm text-white/40 font-medium">Activate your account to unlock the full earning potential of BRAND NAME.</p>
+        <p className="text-sm text-white/40 font-medium">Activate your account to unlock the full earning potential of EJCASHH.</p>
       </header>
 
       <section className="flex flex-col gap-6 relative z-10">
@@ -54,7 +66,10 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
 
         <div className="flex flex-col gap-4 mt-4">
            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/30 ml-2">Payment Method</h3>
-           <button className="glass-card !p-5 flex items-center justify-between border-transparent hover:border-white/10 transition-all bg-white/5 active:scale-95">
+           <button 
+             onClick={() => setShowConfirmation(true)}
+             className="glass-card !p-5 flex items-center justify-between border-transparent hover:border-white/10 transition-all bg-white/5 active:scale-95"
+           >
               <div className="flex items-center gap-4">
                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center font-black text-blue-500 italic">G</div>
                  <div className="text-left">
@@ -66,7 +81,7 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
            </button>
            <button className="glass-card !p-5 flex items-center justify-between border-transparent hover:border-white/10 transition-all bg-white/5 active:scale-95 opacity-60">
               <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center uppercase font-black text-brand-primary">W</div>
+                 <CreditCard className="w-6 h-6 text-brand-primary" />
                  <div className="text-left">
                     <h4 className="text-sm font-bold">Main Wallet</h4>
                     <p className="text-[10px] text-red-500 font-bold tracking-wider">Insufficient Balance</p>
@@ -79,7 +94,7 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
 
       <div className="mt-auto pt-10 pb-8 relative z-10">
         <button 
-          onClick={onActivate}
+          onClick={() => setShowConfirmation(true)}
           className="btn-primary w-full h-16 text-lg tracking-tight shadow-[0_10px_30px_rgba(250,204,21,0.4)]"
         >
           Pay ₱360 to Activate
@@ -89,6 +104,67 @@ export default function ActivationScreen({ onActivate }: { onActivate: () => voi
            <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Secure Multi-Layer Encryption</span>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showConfirmation && (
+          <div className="fixed inset-0 flex items-center justify-center p-6 z-[60]">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-brand-black/80 backdrop-blur-md"
+              onClick={() => !isProcessing && setShowConfirmation(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="glass-card w-full max-w-sm relative overflow-hidden"
+            >
+               {isProcessing ? (
+                 <div className="py-12 flex flex-col items-center gap-6">
+                    <Loader2 className="w-16 h-16 text-brand-primary animate-spin" />
+                    <div className="text-center">
+                       <h3 className="text-xl font-display font-black mb-2">Processing Payment</h3>
+                       <p className="text-sm text-white/40">Please do not close the app...</p>
+                    </div>
+                 </div>
+               ) : (
+                 <div className="p-8">
+                    <div className="flex justify-between items-start mb-6">
+                       <div>
+                          <h3 className="text-xl font-display font-black tracking-tight mb-1">Confirm Payment</h3>
+                          <p className="text-xs text-white/40 uppercase font-black tracking-widest">Digital Activation Fee</p>
+                       </div>
+                       <button onClick={() => setShowConfirmation(false)} className="text-white/20 hover:text-white transition-colors">
+                          <X className="w-6 h-6" />
+                       </button>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
+                       <div className="flex justify-between items-center mb-4">
+                          <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Amount to Pay</span>
+                          <span className="text-2xl font-display font-black text-brand-primary italic">₱360.00</span>
+                       </div>
+                       <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                          <span className="text-white/40">Reference</span>
+                          <span>EJ-ACT-2024</span>
+                       </div>
+                    </div>
+
+                    <button 
+                      onClick={handlePay}
+                      className="btn-primary w-full h-16 text-lg tracking-tight mb-4"
+                    >
+                      Pay Now
+                    </button>
+                    <p className="text-[10px] text-center text-white/30 font-bold uppercase tracking-widest">By activating, you agree to our Terms of Earnings.</p>
+                 </div>
+               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

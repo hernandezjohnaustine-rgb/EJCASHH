@@ -10,7 +10,7 @@ const rewards = [
 
 export default function RewardsScreen() {
   return (
-    <div className="flex flex-col gap-8 h-full bg-brand-black p-6 pb-32 overflow-y-auto">
+    <div className="flex flex-col gap-8 h-full bg-brand-black p-6 pb-32 overflow-y-auto text-brand-text">
       <header className="flex flex-col gap-4">
         <h2 className="text-2xl font-display font-bold tracking-tight">Rewards</h2>
         
@@ -18,12 +18,12 @@ export default function RewardsScreen() {
            <div className="flex flex-col gap-1 items-center justify-center py-4">
               <div className="flex items-center gap-2 mb-2">
                  <Trophy className="w-5 h-5 text-brand-primary" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Loyalty Status</span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/40">Loyalty Status</span>
               </div>
               <h3 className="text-3xl font-display font-black tracking-tighter">Gold Tier</h3>
               <p className="text-xs text-brand-primary font-bold tracking-widest uppercase mt-4">2,450 / 5,000 pts to Platinum</p>
               
-              <div className="w-full h-1.5 bg-white/5 rounded-full mt-4 overflow-hidden">
+              <div className="w-full h-1.5 bg-brand-border/40 rounded-full mt-4 overflow-hidden">
                  <motion.div 
                    initial={{ width: 0 }}
                    animate={{ width: '49%' }}
@@ -48,11 +48,11 @@ export default function RewardsScreen() {
                </div>
                <div>
                   <h4 className="text-sm font-bold">Transfer ₱1,000</h4>
-                  <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">+50 pts reward</p>
+                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest mt-1">+50 pts reward</p>
                </div>
-               <div className="flex items-center justify-between pt-2 border-t border-white/5">
+               <div className="flex items-center justify-between pt-2 border-t border-brand-border">
                   <span className="text-[10px] font-bold text-brand-primary">Progress 60%</span>
-                  <div className="w-20 h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-20 h-1 bg-brand-border/40 rounded-full overflow-hidden">
                      <div className="h-full bg-brand-primary w-[60%]"></div>
                   </div>
                </div>
@@ -63,12 +63,12 @@ export default function RewardsScreen() {
                </div>
                <div>
                   <h4 className="text-sm font-bold">Buy ₱100 Load</h4>
-                  <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">+20 pts reward</p>
+                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest mt-1">+20 pts reward</p>
                </div>
-               <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                  <span className="text-[10px] font-bold text-white/20">Waiting...</span>
-                  <div className="w-20 h-1 bg-white/5 rounded-full overflow-hidden">
-                     <div className="h-full bg-white/10 w-0"></div>
+               <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+                  <span className="text-[10px] font-bold text-brand-text/20">Waiting...</span>
+                  <div className="w-20 h-1 bg-brand-border/40 rounded-full overflow-hidden">
+                     <div className="h-full bg-brand-text/10 w-0"></div>
                   </div>
                </div>
             </button>
@@ -87,19 +87,19 @@ export default function RewardsScreen() {
                  className="glass-card !p-5 flex items-center justify-between group cursor-pointer"
                >
                   <div className="flex items-center gap-4">
-                     <div className="w-14 h-14 rounded-2xl bg-white/5 flex flex-col items-center justify-center border border-white/5">
-                        <span className="text-[8px] font-black uppercase text-white/40 tracking-tighter mb-1">{reward.category}</span>
+                     <div className="w-14 h-14 rounded-2xl bg-brand-card/5 flex flex-col items-center justify-center border border-brand-border">
+                        <span className="text-[8px] font-black uppercase text-brand-text/40 tracking-tighter mb-1">{reward.category}</span>
                         <PartyPopper className="w-6 h-6 text-brand-primary" />
                      </div>
                      <div>
                         <h4 className="text-sm font-bold">{reward.title}</h4>
-                        <p className="text-xs text-white/60 font-medium">{reward.merchant}</p>
+                        <p className="text-xs text-brand-text/60 font-medium">{reward.merchant}</p>
                         <p className="text-[10px] text-brand-primary font-black uppercase tracking-widest mt-1">{reward.pts}</p>
                      </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                      <span className="text-[9px] text-red-500 font-bold uppercase tracking-widest">{reward.expiry}</span>
-                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-brand-black transition-all">
+                     <div className="w-8 h-8 rounded-full bg-brand-card/5 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-brand-black transition-all">
                         <ArrowRight className="w-4 h-4" />
                      </div>
                   </div>

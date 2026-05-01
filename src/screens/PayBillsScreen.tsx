@@ -46,9 +46,9 @@ export default function PayBillsScreen({ onBack, onConfirm, balance }: {
 
   if (step === 4) {
     return (
-      <div className="flex flex-col gap-8 h-full bg-brand-black p-6 pt-12 overflow-y-auto">
+      <div className="flex flex-col gap-8 h-full bg-brand-black p-6 pt-12 overflow-y-auto text-brand-text">
         <header className="flex items-center justify-between">
-          <button onClick={() => setStep(3)} className="p-2 hover:bg-white/5 rounded-2xl transition-colors">
+          <button onClick={() => setStep(3)} className="p-2 hover:bg-brand-card/10 rounded-2xl transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h2 className="text-lg font-display font-bold">Review Payment</h2>
@@ -61,20 +61,20 @@ export default function PayBillsScreen({ onBack, onConfirm, balance }: {
               <p className="text-xs text-brand-primary/60 font-bold uppercase tracking-widest">{selectedBiller.name}</p>
            </div>
 
-           <GlassCard className="flex flex-col gap-6 p-6 border-white/5">
+           <GlassCard className="flex flex-col gap-6 p-6 border-brand-border">
               <div className="flex justify-between items-start">
-                 <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">Biller</span>
+                 <span className="text-[10px] text-brand-text/40 uppercase font-black tracking-widest">Biller</span>
                  <span className="text-sm font-bold text-right">{selectedBiller.name}</span>
               </div>
               <div className="flex justify-between items-start">
-                 <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">Account Number</span>
+                 <span className="text-[10px] text-brand-text/40 uppercase font-black tracking-widest">Account Number</span>
                  <span className="text-sm font-mono font-bold text-right">{accountNumber}</span>
               </div>
-              <div className="flex justify-between items-start pt-4 border-t border-white/5">
-                 <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">Service Fee</span>
+              <div className="flex justify-between items-start pt-4 border-t border-brand-border">
+                 <span className="text-[10px] text-brand-text/40 uppercase font-black tracking-widest">Service Fee</span>
                  <span className="text-sm font-bold">₱{selectedBiller.fee.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-start pt-4 border-t border-white/10">
+              <div className="flex justify-between items-start pt-4 border-t border-brand-border">
                  <span className="text-sm text-brand-primary font-black uppercase tracking-widest">Total to Pay</span>
                  <span className="text-xl font-display font-black text-brand-primary">₱{(parseFloat(amount) + selectedBiller.fee).toLocaleString()}</span>
               </div>
@@ -106,15 +106,15 @@ export default function PayBillsScreen({ onBack, onConfirm, balance }: {
 
       {step === 1 && (
         <section className="flex flex-col gap-6">
-           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/30 px-2">Biller Categories</h3>
+           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30 px-2">Biller Categories</h3>
            <div className="grid grid-cols-2 gap-4">
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => { setSelectedCategory(cat.id); setStep(2); }}
-                  className="glass-card !p-6 flex flex-col items-center gap-4 group hover:border-brand-primary/30 transition-all border-white/5"
+                  className="glass-card !p-6 flex flex-col items-center gap-4 group hover:border-brand-primary/30 transition-all border-brand-border"
                 >
-                   <div className={`w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center transition-transform group-hover:scale-110`}>
+                   <div className={`w-14 h-14 rounded-2xl bg-brand-card/5 flex items-center justify-center transition-transform group-hover:scale-110`}>
                       <cat.icon className={`w-8 h-8 ${cat.color}`} />
                    </div>
                    <span className="text-xs font-bold uppercase tracking-widest tracking-tighter">{cat.name}</span>
@@ -126,20 +126,20 @@ export default function PayBillsScreen({ onBack, onConfirm, balance }: {
 
       {step === 2 && (
         <section className="flex flex-col gap-6">
-           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/30 px-2">Select Biller</h3>
+           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30 px-2">Select Biller</h3>
            <div className="flex flex-col gap-3">
               {(billers[selectedCategory || ""] || []).map(biller => (
                 <button
                   key={biller.id}
                   onClick={() => { setSelectedBiller(biller); setStep(3); }}
-                  className="glass-card !p-5 flex items-center justify-between group hover:bg-white/10 transition-all border-white/5"
+                  className="glass-card !p-5 flex items-center justify-between group hover:bg-brand-card/10 transition-all border-brand-border"
                 >
                    <span className="font-bold">{biller.name}</span>
-                   <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white" />
+                   <ChevronRight className="w-5 h-5 text-brand-text/20 group-hover:text-brand-text" />
                 </button>
               ))}
               {(!billers[selectedCategory || ""]) && (
-                <p className="text-center text-white/20 text-sm py-12">No billers found for this category.</p>
+                <p className="text-center text-brand-text/20 text-sm py-12">No billers found for this category.</p>
               )}
            </div>
         </section>
@@ -154,26 +154,26 @@ export default function PayBillsScreen({ onBack, onConfirm, balance }: {
 
            <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2">Account Number</label>
+                 <label className="text-[10px] font-black uppercase tracking-widest text-brand-text/30 px-2">Account Number</label>
                  <input 
                     type="tel"
                     placeholder="Enter Account Number"
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-primary/30 transition-all font-mono font-bold tracking-widest"
+                    className="w-full bg-brand-card/5 border border-brand-border rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-primary/30 transition-all font-mono font-bold tracking-widest"
                  />
               </div>
 
               <div className="flex flex-col gap-2">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2">Amount to Pay</label>
+                 <label className="text-[10px] font-black uppercase tracking-widest text-brand-text/30 px-2">Amount to Pay</label>
                  <div className="relative">
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-display font-bold text-white/10">₱</span>
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-display font-bold text-brand-text/10">₱</span>
                     <input 
                       type="number"
                       placeholder="0.00"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 pl-12 pr-6 text-3xl font-display font-black focus:outline-none focus:border-brand-primary/50 transition-all"
+                      className="w-full bg-brand-card/5 border border-brand-border rounded-2xl py-6 pl-12 pr-6 text-3xl font-display font-black focus:outline-none focus:border-brand-primary/50 transition-all"
                     />
                  </div>
               </div>
