@@ -6,9 +6,11 @@ import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
 // Using initializeFirestore with experimentalForceLongPolling to handle potential network blocks
 // in restricted environments. This often fixes the "client is offline" error.
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
+
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;

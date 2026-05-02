@@ -45,27 +45,19 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || true); // Explicitly allowing all signed in users to read profiles for referrals
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      
       allow create: if isOwner(userId) 
-        && isValidUser(incoming())
-        && incoming().isActivated == false
-        && incoming().balance == 0
-        && incoming().uid == userId;
+        && incoming().uid == userId
+        && incoming().isActivated == false;
 
-      allow update: if isSignedIn() && (
-        // Action: Self Update
-        (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
-          'balance', 'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 
-          'tradingDaysCompleted', 'isActivated', 'activatedAt', 'displayName', 'photoURL', 'stats'
-        ]))
-        ||
-        // Action: Sponsor earning update
-        (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats']))
-      );
+      allow update: if isOwner(userId)
+        || (!isOwner(userId) && isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats']));
     }
 
     match /users {
-      allow list: if isSignedIn();
+      allow read: if isSignedIn();
     }
 
     // Transaction Rules

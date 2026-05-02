@@ -75,16 +75,22 @@ export default function App() {
 
   useEffect(() => {
     // Connection test & Config check
-    const testConnection = async () => {
+    const testConnection = async (retries = 3) => {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
+        console.log("Firestore connection verified.");
       } catch (error: any) {
         if (error.message.includes('the client is offline')) {
-          setFirebaseError({
-            title: "Firestore Offline",
-            message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your Firebase Console.",
-            code: "offline"
-          });
+          if (retries > 0) {
+            console.warn(`Firestore offline, retrying... (${retries} attempts left)`);
+            setTimeout(() => testConnection(retries - 1), 2000);
+          } else {
+            setFirebaseError({
+              title: "Firestore Offline",
+              message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your new Firebase project console.",
+              code: "offline"
+            });
+          }
         }
       }
     };
@@ -145,9 +151,10 @@ export default function App() {
               }));
             }
           } catch (error: any) {
-            if (retryCount < 2 && (error.code === 'permission-denied' || error.message?.includes('permissions'))) {
-              console.log(`Retrying profile fetch... (Attempt ${retryCount + 1})`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
+            if ((retryCount < 2 && (error.code === 'permission-denied' || error.message?.includes('permissions'))) || 
+                (retryCount < 3 && error.message?.includes('offline'))) {
+              console.log(`Retrying profile fetch... (Attempt ${retryCount + 1}) - Reason: ${error.message}`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
               return fetchUserProfile(retryCount + 1);
             }
             handleFirestoreError(error, OperationType.GET, "users/" + firebaseUser.uid);
