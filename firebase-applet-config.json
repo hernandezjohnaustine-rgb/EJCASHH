@@ -1,6 +1,7 @@
 {
   "apiKey": "AIzaSyCbnAeic0KbrCxzreFio1K8m0_fMJkjx4w",
   "authDomain": "my-ejcashh-app.firebaseapp.com",
+  "databaseURL": "https://my-ejcashh-app-default-rtdb.asia-southeast1.firebasedatabase.app",
   "projectId": "my-ejcashh-app",
   "storageBucket": "my-ejcashh-app.firebasestorage.app",
   "messagingSenderId": "897657518960",
