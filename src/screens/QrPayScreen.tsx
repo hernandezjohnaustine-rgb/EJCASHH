@@ -41,8 +41,13 @@ export default function QrPayScreen({ onBack, onResult }: {
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
+          fps: 20,
+          qrbox: (viewWidth, viewHeight) => {
+            const minEdge = Math.min(viewWidth, viewHeight);
+            const size = Math.floor(minEdge * 0.7);
+            return { width: size, height: size };
+          },
+          aspectRatio: 1.0,
         },
         onScanSuccess,
         () => {} // scan failure is ignored
@@ -214,7 +219,10 @@ export default function QrPayScreen({ onBack, onResult }: {
                
                {/* The Scanner Viewport */}
                <div className="absolute inset-4 rounded-[40px] overflow-hidden bg-brand-navy/40 border border-white/10 flex items-center justify-center shadow-inner relative group">
-                  <div id="scanner-container" className="w-full h-full object-cover [&>video]:w-full [&>video]:h-full [&>video]:object-cover overflow-hidden"></div>
+                  <div 
+                    id="scanner-container" 
+                    className="w-full h-full [&>video]:!w-full [&>video]:!h-full [&>video]:!object-cover overflow-hidden"
+                  ></div>
                   
                   {isLoading && (
                     <div className="absolute inset-0 z-30 bg-brand-black/60 backdrop-blur-md flex flex-col items-center justify-center gap-4">
