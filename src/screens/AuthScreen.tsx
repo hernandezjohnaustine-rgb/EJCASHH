@@ -52,6 +52,20 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     }
   };
 
+  useEffect(() => {
+    // Check URL for ref code
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+      localStorage.setItem("referredBy", ref);
+    } else {
+      // Fallback to localStorage
+      const saved = localStorage.getItem("referredBy");
+      if (saved) setReferralCode(saved);
+    }
+  }, []);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);

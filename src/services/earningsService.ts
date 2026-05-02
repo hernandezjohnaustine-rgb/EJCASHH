@@ -37,47 +37,72 @@ export async function processActivation(userId: string) {
 
       if (userData.isActivated) throw new Error("User already activated");
 
-      // 1. Activate the user
+      // 1. Collect all sponsors in the chain (up to 10 levels)
+      const sponsors: { ref: any, id: string, data: any }[] = [];
+      let nextSponsorId = userData.sponsorId;
+      
+      // Fallback: If sponsorId is missing, try to find it using the referredBy code
+      if (!nextSponsorId && userData.referredBy) {
+        const q = query(
+          collection(db, "users"), 
+          where("referralCode", "==", userData.referredBy), 
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          nextSponsorId = snap.docs[0].id;
+        }
+      }
+
+      let depth = 1;
+      while (nextSponsorId && depth <= 10) {
+        const sponsorRef = doc(db, "users", nextSponsorId);
+        const sponsorSnap = await transaction.get(sponsorRef);
+        
+        if (!sponsorSnap.exists()) break;
+        
+        const sponsorData = sponsorSnap.data();
+        sponsors.push({ 
+          ref: sponsorRef, 
+          id: sponsorSnap.id, 
+          data: sponsorData 
+        });
+        
+        nextSponsorId = sponsorData.sponsorId;
+        depth++;
+      }
+
+      // 2. NOW perform all updates (WRITES follow READS)
+      
+      // Activate the user
       transaction.update(userRef, { 
         isActivated: true,
         activatedAt: Timestamp.now() 
       });
 
-      let currentSponsorCode = userData.referredBy;
-      let depth = 1;
-
-      // 2. Traverse up the tree to distribute rewards (Up to 10 levels)
-      while (currentSponsorCode && depth <= 10) {
-        const sponsorQuery = query(
-          collection(db, "users"), 
-          where("referralCode", "==", currentSponsorCode), 
-          limit(1)
-        );
-        const sponsorDocs = await getDocs(sponsorQuery);
-
-        if (sponsorDocs.empty) break;
-
-        const sponsorDoc = sponsorDocs.docs[0];
-        const sponsorRef = doc(db, "users", sponsorDoc.id);
-        const sponsorData = sponsorDoc.data();
-
-        const reward = REWARD_STRUCTURE.find(r => r.level === depth);
+      // Distribute rewards to sponsors
+      sponsors.forEach((sponsor, index) => {
+        const currentDepth = index + 1;
+        const reward = REWARD_STRUCTURE.find(r => r.level === currentDepth);
+        
         if (reward) {
-          transaction.update(sponsorRef, {
+          const updateData: any = {
             balance: increment(reward.amount),
             earningsWallet: increment(reward.amount),
-            "stats.teamSize": increment(1)
-          });
-          if (depth === 1) {
-            transaction.update(sponsorRef, {
-              "stats.directReferrals": increment(1)
-            });
+            "stats.teamSize": increment(1),
+            "stats.totalEarnings": increment(reward.amount)
+          };
+
+          if (currentDepth === 1) {
+            updateData["stats.directReferrals"] = increment(1);
           }
+
+          transaction.update(sponsor.ref, updateData);
 
           const txRef = doc(collection(db, "transactions"));
           transaction.set(txRef, {
-            userId: sponsorDoc.id,
-            title: depth === 1 ? "Direct Referral Bonus" : `Indirect Bonus (L${depth})`,
+            userId: sponsor.id,
+            title: currentDepth === 1 ? "Direct Referral Bonus" : `Indirect Bonus (L${currentDepth})`,
             amount: reward.amount,
             type: "in",
             category: "Commission",
@@ -87,10 +112,7 @@ export async function processActivation(userId: string) {
             referenceNo: "EJ-REF-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
           });
         }
-
-        currentSponsorCode = sponsorData.referredBy;
-        depth++;
-      }
+      });
     });
     return { success: true };
   } catch (error) {

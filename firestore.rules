@@ -16,7 +16,7 @@ service cloud.firestore {
     // --- VALIDATION HELPERS ---
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email', 'isActivated', 'balance', 'earningsWallet', 'referralCode', 'referredBy', 'createdAt', 'stats'])
-        && data.keys().size() >= 9 && data.keys().size() <= 11 // Allowing for optional displayName and photoURL
+        && data.keys().size() >= 9 && data.keys().size() <= 18
         && data.uid is string && data.uid.size() <= 128
         && data.email is string && data.email.size() <= 256
         && data.isActivated is bool
@@ -27,6 +27,12 @@ service cloud.firestore {
         && (data.referralCode == null || (data.referralCode is string && data.referralCode.size() <= 32))
         && (data.referredBy == null || (data.referredBy is string && data.referredBy.size() <= 128))
         && (data.createdAt == null || (data.createdAt is string))
+        && (data.lastClaimDate == null || data.lastClaimDate is string)
+        && (data.tradingInvested == null || data.tradingInvested is number)
+        && (data.tradingEarnings == null || data.tradingEarnings is number)
+        && (data.tradingActive == null || data.tradingActive is bool)
+        && (data.tradingClaimedToday == null || data.tradingClaimedToday is bool)
+        && (data.tradingDaysCompleted == null || data.tradingDaysCompleted is number)
         && (data.stats == null || data.stats is map);
     }
 
@@ -60,8 +66,8 @@ service cloud.firestore {
         (isOwner(userId) && isValidUser(incoming()) && (
           incoming().diff(existing()).affectedKeys().hasOnly([
             'displayName', 'photoURL', 'isActivated', 'activatedAt', 'balance', 
-            'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 
-            'tradingDaysCompleted', 'stats'
+            'earningsWallet', 'tradingInvested', 'tradingEarnings', 'tradingActive', 
+            'tradingClaimedToday', 'tradingDaysCompleted', 'lastClaimDate', 'stats'
           ])
           // Immortality: Prevent changing core identity
           && incoming().uid == existing().uid

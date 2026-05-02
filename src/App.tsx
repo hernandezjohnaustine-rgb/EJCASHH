@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { doc, getDoc, setDoc, onSnapshot, collection, query, where, orderBy, limit, getDocFromServer, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, collection, query, where, orderBy, limit, getDocFromServer, getDocs, Timestamp } from "firebase/firestore";
 import { auth, db } from "./lib/firebase";
 import { handleFirestoreError, OperationType } from "./lib/firestoreUtils";
 import BottomNav from "./components/BottomNav";
@@ -76,24 +76,35 @@ export default function App() {
   useEffect(() => {
     // Connection test & Config check
     const testConnection = async (retries = 3) => {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-        console.log("Firestore connection verified.");
-      } catch (error: any) {
-        if (error.message.includes('the client is offline')) {
-          if (retries > 0) {
-            console.warn(`Firestore offline, retrying... (${retries} attempts left)`);
-            setTimeout(() => testConnection(retries - 1), 2000);
-          } else {
-            setFirebaseError({
-              title: "Firestore Offline",
-              message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your new Firebase project console.",
-              code: "offline"
-            });
-          }
-        }
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firestore connection verified.");
+  } catch (error: any) {
+    // Ignore "not found" — means Firestore IS reachable, doc just doesn't exist
+    if (
+      error.code === 'not-found' || 
+      error.message?.includes('No document') ||
+      error.message?.includes('not-found')
+    ) {
+      console.log("Firestore connection verified (test doc not found, that's OK).");
+      return;
+    }
+    
+    if (error.message?.includes('the client is offline') || error.code === 'unavailable') {
+      if (retries > 0) {
+        console.warn(`Firestore offline, retrying... (${retries} attempts left)`);
+        setTimeout(() => testConnection(retries - 1), 2000);
+      } else {
+        setFirebaseError({
+          title: "Firestore Offline",
+          message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your new Firebase project console.",
+          code: "offline"
+        });
       }
-    };
+    }
+    // Ignore all other errors silently
+  }
+};
     
     // Check if we are in an error state from a previous redirect or popup failure
     const checkAuthStatus = () => {
@@ -116,6 +127,16 @@ export default function App() {
             
             if (!userDoc.exists()) {
               const referredBy = localStorage.getItem("referredBy");
+              let sponsorId = null;
+              
+              if (referredBy) {
+                const q = query(collection(db, "users"), where("referralCode", "==", referredBy), limit(1));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                  sponsorId = snap.docs[0].id;
+                }
+              }
+
               const newUser: any = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
@@ -131,6 +152,7 @@ export default function App() {
                 tradingDaysCompleted: 0,
                 referralCode: "EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase(),
                 referredBy: referredBy || null,
+                sponsorId: sponsorId,
                 createdAt: new Date().toISOString(),
                 stats: {
                   vipLevel: 1,
@@ -298,50 +320,57 @@ export default function App() {
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
 
   const addTransaction = async (tx: any) => {
-    if (!user) return;
-    
-    const txData = {
-      userId: user.uid,
-      type: tx.type || "out",
-      title: tx.title || "Transaction",
-      amount: tx.rawAmount,
-      category: tx.category || "General",
-      status: "Completed",
-      referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      paymentMethod: tx.paymentMethod || "EJCASHH Wallet",
-      timestamp: Timestamp.now(),
-    };
+  if (!user) return;
 
-    try {
-      const { addDoc } = await import("firebase/firestore");
-      await addDoc(collection(db, "transactions"), txData);
-      
-      const userDocRef = doc(db, "users", user.uid);
-      const updateData: any = {};
-      
-      if (tx.category === "Trading" && tx.type === "out") {
-        updateData.balance = balance - tx.rawAmount;
-        updateData.tradingInvested = (userStats.tradingInvested || 0) + tx.rawAmount;
-        updateData.tradingActive = true;
-        updateData.tradingClaimedToday = false;
-        updateData.tradingDaysCompleted = 0;
-      } else {
-        updateData.balance = tx.type === "in" ? balance + tx.rawAmount : balance - tx.rawAmount;
-      }
-      
-      await setDoc(userDocRef, updateData, { merge: true });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, "transactions or users");
-    }
-    
-    setShowSuccess(tx.title || "Transaction Successful");
-    setActiveView(null);
-    
-    setTimeout(() => {
-      setShowSuccess(null);
-      setActiveTab("history");
-    }, 2000);
+  const txData = {
+    userId: user.uid,
+    type: tx.type || "out",
+    title: tx.title || "Transaction",
+    amount: tx.rawAmount,
+    category: tx.category || "General",
+    status: "Completed",
+    referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+    paymentMethod: tx.paymentMethod || "EJCASHH Wallet",
+    timestamp: Timestamp.now(),
   };
+
+  try {
+    const { addDoc } = await import("firebase/firestore");
+    await addDoc(collection(db, "transactions"), txData);
+
+    const userDocRef = doc(db, "users", user.uid);
+
+    // ✅ FIX: Always read latest balance from Firestore first
+    const freshDoc = await getDoc(userDocRef);
+    const freshBalance = freshDoc.exists() ? (freshDoc.data().balance || 0) : balance;
+
+    const updateData: any = {};
+
+    if (tx.category === "Trading" && tx.type === "out") {
+      updateData.balance = freshBalance - tx.rawAmount;
+      updateData.tradingInvested = (userStats.tradingInvested || 0) + tx.rawAmount;
+      updateData.tradingActive = true;
+      updateData.tradingClaimedToday = false;
+      updateData.tradingDaysCompleted = 0;
+    } else {
+      updateData.balance = tx.type === "in"
+        ? freshBalance + tx.rawAmount
+        : freshBalance - tx.rawAmount;
+    }
+
+    await setDoc(userDocRef, updateData, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, "transactions or users");
+  }
+
+  setShowSuccess(tx.title || "Transaction Successful");
+  setActiveView(null);
+
+  setTimeout(() => {
+    setShowSuccess(null);
+    setActiveTab("history");
+  }, 2000);
+};
 
   if (firebaseError) {
     return (

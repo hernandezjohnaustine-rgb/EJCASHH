@@ -15,6 +15,12 @@
         "referredBy": { "type": "string" },
         "balance": { "type": "number" },
         "earningsWallet": { "type": "number" },
+        "tradingInvested": { "type": "number" },
+        "tradingEarnings": { "type": "number" },
+        "tradingActive": { "type": "boolean" },
+        "tradingClaimedToday": { "type": "boolean" },
+        "tradingDaysCompleted": { "type": "integer" },
+        "lastClaimDate": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "isActivated"]
