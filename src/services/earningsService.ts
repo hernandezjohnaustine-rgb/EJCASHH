@@ -145,3 +145,58 @@ export async function processActivation(userId: string) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
+
+export async function processTransfer(fromUserId: string, toUserId: string, amount: number) {
+  const path = `transfer/${fromUserId}/${toUserId}`;
+  try {
+    const fromUserRef = doc(db, "users", fromUserId);
+    const toUserRef = doc(db, "users", toUserId);
+
+    await runTransaction(db, async (transaction) => {
+      const fromSnap = await transaction.get(fromUserRef);
+      const toSnap = await transaction.get(toUserRef);
+
+      if (!fromSnap.exists()) throw new Error("Sender not found");
+      if (!toSnap.exists()) throw new Error("Recipient not found");
+
+      const fromData = fromSnap.data();
+      const toData = toSnap.data();
+
+      if ((fromData.balance || 0) < amount) throw new Error("Insufficient balance");
+
+      transaction.update(fromUserRef, { balance: increment(-amount) });
+      transaction.update(toUserRef, { balance: increment(amount) });
+
+      // Transaction for sender
+      const fromTxRef = doc(collection(db, "transactions"));
+      transaction.set(fromTxRef, {
+        userId: fromUserId,
+        title: `Sent to ${toData.displayName || toData.email || "User"}`,
+        amount: amount,
+        type: "out",
+        category: "Transfer",
+        status: "Completed",
+        timestamp: Timestamp.now(),
+        targetUserId: toUserId,
+        referenceNo: "EJ-TX-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      });
+
+      // Transaction for recipient
+      const toTxRef = doc(collection(db, "transactions"));
+      transaction.set(toTxRef, {
+        userId: toUserId,
+        title: `Received from ${fromData.displayName || fromData.email || "User"}`,
+        amount: amount,
+        type: "in",
+        category: "Transfer",
+        status: "Completed",
+        timestamp: Timestamp.now(),
+        sourceUserId: fromUserId,
+        referenceNo: "EJ-RX-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      });
+    });
+    return { success: true };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
