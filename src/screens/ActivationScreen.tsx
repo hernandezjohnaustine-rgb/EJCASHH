@@ -3,12 +3,17 @@ import { motion, AnimatePresence } from "motion/react";
 import { Zap, ShieldCheck, CreditCard, ChevronRight, Check, X, Loader2, AlertCircle } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 import { processActivation } from "../services/earningsService";
+import { createPaymentLink } from "../services/paymongoService";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 export default function ActivationScreen({ uid, onActivate, balance, onBack }: { uid: string, onActivate: () => void, balance: number, onBack?: () => void }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"GCash" | "Wallet">("GCash");
   const [error, setError] = useState<string | null>(null);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [showVerifyButton, setShowVerifyButton] = useState(false);
 
   const ACTIVATION_FEE = 360;
   const hasEnoughBalance = (balance || 0) >= ACTIVATION_FEE;
@@ -23,17 +28,36 @@ export default function ActivationScreen({ uid, onActivate, balance, onBack }: {
   ];
 
   const handlePay = async () => {
-    if ((balance || 0) < ACTIVATION_FEE) {
-      setError(`Insufficient Balance. You need ₱${ACTIVATION_FEE} to activate.`);
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
     try {
-      await processActivation(uid);
-      setIsProcessing(false);
-      onActivate();
+      if (paymentMethod === "Wallet") {
+        if ((balance || 0) < ACTIVATION_FEE) {
+          setError(`Insufficient Balance. You need ₱${ACTIVATION_FEE} to activate.`);
+          setIsProcessing(false);
+          return;
+        }
+        await processActivation(uid);
+        onActivate();
+      } else {
+        const link = await createPaymentLink(
+          360,
+          "EJCASHH Starter Activation Fee",
+          { userId: uid, type: "activation" }
+        );
+
+        // Save pending payment
+        await updateDoc(doc(db, "users", uid), {
+          pendingActivationLinkId: link.id,
+        });
+
+        // Open payment page
+        window.open(link.attributes.checkout_url, "_blank");
+
+        // Show verify button
+        setPaymentLink(link.attributes.checkout_url);
+        setShowVerifyButton(true);
+      }
     } catch (err: any) {
       console.error(err);
       let message = "Failed to process activation. Please try again.";
@@ -44,6 +68,7 @@ export default function ActivationScreen({ uid, onActivate, balance, onBack }: {
         message = err.message || message;
       }
       setError(message);
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -231,6 +256,24 @@ export default function ActivationScreen({ uid, onActivate, balance, onBack }: {
                     >
                       {isProcessing ? "Processing..." : !hasEnoughBalance ? "Insufficient Balance" : "Pay Now"}
                     </button>
+                    {showVerifyButton && (
+  <button
+    onClick={async () => {
+      setIsProcessing(true);
+      try {
+        await processActivation(uid);
+        onActivate();
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsProcessing(false);
+      }
+    }}
+    className="w-full h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-black uppercase tracking-widest mt-3"
+  >
+    I've Paid — Activate Now
+  </button>
+)}
                     {error && (
                        <p className="text-[10px] text-center text-red-400 font-bold mb-4 uppercase tracking-widest">{error}</p>
                     )}

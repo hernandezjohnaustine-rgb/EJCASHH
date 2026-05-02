@@ -27,6 +27,7 @@ import WithdrawScreen from "./screens/WithdrawScreen";
 import TeamNetworkScreen from "./screens/TeamNetworkScreen";
 import { UserStats, Transaction } from "./types";
 import { CheckCircle2, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
+import { processActivation } from "./services/earningsService";
 
 import TradingBotScreen from "./screens/TradingBotScreen";
 import RiderScreen from "./screens/RiderScreen";
@@ -400,6 +401,24 @@ export default function App() {
   const handleRequestActivation = () => {
     setActiveView("activation");
   };
+
+  useEffect(() => {
+    // Check if user returned from PayMongo payment
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment_status");
+    const userIdInUrl = params.get("user_id");
+
+    if (paymentStatus === "success" && userIdInUrl) {
+      // Process activation
+      processActivation(userIdInUrl).then(() => {
+        // Clean URL
+        window.history.replaceState({}, "", window.location.pathname);
+        handleActivationComplete();
+      }).catch(err => {
+        console.error("PayMongo Activation Error:", err);
+      });
+    }
+  }, []);
 
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
 
