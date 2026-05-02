@@ -217,7 +217,7 @@ export default function App() {
                 directReferrals: data.stats?.directReferrals || 0,
                 totalReferrals: data.stats?.totalReferrals || 0,
                 teamSize: data.stats?.teamSize || 0,
-                totalEarnings: data.earningsWallet || data.stats?.totalEarnings || 0,
+                totalEarnings: data.earningsWallet ?? data.stats?.totalEarnings ?? 0,
                 isActivated: data.isActivated || false,
                 tradingInvested: data.tradingInvested || 0,
                 tradingEarnings: data.tradingEarnings || 0,
@@ -257,7 +257,7 @@ export default function App() {
               directReferrals: data.stats?.directReferrals || 0,
               totalReferrals: data.stats?.totalReferrals || 0,
               teamSize: data.stats?.teamSize || 0,
-              totalEarnings: data.earningsWallet || data.stats?.totalEarnings || 0,
+              totalEarnings: data.earningsWallet ?? data.stats?.totalEarnings ?? 0,
               isActivated: data.isActivated || false,
               tradingInvested: data.tradingInvested || 0,
               tradingEarnings: data.tradingEarnings || 0,
@@ -456,7 +456,7 @@ export default function App() {
       updateData.tradingClaimedToday = false;
       updateData.tradingDaysCompleted = 0;
     } else if (tx.category === "Withdrawal") {
-      const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : (userProfile.earningsWallet || 0);
+      const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet ?? 0) : (userProfile?.earningsWallet ?? 0);
       updateData.balance = freshBalance - tx.rawAmount;
       updateData.earningsWallet = currentEarnings - tx.rawAmount;
     } else {
