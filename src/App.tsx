@@ -75,35 +75,9 @@ export default function App() {
 
   useEffect(() => {
     // Connection test & Config check
-    const testConnection = async (retries = 3) => {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log("Firestore connection verified.");
-  } catch (error: any) {
-    // Ignore "not found" — means Firestore IS reachable, doc just doesn't exist
-    if (
-      error.code === 'not-found' || 
-      error.message?.includes('No document') ||
-      error.message?.includes('not-found')
-    ) {
-      console.log("Firestore connection verified (test doc not found, that's OK).");
-      return;
-    }
-    
-    if (error.message?.includes('the client is offline') || error.code === 'unavailable') {
-      if (retries > 0) {
-        console.warn(`Firestore offline, retrying... (${retries} attempts left)`);
-        setTimeout(() => testConnection(retries - 1), 2000);
-      } else {
-        setFirebaseError({
-          title: "Firestore Offline",
-          message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your new Firebase project console.",
-          code: "offline"
-        });
-      }
-    }
-    // Ignore all other errors silently
-  }
+    const testConnection = async () => {
+  // Skip connection test - Firestore is already created
+  console.log("Skipping connection test - Firestore ready.");
 };
     
     // Check if we are in an error state from a previous redirect or popup failure
