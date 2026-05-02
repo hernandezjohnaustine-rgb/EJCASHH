@@ -67,11 +67,25 @@ export default function App() {
   const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
 
   useEffect(() => {
-    // Capture referral code from URL early
+    // Capture referral code from URL
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
+    let ref = params.get("ref") || params.get("r");
+    
+    // Path-based referral detection (e.g., domain.com/EJ-CODE)
+    const path = window.location.pathname.substring(1).toUpperCase();
+    if (!ref && path && (path.startsWith('EJ-') || (path.length >= 3 && path.length <= 15))) {
+      const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE'];
+      if (!internalPaths.includes(path)) {
+        ref = path;
+      }
+    }
+
     if (ref) {
       localStorage.setItem("referredBy", ref);
+      // Clean up the URL after capturing to keep it clean for the user
+      if (window.location.search || window.location.pathname !== '/') {
+        window.history.replaceState({}, '', '/');
+      }
     }
   }, []);
 
@@ -128,7 +142,8 @@ export default function App() {
             const userDoc = await getDoc(userDocRef);
             
             if (!userDoc.exists()) {
-              const referredBy = localStorage.getItem("referredBy");
+              const referredByRaw = localStorage.getItem("referredBy");
+              const referredBy = referredByRaw ? referredByRaw.toUpperCase() : null;
               const username = localStorage.getItem("pendingUsername");
               const phoneNumber = localStorage.getItem("pendingPhone");
 
@@ -168,8 +183,8 @@ export default function App() {
                 tradingActive: false,
                 tradingClaimedToday: false,
                 tradingDaysCompleted: 0,
-                referralCode: "EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase(),
-                referredBy: referredBy || null,
+                referralCode: username ? username.toUpperCase() : ("EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase()),
+                referredBy: referredBy, // Already uppercased above
                 sponsorId: sponsorId,
                 createdAt: new Date().toISOString(),
                 stats: {
@@ -690,6 +705,7 @@ export default function App() {
                   setScannedRecipient(recipient);
                   setActiveTab("send");
                 }}
+                referralCode={userProfile?.referralCode || ""}
                />
              </motion.div>
           )}

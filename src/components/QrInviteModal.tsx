@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from "motion/react";
 import { X, Download, Share2, Copy } from "lucide-react";
 import GlassCard from "./GlassCard";
+import { shortenUrl } from "../lib/shortener";
+import { useState, useEffect } from "react";
 
 interface QrInviteModalProps {
   isOpen: boolean;
@@ -9,7 +11,18 @@ interface QrInviteModalProps {
 }
 
 export default function QrInviteModal({ isOpen, onClose, referralCode }: QrInviteModalProps) {
-  const inviteUrl = `https://ejcashh.app/join?ref=${referralCode}`;
+  const [shortenedLink, setShortenedLink] = useState<string | null>(null);
+  const shareLink = `${window.location.origin}/${referralCode}`;
+
+  useEffect(() => {
+    const getShort = async () => {
+      const short = await shortenUrl(shareLink);
+      setShortenedLink(short);
+    };
+    if (referralCode && isOpen) getShort();
+  }, [referralCode, isOpen, shareLink]);
+
+  const inviteUrl = shortenedLink || shareLink;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteUrl);

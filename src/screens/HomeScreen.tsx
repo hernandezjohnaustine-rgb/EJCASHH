@@ -62,6 +62,8 @@ const WALLETS = (balance: number, earnings: number): Wallet[] => [
   { label: "Earnings", balance: earnings, type: "earnings", color: "text-brand-primary" },
 ];
 
+import { shortenUrl } from "../lib/shortener";
+
 export default function HomeScreen({ 
   stats, 
   onActivate, 
@@ -81,10 +83,20 @@ export default function HomeScreen({
   const wallets = WALLETS(balance, stats.totalEarnings);
   const activeWallet = wallets[activeWalletIdx];
   
-  const shareLink = `${window.location.origin}${window.location.pathname}?ref=${referralCode}`;
+  const [shortenedLink, setShortenedLink] = useState<string | null>(null);
+  
+  const shareLink = `${window.location.origin}/${referralCode}`;
+
+  useEffect(() => {
+    const getShort = async () => {
+       const short = await shortenUrl(shareLink);
+       setShortenedLink(short);
+    };
+    if (referralCode) getShort();
+  }, [shareLink, referralCode]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(shareLink);
+    navigator.clipboard.writeText(shortenedLink || shareLink);
   };
 
   return (
@@ -472,7 +484,9 @@ export default function HomeScreen({
                 </div>
                 <div className="overflow-hidden">
                     <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
-                    <p className="text-xs font-mono font-bold truncate">{shareLink}</p>
+                    <p className="text-xs font-mono font-bold truncate opacity-80">
+                      {(shortenedLink || shareLink).replace(/^https?:\/\//, '')}
+                    </p>
                 </div>
               </div>
               <div className="flex gap-2">

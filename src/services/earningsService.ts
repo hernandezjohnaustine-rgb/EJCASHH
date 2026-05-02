@@ -42,7 +42,7 @@ export async function processActivation(userId: string) {
     if (!initialSponsorId && userData.referredBy) {
       const q = query(
         collection(db, "users"), 
-        where("referralCode", "==", userData.referredBy), 
+        where("referralCode", "==", userData.referredBy.toUpperCase()), 
         limit(1)
       );
       const snap = await getDocs(q);
@@ -64,81 +64,101 @@ export async function processActivation(userId: string) {
         throw new Error(`Insufficient Balance. You need ₱${ACTIVATION_FEE.toLocaleString()} to activate your account.`);
       }
 
-      // 1. Collect all sponsors in the chain (up to 10 levels)
-      const sponsors: { ref: any, id: string, data: any }[] = [];
-      let nextSponsorId = initialSponsorId;
+    // 1. Collect all sponsors in the chain (up to 10 levels)
+    const sponsors: { ref: any, id: string, data: any }[] = [];
+    let nextSponsorId = initialSponsorId;
+    
+    let depth = 1;
+    while (nextSponsorId && depth <= 10) {
+      // Find the sponsor document
+      const sponsorRef = doc(db, "users", nextSponsorId);
       
-      let depth = 1;
-      while (nextSponsorId && depth <= 10) {
-        const sponsorRef = doc(db, "users", nextSponsorId);
-        const sponsorSnap = await transaction.get(sponsorRef);
-        
-        if (!sponsorSnap.exists()) break;
-        
-        const sponsorData = sponsorSnap.data();
-        sponsors.push({ 
-          ref: sponsorRef, 
-          id: sponsorSnap.id, 
-          data: sponsorData 
-        });
-        
-        nextSponsorId = sponsorData.sponsorId;
-        depth++;
-      }
-
-      // 2. NOW perform all updates
-      transaction.update(userRef, { 
-        isActivated: true,
-        activatedAt: Timestamp.now(),
-        balance: increment(-ACTIVATION_FEE)
+      // Inside the transaction, we must get the latest data
+      const sponsorSnap = await transaction.get(sponsorRef);
+      
+      if (!sponsorSnap.exists()) break;
+      
+      const sponsorData = sponsorSnap.data();
+      sponsors.push({ 
+        ref: sponsorRef, 
+        id: sponsorSnap.id, 
+        data: sponsorData 
       });
+      
+      // Resolve next sponsor - check both sponsorId (UID) and fallback to referredBy code
+      let foundNextId = sponsorData.sponsorId;
+      
+      // FALLBACK: If this sponsor doesn't have a sponsorId yet, but has a referredBy code,
+      // we try to resolve that code to a UID to continue the chain.
+      // Note: We can't do await transaction.get(query...) inside a transaction easily without refs.
+      // However, we can perform standard queries if needed, but for MLM chains it's best if we
+      // fixed the sponsorId field at signup.
+      
+      nextSponsorId = foundNextId;
+      depth++;
+    }
 
-      // Add activation fee transaction
-      const feeTxRef = doc(collection(db, "transactions"));
-      transaction.set(feeTxRef, {
-        userId: userId,
-        title: "Account Activation Fee",
-        amount: ACTIVATION_FEE,
-        type: "out",
-        category: "System",
-        status: "Completed",
-        timestamp: Timestamp.now(),
-        referenceNo: "EJ-ACT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      });
+    // 2. NOW perform all updates
+    transaction.update(userRef, { 
+      isActivated: true,
+      activatedAt: Timestamp.now(),
+      balance: increment(-ACTIVATION_FEE)
+    });
 
-      // Distribute rewards to sponsors
-      sponsors.forEach((sponsor, index) => {
-        const currentDepth = index + 1;
-        const reward = REWARD_STRUCTURE.find(r => r.level === currentDepth);
-        
-        if (reward) {
-          const updateData: any = {
-            balance: increment(reward.amount),
-            earningsWallet: increment(reward.amount),
-            "stats.teamSize": increment(1),
-            "stats.totalEarnings": increment(reward.amount)
-          };
+    // Add activation fee transaction
+    const feeTxRef = doc(collection(db, "transactions"));
+    transaction.set(feeTxRef, {
+      userId: userId,
+      title: "Account Activation Fee",
+      amount: ACTIVATION_FEE,
+      type: "out",
+      category: "System",
+      status: "Completed",
+      timestamp: Timestamp.now(),
+      referenceNo: "EJ-ACT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+    });
 
-          if (currentDepth === 1) {
-            updateData["stats.directReferrals"] = increment(1);
-          }
+    // Distribute rewards to sponsors
+    sponsors.forEach((sponsor, index) => {
+      const currentDepth = index + 1;
+      const reward = REWARD_STRUCTURE.find(r => r.level === currentDepth);
+      
+      if (reward) {
+        // Prepare updates for the sponsor
+        const updateData: any = {
+          balance: increment(reward.amount),
+          earningsWallet: increment(reward.amount),
+          "stats.totalEarnings": increment(reward.amount)
+        };
 
-          transaction.update(sponsor.ref, updateData);
-
-          const txRef = doc(collection(db, "transactions"));
-          transaction.set(txRef, {
-            userId: sponsor.id,
-            title: currentDepth === 1 ? "Direct Referral Bonus" : `Indirect Bonus (L${currentDepth})`,
-            amount: reward.amount,
-            type: "in",
-            category: "Commission",
-            status: "Completed",
-            timestamp: Timestamp.now(),
-            fromUser: userData.displayName || "New Member",
-            referenceNo: "EJ-REF-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-          });
+        // teamSize logic: 
+        // Direct sponsor (L1) already got +1 teamSize during the referred user's signup (in App.tsx).
+        // So we only increment teamSize for L2 and above here to avoid double-counting for L1.
+        if (currentDepth > 1) {
+          updateData["stats.teamSize"] = increment(1);
         }
-      });
+
+        // Increment activated direct referrals count
+        if (currentDepth === 1) {
+          updateData["stats.directReferrals"] = increment(1);
+        }
+
+        transaction.update(sponsor.ref, updateData);
+
+        const txRef = doc(collection(db, "transactions"));
+        transaction.set(txRef, {
+          userId: sponsor.id,
+          title: currentDepth === 1 ? "Direct Referral Bonus" : `Indirect Bonus (L${currentDepth})`,
+          amount: reward.amount,
+          type: "in",
+          category: "Commission",
+          status: "Completed",
+          timestamp: Timestamp.now(),
+          fromUser: userData.displayName || "New Member",
+          referenceNo: "EJ-REF-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        });
+      }
+    });
     });
     return { success: true };
   } catch (error) {

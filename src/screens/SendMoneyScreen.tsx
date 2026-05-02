@@ -64,13 +64,21 @@ export default function SendMoneyScreen({ onBack, onConfirm, balance, initialRec
           limit(5)
         );
 
-        const [snapEmail, snapName, snapPhone] = await Promise.all([
+        const qReferral = query(
+          usersCol,
+          where("referralCode", ">=", searchQuery.toUpperCase()),
+          where("referralCode", "<=", searchQuery.toUpperCase() + '\uf8ff'),
+          limit(5)
+        );
+
+        const [snapEmail, snapName, snapPhone, snapReferral] = await Promise.all([
           getDocs(qEmail),
           getDocs(qName),
-          getDocs(qPhone)
+          getDocs(qPhone),
+          getDocs(qReferral)
         ]);
 
-        const allDocs = [...snapEmail.docs, ...snapName.docs, ...snapPhone.docs];
+        const allDocs = [...snapEmail.docs, ...snapName.docs, ...snapPhone.docs, ...snapReferral.docs];
         
         // Deduplicate and process results
         const seenIds = new Set();

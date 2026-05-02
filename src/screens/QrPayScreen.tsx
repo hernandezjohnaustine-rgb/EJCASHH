@@ -6,9 +6,10 @@ import { Html5Qrcode } from "html5-qrcode";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 
-export default function QrPayScreen({ onBack, onResult }: { 
+export default function QrPayScreen({ onBack, onResult, referralCode: propReferralCode }: { 
   onBack: () => void,
-  onResult?: (recipient: { id: string, name: string, email: string, initial: string }) => void
+  onResult?: (recipient: { id: string, name: string, email: string, initial: string }) => void,
+  referralCode?: string
 }) {
   const [activeMode, setActiveMode] = useState<'scan' | 'myqr'>('scan');
   const [scanning, setScanning] = useState(false);
@@ -19,7 +20,7 @@ export default function QrPayScreen({ onBack, onResult }: {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const userCode = auth.currentUser ? "EJ-" + auth.currentUser.uid.substring(0, 6).toUpperCase() : "8842-1204-EJ77";
+  const userCode = propReferralCode || (auth.currentUser ? "EJ-" + auth.currentUser.uid.substring(0, 6).toUpperCase() : "8842-1204-EJ77");
   const userName = auth.currentUser?.displayName || "User";
 
   // Cleanup scanner on unmount

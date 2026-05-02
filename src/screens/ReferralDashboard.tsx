@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Users, 
   TrendingUp, 
@@ -19,6 +19,7 @@ import GlassCard from "../components/GlassCard";
 import { UserStats, Wallet as WalletType } from "../types";
 import AnimatedNumber from "../components/AnimatedNumber";
 import QrInviteModal from "../components/QrInviteModal";
+import { shortenUrl } from "../lib/shortener";
 
 const MLM_LEVELS = [
   { level: 1, reward: "30%", income: "₱108", label: "Direct" },
@@ -37,10 +38,18 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
   onClaimDaily?: () => void,
   isDailyClaimed?: boolean
 }) {
+  const [shortenedLink, setShortenedLink] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   
-  const shareLink = `${window.location.origin}${window.location.pathname}?ref=${referralCode}`;
+  const shareLink = `${window.location.origin}/${referralCode}`;
 
+  useEffect(() => {
+    const getShort = async () => {
+      const short = await shortenUrl(shareLink);
+      setShortenedLink(short);
+    };
+    if (referralCode) getShort();
+  }, [shareLink, referralCode]);
   const wallets: WalletType[] = [
     { label: "Earnings Wallet", balance: stats.totalEarnings, type: "earnings", color: "text-brand-primary" },
     { label: "Withdrawal Wallet", balance: 0, type: "withdraw", color: "text-brand-primary" },
@@ -127,19 +136,21 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
       {/* Referral Link */}
       <section className="px-6">
          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30 mb-4 px-2">Invite Link</h3>
-         <GlassCard className="flex items-center justify-between py-4 px-6 border-brand-primary/20 bg-brand-primary/5">
+          <GlassCard className="flex items-center justify-between py-4 px-6 border-brand-primary/20 bg-brand-primary/5">
             <div className="flex items-center gap-4 flex-1 mr-4 overflow-hidden">
                <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center shrink-0">
                   <Share2 className="w-5 h-5 text-brand-primary" />
                </div>
                <div className="overflow-hidden">
                   <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
-                  <p className="text-sm font-mono font-bold truncate">{shareLink}</p>
+                  <p className="text-sm font-mono font-bold truncate opacity-80">
+                     {(shortenedLink || shareLink).replace(/^https?:\/\//, '')}
+                  </p>
                </div>
             </div>
                <div className="flex gap-2">
                   <button 
-                    onClick={() => navigator.clipboard.writeText(shareLink)}
+                    onClick={() => navigator.clipboard.writeText(shortenedLink || shareLink)}
                     className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
                   >
                      <Copy className="w-4 h-4" />
@@ -151,7 +162,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
                      <Scan className="w-4 h-4" />
                   </button>
                </div>
-         </GlassCard>
+          </GlassCard>
       </section>
 
       {/* Reward Structure */}
