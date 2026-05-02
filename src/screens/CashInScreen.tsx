@@ -13,6 +13,7 @@ const PAYMENT_METHODS = [
 export default function CashInScreen({ onBack, onConfirm }: any) {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState(PAYMENT_METHODS[0]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
@@ -20,11 +21,27 @@ export default function CashInScreen({ onBack, onConfirm }: any) {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return;
 
+    if (method.id === 'gcash') {
+      setShowPaymentModal(true);
+      // Try to open in new tab (might be blocked, so we show modal as fallback)
+      window.open("https://m.gcash.com/", "_blank");
+      return;
+    }
+
     setIsProcessing(true);
-    // Simulate payment processing
+    // Simulate payment processing for other methods
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsProcessing(false);
     onConfirm(amt, method.name);
+  };
+
+  const confirmGcashPayment = async () => {
+    setIsProcessing(true);
+    // Simulate verification
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    setIsProcessing(false);
+    setShowPaymentModal(false);
+    onConfirm(parseFloat(amount), method.name);
   };
 
   const presetAmounts = ["100", "500", "1000", "5000"];
@@ -137,6 +154,63 @@ export default function CashInScreen({ onBack, onConfirm }: any) {
       </div>
 
       <AnimatePresence>
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-brand-black/95 backdrop-blur-xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass-card w-full max-w-sm p-8 text-center relative z-10 border-brand-primary/20 shadow-[0_0_50px_rgba(59,130,246,0.1)]"
+            >
+               <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/10 flex items-center justify-center mb-6">
+                 <Loader2 className={`w-10 h-10 text-blue-500 ${isProcessing ? 'animate-spin' : ''}`} />
+               </div>
+               
+               <h3 className="text-2xl font-display font-black tracking-tight mb-2 italic">GCash Payment</h3>
+               <p className="text-sm text-brand-text/60 mb-8">
+                 We've generated a secure payment link for ₱{parseFloat(amount).toLocaleString()}. Please complete the payment in the GCash app.
+               </p>
+
+               <div className="space-y-3 mb-8">
+                  <a 
+                    href="https://m.gcash.com/" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-3 w-full h-14 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] shadow-[0_10px_20px_rgba(37,99,235,0.3)] active:scale-95 transition-all"
+                  >
+                    Open GCash App
+                  </a>
+                  <button 
+                    onClick={() => setShowPaymentModal(false)}
+                    className="w-full h-12 rounded-xl bg-brand-card/5 border border-brand-border text-[10px] font-black uppercase tracking-widest text-brand-text/40"
+                  >
+                    Cancel Transaction
+                  </button>
+               </div>
+
+               <div className="pt-6 border-t border-brand-border/40">
+                  <button 
+                    onClick={confirmGcashPayment}
+                    disabled={isProcessing}
+                    className="btn-primary w-full h-16 text-lg tracking-tight shadow-[0_10px_30px_rgba(250,204,21,0.2)] disabled:opacity-50"
+                  >
+                    {isProcessing ? "Verifying Payment..." : "I've Paid Already"}
+                  </button>
+                  <p className="text-[10px] text-brand-text/30 font-bold uppercase tracking-[0.2em] mt-4 flex items-center justify-center gap-2">
+                    <ShieldCheck className="w-3 h-3" />
+                    Secure Verification
+                  </p>
+               </div>
+            </motion.div>
+          </div>
+        )}
+
         {showQr && (
            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
               <motion.div 

@@ -43,6 +43,7 @@ export default function App() {
   const [userStats, setUserStats] = useState<UserStats>({
     vipLevel: 1,
     directReferrals: 0,
+    totalReferrals: 0,
     teamSize: 0,
     totalEarnings: 0,
     isActivated: false,
@@ -75,9 +76,35 @@ export default function App() {
 
   useEffect(() => {
     // Connection test & Config check
-    const testConnection = async () => {
-  // Skip connection test - Firestore is already created
-  console.log("Skipping connection test - Firestore ready.");
+    const testConnection = async (retries = 3) => {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firestore connection verified.");
+  } catch (error: any) {
+    // Ignore "not found" — means Firestore IS reachable, doc just doesn't exist
+    if (
+      error.code === 'not-found' || 
+      error.message?.includes('No document') ||
+      error.message?.includes('not-found')
+    ) {
+      console.log("Firestore connection verified (test doc not found, that's OK).");
+      return;
+    }
+    
+    if (error.message?.includes('the client is offline') || error.code === 'unavailable') {
+      if (retries > 0) {
+        console.warn(`Firestore offline, retrying... (${retries} attempts left)`);
+        setTimeout(() => testConnection(retries - 1), 2000);
+      } else {
+        setFirebaseError({
+          title: "Firestore Offline",
+          message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your new Firebase project console.",
+          code: "offline"
+        });
+      }
+    }
+    // Ignore all other errors silently
+  }
 };
     
     // Check if we are in an error state from a previous redirect or popup failure
@@ -101,6 +128,9 @@ export default function App() {
             
             if (!userDoc.exists()) {
               const referredBy = localStorage.getItem("referredBy");
+              const username = localStorage.getItem("pendingUsername");
+              const phoneNumber = localStorage.getItem("pendingPhone");
+
               let sponsorId = null;
               
               if (referredBy) {
@@ -108,6 +138,17 @@ export default function App() {
                 const snap = await getDocs(q);
                 if (!snap.empty) {
                   sponsorId = snap.docs[0].id;
+                  
+                  // Increment sponsor's total registration count immediately
+                  const { updateDoc, increment } = await import("firebase/firestore");
+                  try {
+                    await updateDoc(doc(db, "users", sponsorId), {
+                      "stats.totalReferrals": increment(1),
+                      "stats.teamSize": increment(1)
+                    });
+                  } catch (e) {
+                    console.error("Failed to update sponsor stats:", e);
+                  }
                 }
               }
 
@@ -116,6 +157,8 @@ export default function App() {
                 email: firebaseUser.email,
                 displayName: firebaseUser.displayName || "New Member",
                 photoURL: firebaseUser.photoURL,
+                username: username || null,
+                phoneNumber: phoneNumber || null,
                 isActivated: false,
                 balance: 0,
                 earningsWallet: 0,
@@ -131,16 +174,23 @@ export default function App() {
                 stats: {
                   vipLevel: 1,
                   directReferrals: 0,
+                  totalReferrals: 0,
                   teamSize: 0,
                   totalEarnings: 0
                 }
               };
               await setDoc(userDocRef, newUser);
               setUserProfile(newUser);
+              
+              // Clear pending info
+              localStorage.removeItem("pendingUsername");
+              localStorage.removeItem("pendingPhone");
+              
               setUserStats({ 
                 isActivated: false,
                 vipLevel: 1,
                 directReferrals: 0,
+                totalReferrals: 0,
                 teamSize: 0,
                 totalEarnings: 0,
                 tradingInvested: 0,
@@ -154,12 +204,17 @@ export default function App() {
               const data = userDoc.data();
               const today = new Date().toISOString().split('T')[0];
               const tradingClaimedToday = data.lastClaimDate !== today ? false : (data.tradingClaimedToday || false);
+              const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
               
-              setUserProfile(data);
+              setUserProfile({
+                ...data,
+                dailyClaimedToday
+              });
               setBalance(data.balance || 0);
               setUserStats({
                 vipLevel: data.stats?.vipLevel || 1,
                 directReferrals: data.stats?.directReferrals || 0,
+                totalReferrals: data.stats?.totalReferrals || 0,
                 teamSize: data.stats?.teamSize || 0,
                 totalEarnings: data.earningsWallet || data.stats?.totalEarnings || 0,
                 isActivated: data.isActivated || false,
@@ -189,12 +244,17 @@ export default function App() {
             const data = doc.data();
             const today = new Date().toISOString().split('T')[0];
             const tradingClaimedToday = data.lastClaimDate !== today ? false : (data.tradingClaimedToday || false);
+            const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
 
-            setUserProfile(data);
+            setUserProfile({
+              ...data,
+              dailyClaimedToday
+            });
             setBalance(data.balance || 0);
             setUserStats({
               vipLevel: data.stats?.vipLevel || 1,
               directReferrals: data.stats?.directReferrals || 0,
+              totalReferrals: data.stats?.totalReferrals || 0,
               teamSize: data.stats?.teamSize || 0,
               totalEarnings: data.earningsWallet || data.stats?.totalEarnings || 0,
               isActivated: data.isActivated || false,
@@ -213,8 +273,7 @@ export default function App() {
         const q = query(
           collection(db, "transactions"), 
           where("userId", "==", firebaseUser.uid),
-          orderBy("timestamp", "desc"),
-          limit(20)
+          limit(50)
         );
         const subTx = onSnapshot(q, (snapshot) => {
           const txs: any[] = snapshot.docs.map(doc => {
@@ -223,11 +282,14 @@ export default function App() {
             return {
               id: doc.id,
               ...data,
+              timestampValue: ts.getTime(), // Add for sorting
               amount: `${data.type === 'in' ? '+' : '-'}₱${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
               date: ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
             };
           });
-          setTransactions(txs);
+          
+          // Client-side sort to avoid index requirements
+          setTransactions(txs.sort((a, b) => b.timestampValue - a.timestampValue));
         }, (error) => {
           handleFirestoreError(error, OperationType.GET, "transactions");
         });
@@ -255,15 +317,20 @@ export default function App() {
     const userDocRef = doc(db, "users", user.uid);
     
     try {
+      // ✅ FIX: Read latest balance first
+      const freshDoc = await getDoc(userDocRef);
+      const currentBalance = freshDoc.exists() ? (freshDoc.data().balance || 0) : balance;
+      const currentEarningsWallet = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : (userProfile.earningsWallet || 0);
+
       const today = new Date().toISOString().split('T')[0];
       await setDoc(userDocRef, {
-        balance: balance + profit,
+        balance: currentBalance + profit,
         tradingEarnings: (userStats.tradingEarnings || 0) + profit,
         tradingClaimedToday: true,
         lastClaimDate: today,
         tradingDaysCompleted: (userStats.tradingDaysCompleted || 0) + 1,
         // Also update the earnings wallet which is what users withdraw
-        earningsWallet: (userProfile.earningsWallet || 0) + profit,
+        earningsWallet: currentEarningsWallet + profit,
         stats: {
           ...userProfile.stats,
           totalEarnings: (userProfile.stats?.totalEarnings || 0) + profit
@@ -286,9 +353,52 @@ export default function App() {
     setActiveTab(tab);
   };
 
-  const handleActivation = () => {
+  const handleClaimDaily = async () => {
+    if (!user || userProfile.dailyClaimedToday) return;
+
+    const userDocRef = doc(db, "users", user.uid);
+    const reward = 2.00;
+
+    try {
+      const freshDoc = await getDoc(userDocRef);
+      const currentBalance = freshDoc.exists() ? (freshDoc.data().balance || 0) : balance;
+      const today = new Date().toISOString().split('T')[0];
+
+      await setDoc(userDocRef, {
+        balance: currentBalance + reward,
+        dailyClaimedToday: true,
+        lastDailyClaimDate: today,
+        stats: {
+          ...userProfile.stats,
+          totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
+        }
+      }, { merge: true });
+
+      await addTransaction({
+        title: "Daily Login Reward",
+        rawAmount: reward,
+        category: "Bonus",
+        type: "in",
+        status: "Completed"
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+    }
+  };
+
+  const handleActivationComplete = () => {
+    setShowSuccess("Account Activated Successfully!");
     setActiveView(null);
     setActiveTab("home");
+    
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+      setShowSuccess(null);
+    }, 3000);
+  };
+
+  const handleRequestActivation = () => {
+    setActiveView("activation");
   };
 
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
@@ -326,6 +436,10 @@ export default function App() {
       updateData.tradingActive = true;
       updateData.tradingClaimedToday = false;
       updateData.tradingDaysCompleted = 0;
+    } else if (tx.category === "Withdrawal") {
+      const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : (userProfile.earningsWallet || 0);
+      updateData.balance = freshBalance - tx.rawAmount;
+      updateData.earningsWallet = currentEarnings - tx.rawAmount;
     } else {
       updateData.balance = tx.type === "in"
         ? freshBalance + tx.rawAmount
@@ -423,10 +537,11 @@ export default function App() {
     // Check for activation for core features
     const coreFeatures = ["send", "bank", "bills", "load", "trading", "rider", "market"];
     if (coreFeatures.includes(activeView || "") && !userStats.isActivated) {
-       return <ActivationScreen uid={user.uid} onActivate={handleActivation} />;
+       return <ActivationScreen uid={user.uid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
     }
 
     switch (activeView) {
+      case "activation": return <ActivationScreen uid={user.uid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
       case "cashin": return <CashInScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, method: string) => addTransaction({ title: `Cash In via ${method}`, rawAmount: amt, category: "Cash In", type: "in" })} />;
       case "send": return <SendMoneyScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, name: string) => addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" })} balance={balance} />;
       case "load": return <BuyLoadScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, provider: string) => addTransaction({ title: `${provider} Load`, rawAmount: amt, category: "Mobile Load", type: "out" })} balance={balance} />;
@@ -483,16 +598,24 @@ export default function App() {
                   initial={{ scale: 0.5, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", damping: 15 }}
-                  className="w-24 h-24 rounded-[40px] bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(250,204,21,0.2)]"
+                  className="w-32 h-32 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.2)]"
                 >
-                  <CheckCircle2 className="w-12 h-12 text-brand-primary" />
+                  <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+                  </div>
                 </motion.div>
-                <h2 className="text-2xl font-display font-black tracking-tight mb-2">Success!</h2>
-                <p className="text-brand-text/60 font-medium mb-8">{showSuccess}</p>
-                <div className="flex items-center gap-2 px-4 py-2 bg-brand-card/5 rounded-full border border-brand-border">
-                   <ShieldCheck className="w-3.5 h-3.5 text-brand-primary" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Securely Processed</span>
-                </div>
+                <h2 className="text-3xl font-display font-black tracking-tight mb-3">Success!</h2>
+                <p className="text-brand-text/60 font-medium mb-10 max-w-[250px]">{showSuccess}</p>
+                
+                <button 
+                  onClick={() => setShowSuccess(null)}
+                  className="w-full max-w-[200px] h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center gap-3 mb-8 active:scale-95 transition-all"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Securely Processed</span>
+                </button>
+
+                <p className="text-[10px] text-white/20 font-bold uppercase tracking-[0.2em] animate-pulse">Automatically continuing...</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -512,7 +635,7 @@ export default function App() {
               />
               <HomeScreen 
                 stats={userStats} 
-                onActivate={handleActivation} 
+                onActivate={handleRequestActivation} 
                 balance={balance}
                 transactions={transactions}
                 onServiceClick={(serviceId) => setActiveView(serviceId)}
@@ -552,6 +675,8 @@ export default function App() {
                  onWithdraw={() => setActiveView("withdraw")}
                  onViewNetwork={() => setActiveView("network")}
                  referralCode={userProfile?.referralCode || ""}
+                 onClaimDaily={handleClaimDaily}
+                 isDailyClaimed={userProfile.dailyClaimedToday}
                />
              </motion.div>
           )}

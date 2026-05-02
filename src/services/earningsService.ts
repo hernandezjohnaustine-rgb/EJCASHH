@@ -1,5 +1,6 @@
 import { 
   doc, 
+  getDoc,
   runTransaction, 
   collection, 
   query, 
@@ -28,32 +29,45 @@ const REWARD_STRUCTURE = [
 export async function processActivation(userId: string) {
   const path = `activation/${userId}`;
   try {
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef); // Read user first to find sponsor info if needed
+
+    if (!userSnap.exists()) throw new Error("User not found");
+    const userData = userSnap.data();
+    if (userData.isActivated) throw new Error("User already activated");
+
+    let initialSponsorId = userData.sponsorId;
+
+    // Fallback: If sponsorId is missing, try to find it using the referredBy code
+    if (!initialSponsorId && userData.referredBy) {
+      const q = query(
+        collection(db, "users"), 
+        where("referralCode", "==", userData.referredBy), 
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        initialSponsorId = snap.docs[0].id;
+      }
+    }
+
     await runTransaction(db, async (transaction) => {
-      const userRef = doc(db, "users", userId);
-      const userSnap = await transaction.get(userRef);
-
-      if (!userSnap.exists()) throw new Error("User not found");
-      const userData = userSnap.data();
-
-      if (userData.isActivated) throw new Error("User already activated");
+      const freshUserSnap = await transaction.get(userRef);
+      if (!freshUserSnap.exists()) throw new Error("User not found");
+      const freshUserData = freshUserSnap.data();
+      if (freshUserData.isActivated) throw new Error("User already activated");
+      
+      const ACTIVATION_FEE = 360.00;
+      const currentBalance = freshUserData.balance || 0;
+      
+      if (currentBalance < ACTIVATION_FEE) {
+        throw new Error(`Insufficient Balance. You need ₱${ACTIVATION_FEE.toLocaleString()} to activate your account.`);
+      }
 
       // 1. Collect all sponsors in the chain (up to 10 levels)
       const sponsors: { ref: any, id: string, data: any }[] = [];
-      let nextSponsorId = userData.sponsorId;
+      let nextSponsorId = initialSponsorId;
       
-      // Fallback: If sponsorId is missing, try to find it using the referredBy code
-      if (!nextSponsorId && userData.referredBy) {
-        const q = query(
-          collection(db, "users"), 
-          where("referralCode", "==", userData.referredBy), 
-          limit(1)
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          nextSponsorId = snap.docs[0].id;
-        }
-      }
-
       let depth = 1;
       while (nextSponsorId && depth <= 10) {
         const sponsorRef = doc(db, "users", nextSponsorId);
@@ -72,12 +86,24 @@ export async function processActivation(userId: string) {
         depth++;
       }
 
-      // 2. NOW perform all updates (WRITES follow READS)
-      
-      // Activate the user
+      // 2. NOW perform all updates
       transaction.update(userRef, { 
         isActivated: true,
-        activatedAt: Timestamp.now() 
+        activatedAt: Timestamp.now(),
+        balance: increment(-ACTIVATION_FEE)
+      });
+
+      // Add activation fee transaction
+      const feeTxRef = doc(collection(db, "transactions"));
+      transaction.set(feeTxRef, {
+        userId: userId,
+        title: "Account Activation Fee",
+        amount: ACTIVATION_FEE,
+        type: "out",
+        category: "System",
+        status: "Completed",
+        timestamp: Timestamp.now(),
+        referenceNo: "EJ-ACT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
       });
 
       // Distribute rewards to sponsors

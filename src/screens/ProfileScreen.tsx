@@ -5,10 +5,7 @@ interface ProfileScreenProps {
   onLogout: () => void;
   theme: string;
   onToggleTheme: () => void;
-  user: {
-    displayName: string | null;
-    email: string | null;
-  } | null;
+  user: any | null; // Use any to allow UserProfile or FirebaseUser
 }
 
 export default function ProfileScreen({ onLogout, theme, onToggleTheme, user }: ProfileScreenProps) {
@@ -16,7 +13,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user }: 
   
   const menuItems = [
     { icon: TrendingUp, label: "Earnings Wallet", sub: "Withdraw commissions" },
-    { icon: User, label: "Personal Information", sub: "Update your details" },
+    { icon: User, label: "Personal Information", sub: `Update details ${user?.phoneNumber ? `(+63 ${user.phoneNumber})` : ''}` },
     { icon: Shield, label: "Security & Privacy", sub: "Face ID, PIN, Biometrics" },
     { icon: CreditCard, label: "Payment Methods", sub: "Stored cards & banks" },
     { icon: Bell, label: "Notifications", sub: "Alerts & Transaction SMS" },
@@ -37,7 +34,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user }: 
            <div className="w-24 h-24 rounded-[40px] bg-gradient-to-br from-brand-primary to-brand-accent p-1 animate-gradient-slow shadow-2xl">
               <div className="w-full h-full rounded-[38px] bg-brand-card flex items-center justify-center overflow-hidden border border-brand-border">
                  <img 
-                   src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" 
+                   src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || user?.displayName || "John"}`} 
                    alt="Profile" 
                    className="w-full h-full object-cover"
                    referrerPolicy="no-referrer"
@@ -50,7 +47,10 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user }: 
         </div>
 
         <div className="text-center relative z-10">
-           <h2 className="text-xl font-display font-bold tracking-tight">{user?.displayName || "Member"}</h2>
+           <div className="flex items-center justify-center gap-2 mb-1">
+             <h2 className="text-xl font-display font-bold tracking-tight">{user?.displayName || "Member"}</h2>
+             {user?.username && <span className="text-[10px] bg-brand-primary text-brand-black px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">@{user.username}</span>}
+           </div>
            <p className="text-sm text-brand-text/40 mb-3 tracking-wide">{user?.email}</p>
            <div className="flex items-center gap-2 bg-brand-primary/10 py-1.5 px-4 rounded-full border border-brand-primary/20">
               <Shield className="w-3 h-3 text-brand-primary" />

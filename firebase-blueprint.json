@@ -21,7 +21,19 @@
         "tradingClaimedToday": { "type": "boolean" },
         "tradingDaysCompleted": { "type": "integer" },
         "lastClaimDate": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "username": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "vipLevel": { "type": "integer" },
+            "directReferrals": { "type": "integer" },
+            "totalReferrals": { "type": "integer" },
+            "teamSize": { "type": "integer" },
+            "totalEarnings": { "type": "number" }
+          }
+        }
       },
       "required": ["uid", "email", "isActivated"]
     },

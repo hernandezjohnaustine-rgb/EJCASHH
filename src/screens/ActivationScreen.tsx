@@ -4,10 +4,14 @@ import { Zap, ShieldCheck, CreditCard, ChevronRight, Check, X, Loader2, AlertCir
 import GlassCard from "../components/GlassCard";
 import { processActivation } from "../services/earningsService";
 
-export default function ActivationScreen({ uid, onActivate }: { uid: string, onActivate: () => void }) {
+export default function ActivationScreen({ uid, onActivate, balance, onBack }: { uid: string, onActivate: () => void, balance: number, onBack?: () => void }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"GCash" | "Wallet">("GCash");
   const [error, setError] = useState<string | null>(null);
+
+  const ACTIVATION_FEE = 360;
+  const hasEnoughBalance = (balance || 0) >= ACTIVATION_FEE;
 
   const benefits = [
     "30% Direct Referral Commission",
@@ -19,6 +23,11 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
   ];
 
   const handlePay = async () => {
+    if ((balance || 0) < ACTIVATION_FEE) {
+      setError(`Insufficient Balance. You need ₱${ACTIVATION_FEE} to activate.`);
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
     try {
@@ -27,7 +36,14 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
       onActivate();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to process activation. Please try again.");
+      let message = "Failed to process activation. Please try again.";
+      try {
+        const parsed = JSON.parse(err.message);
+        message = parsed.error || message;
+      } catch (e) {
+        message = err.message || message;
+      }
+      setError(message);
       setIsProcessing(false);
     }
   };
@@ -38,6 +54,14 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
       <div className="absolute top-0 left-0 w-full h-96 bg-brand-primary/20 blur-[100px] pointer-events-none"></div>
 
       <header className="text-center mb-12 relative z-10">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="absolute top-0 right-0 p-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 hover:text-white transition-all transform hover:scale-110 active:scale-90"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
         <div className="w-20 h-20 mx-auto rounded-3xl bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
           <Zap className="w-10 h-10 text-brand-primary animate-pulse" />
         </div>
@@ -75,24 +99,42 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
         <div className="flex flex-col gap-4 mt-4">
            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/30 ml-2">Payment Method</h3>
            <button 
-             onClick={() => setShowConfirmation(true)}
-             className="glass-card !p-5 flex items-center justify-between border-transparent hover:border-white/10 transition-all bg-white/5 active:scale-95"
+             onClick={() => {
+               setPaymentMethod("GCash");
+               setShowConfirmation(true);
+             }}
+             className={`glass-card !p-5 flex items-center justify-between border-transparent transition-all active:scale-95 ${paymentMethod === 'GCash' ? 'ring-2 ring-brand-primary bg-white/10' : 'bg-white/5'}`}
            >
               <div className="flex items-center gap-4">
                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center font-black text-blue-500 italic">G</div>
                  <div className="text-left">
                     <h4 className="text-sm font-bold">GCash Pay</h4>
-                    <p className="text-[10px] text-white/40 font-medium tracking-wider">Fast & Secure</p>
+                    <p className="text-[10px] text-white/40 font-medium tracking-wider">Manual Verification</p>
                  </div>
               </div>
               <ChevronRight className="w-5 h-5 text-white/20" />
            </button>
-           <button className="glass-card !p-5 flex items-center justify-between border-transparent hover:border-white/10 transition-all bg-white/5 active:scale-95 opacity-60">
+           <button 
+             onClick={() => {
+               if (hasEnoughBalance) {
+                 setPaymentMethod("Wallet");
+                 setShowConfirmation(true);
+               } else {
+                 setError("Insufficient Wallet Balance. Please cash in first.");
+               }
+             }}
+             disabled={!hasEnoughBalance}
+             className={`glass-card !p-5 flex items-center justify-between border-transparent transition-all active:scale-95 ${paymentMethod === 'Wallet' ? 'ring-2 ring-brand-primary bg-white/10' : 'bg-white/5'} ${!hasEnoughBalance ? 'opacity-60 grayscale' : ''}`}
+           >
               <div className="flex items-center gap-4">
-                 <CreditCard className="w-6 h-6 text-brand-primary" />
+                 <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                   <CreditCard className="w-6 h-6 text-brand-primary" />
+                 </div>
                  <div className="text-left">
                     <h4 className="text-sm font-bold">Main Wallet</h4>
-                    <p className="text-[10px] text-red-500 font-bold tracking-wider">Insufficient Balance</p>
+                    <p className={`text-[10px] font-bold tracking-wider ${hasEnoughBalance ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {hasEnoughBalance ? `Balance: ₱${balance.toLocaleString()}` : 'Insufficient Balance'}
+                    </p>
                  </div>
               </div>
               <ChevronRight className="w-5 h-5 text-white/20" />
@@ -102,10 +144,17 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
 
       <div className="mt-auto pt-10 pb-8 relative z-10">
         <button 
-          onClick={() => setShowConfirmation(true)}
-          className="btn-primary w-full h-16 text-lg tracking-tight shadow-[0_10px_30px_rgba(250,204,21,0.4)]"
+          onClick={() => {
+            if (!hasEnoughBalance) {
+              setError("Insufficient Balance. Please cash in first.");
+              return;
+            }
+            setShowConfirmation(true);
+          }}
+          disabled={!hasEnoughBalance}
+          className={`btn-primary w-full h-16 text-lg tracking-tight shadow-[0_10px_30px_rgba(250,204,21,0.4)] ${!hasEnoughBalance ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
         >
-          Pay ₱360 to Activate
+          {!hasEnoughBalance ? "Insufficient Balance" : paymentMethod === "Wallet" ? `Activation via Wallet (₱360)` : "Activate via GCash (₱360)"}
         </button>
         <div className="flex items-center justify-center gap-2 mt-6">
            <ShieldCheck className="w-4 h-4 text-white/20" />
@@ -130,11 +179,26 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
               className="glass-card w-full max-w-sm relative overflow-hidden"
             >
                {isProcessing ? (
-                 <div className="py-12 flex flex-col items-center gap-6">
-                    <Loader2 className="w-16 h-16 text-brand-primary animate-spin" />
-                    <div className="text-center">
-                       <h3 className="text-xl font-display font-black mb-2">Processing Payment</h3>
-                       <p className="text-sm text-white/40">Please do not close the app...</p>
+                 <div className="py-12 flex flex-col items-center gap-6 px-4">
+                    <div className="relative">
+                      <Loader2 className="w-16 h-16 text-brand-primary animate-spin" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Zap className="w-6 h-6 text-brand-primary animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="text-center w-full">
+                       <h3 className="text-xl font-display font-black mb-2 italic">Verifying Transaction</h3>
+                       <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] font-bold mb-6">Processing on EJCASHH Network...</p>
+                       
+                       <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-2">
+                          <motion.div 
+                            initial={{ width: "0%" }}
+                            animate={{ width: "100%" }}
+                            transition={{ duration: 3, ease: "linear" }}
+                            className="h-full bg-brand-primary shadow-[0_0_10px_#FACC15]"
+                          />
+                       </div>
+                       <p className="text-[10px] text-brand-primary/60 font-black uppercase tracking-widest">Please do not refresh</p>
                     </div>
                  </div>
                ) : (
@@ -162,10 +226,10 @@ export default function ActivationScreen({ uid, onActivate }: { uid: string, onA
 
                     <button 
                       onClick={handlePay}
-                      disabled={isProcessing}
-                      className="btn-primary w-full h-16 text-lg tracking-tight mb-4"
+                      disabled={isProcessing || !hasEnoughBalance}
+                      className={`btn-primary w-full h-16 text-lg tracking-tight mb-4 ${(!hasEnoughBalance || isProcessing) ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
                     >
-                      Pay Now
+                      {isProcessing ? "Processing..." : !hasEnoughBalance ? "Insufficient Balance" : "Pay Now"}
                     </button>
                     {error && (
                        <p className="text-[10px] text-center text-red-400 font-bold mb-4 uppercase tracking-widest">{error}</p>

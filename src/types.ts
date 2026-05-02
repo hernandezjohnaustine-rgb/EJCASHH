@@ -4,6 +4,8 @@ export interface UserProfile {
   displayName: string | null;
   referralCode: string;
   referredBy?: string;
+  username?: string;
+  phoneNumber?: string;
   createdAt: string;
   stats: UserStats;
 }
@@ -30,6 +32,7 @@ export interface Wallet {
 export interface UserStats {
   vipLevel: number;
   directReferrals: number;
+  totalReferrals: number;
   teamSize: number;
   totalEarnings: number;
   isActivated: boolean;

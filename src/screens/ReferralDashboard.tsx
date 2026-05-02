@@ -29,13 +29,14 @@ const MLM_LEVELS = [
   { level: "6-10", reward: "1%", income: "₱3.60", label: "Indirect" },
 ];
 
-export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode }: { 
+export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode, onClaimDaily, isDailyClaimed }: { 
   stats: UserStats, 
   onWithdraw: () => void,
   onViewNetwork: () => void,
-  referralCode: string
+  referralCode: string,
+  onClaimDaily?: () => void,
+  isDailyClaimed?: boolean
 }) {
-  const [claimed, setClaimed] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   
   const shareLink = `${window.location.origin}${window.location.pathname}?ref=${referralCode}`;
@@ -103,10 +104,10 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
             <Users className="w-5 h-5 text-brand-primary" />
             <span className="text-[10px] font-black uppercase tracking-widest text-brand-text/40">Directs</span>
           </div>
-          <p className="text-2xl font-display font-bold group-hover:text-brand-primary transition-colors">{stats.directReferrals}</p>
+          <p className="text-2xl font-display font-bold group-hover:text-brand-primary transition-colors">{stats.totalReferrals || 0}</p>
           <div className="flex items-center gap-1 text-[10px] text-brand-primary font-bold">
-            <TrendingUp className="w-3 h-3" />
-            <span>+12% this week</span>
+            <CheckCircle2 className="w-3 h-3" />
+            <span>{stats.directReferrals || 0} Activated</span>
           </div>
         </GlassCard>
 
@@ -186,18 +187,18 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
 
       {/* Daily Claim */}
       <section className="px-6">
-         <GlassCard className={`!p-0 border-none transition-all duration-500 ${claimed ? 'bg-brand-primary/20' : 'bg-gradient-to-r from-brand-primary to-brand-navy shadow-[0_0_40px_rgba(250,204,21,0.3)]'}`}>
+         <GlassCard className={`!p-0 border-none transition-all duration-500 ${isDailyClaimed ? 'bg-brand-primary/20' : 'bg-gradient-to-r from-brand-primary to-brand-navy shadow-[0_0_40px_rgba(250,204,21,0.3)]'}`}>
             <div className="p-6 flex items-center justify-between">
                <div className="flex flex-col gap-2">
                  <div className="flex items-center gap-2">
-                    {claimed ? <CheckCircle2 className="w-4 h-4 text-brand-primary" /> : <Zap className="w-4 h-4 text-brand-primary" />}
-                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">{claimed ? 'Bonus Claimed' : 'Daily Mission'}</span>
+                    {isDailyClaimed ? <CheckCircle2 className="w-4 h-4 text-brand-primary" /> : <Zap className="w-4 h-4 text-brand-primary" />}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">{isDailyClaimed ? 'Bonus Claimed' : 'Daily Mission'}</span>
                  </div>
-                 <h4 className="text-lg font-display font-bold">{claimed ? 'Success!' : 'Daily Activity Bonus'}</h4>
-                 <p className="text-xs text-brand-text/60">{claimed ? 'Come back tomorrow for more rewards.' : 'Claim your ₱2.00 daily login and activity reward.'}</p>
-                 {!claimed && (
+                 <h4 className="text-lg font-display font-bold">{isDailyClaimed ? 'Success!' : 'Daily Activity Bonus'}</h4>
+                 <p className="text-xs text-brand-text/60">{isDailyClaimed ? 'Come back tomorrow for more rewards.' : 'Claim your ₱2.00 daily login and activity reward.'}</p>
+                 {!isDailyClaimed && (
                     <button 
-                      onClick={() => setClaimed(true)}
+                      onClick={() => onClaimDaily?.()}
                       className="mt-2 px-6 py-2 bg-brand-primary text-brand-black text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-[0_0_15px_#FACC15] w-fit active:scale-95 transition-all"
                     >
                       Claim Now
@@ -205,7 +206,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
                  )}
                </div>
                <div className="w-20 h-20 opacity-40">
-                  <Gift className={`w-full h-full text-brand-text ${claimed ? 'animate-bounce' : ''}`} />
+                  <Gift className={`w-full h-full text-brand-text ${isDailyClaimed ? 'animate-bounce' : ''}`} />
                </div>
             </div>
          </GlassCard>

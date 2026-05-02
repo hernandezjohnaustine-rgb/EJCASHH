@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
-import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Github } from "lucide-react";
+import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Phone } from "lucide-react";
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
@@ -12,9 +12,12 @@ import { auth } from "../lib/firebase";
 
 export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Combined Email/Username/Phone
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(""); // For registration
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +29,10 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     if (ref) {
       setReferralCode(ref);
       setMode("register");
+      localStorage.setItem("referredBy", ref);
+    } else {
+      const saved = localStorage.getItem("referredBy");
+      if (saved) setReferralCode(saved);
     }
   }, []);
 
@@ -39,32 +46,33 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     } catch (err: any) {
       console.error(err);
       if (err.code === "auth/configuration-not-found") {
-        setError("Firebase Error: Please enable 'Google' as a sign-in provider in your Firebase Console (Authentication > Sign-in method).");
-      } else if (err.code === "auth/unauthorized-domain") {
-        setError(`Firebase Error: Unauthorized domain. Please add "${window.location.hostname}" to your Firebase Console (Authentication > Settings > Authorized domains).`);
+        setError("Firebase Error: Please enable 'Google' as a sign-in provider.");
       } else if (err.code === "auth/popup-closed-by-user") {
-        setError("Login cancelled. Please try again.");
+        setError("Login cancelled.");
       } else {
-        setError(err.message || "Failed to sign in. Please try again.");
+        setError(err.message || "Failed to sign in.");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    // Check URL for ref code
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
-    if (ref) {
-      setReferralCode(ref);
-      localStorage.setItem("referredBy", ref);
-    } else {
-      // Fallback to localStorage
-      const saved = localStorage.getItem("referredBy");
-      if (saved) setReferralCode(saved);
-    }
-  }, []);
+  const findEmailByIdentifier = async (id: string): Promise<string> => {
+    if (id.includes("@")) return id;
+    
+    const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
+    const { db } = await import("../lib/firebase");
+    
+    // Check if it's a phone number (all digits)
+    const isPhone = /^\d+$/.test(id);
+    const field = isPhone ? "phoneNumber" : "username";
+    
+    const q = query(collection(db, "users"), where(field, "==", id), limit(1));
+    const snap = await getDocs(q);
+    
+    if (snap.empty) throw new Error(`${isPhone ? "Phone Number" : "Username"} not found.`);
+    return snap.docs[0].data().email;
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,8 +81,13 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
 
     try {
       if (mode === "login") {
-        await signInWithEmailAndPassword(auth, email, password);
+        const loginEmail = await findEmailByIdentifier(identifier);
+        await signInWithEmailAndPassword(auth, loginEmail, password);
       } else {
+        // Save extra info to localStorage for App.tsx to pick up
+        localStorage.setItem("pendingUsername", username);
+        localStorage.setItem("pendingPhone", phoneNumber);
+        
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
       }
@@ -144,14 +157,44 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
                 className="flex flex-col gap-4"
               >
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <User className="w-5 h-5 text-brand-text/20" />
+                  </div>
                   <input 
                     required
                     type="text" 
-                    placeholder="Full Name" 
+                    placeholder="Full Name (Account Name)" 
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
+                  />
+                </div>
+
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-brand-primary uppercase">@</div>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="Unique Username" 
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))}
+                    className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
+                  />
+                </div>
+
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 border-r border-brand-border/40 pr-2">
+                    <Phone className="w-4 h-4 text-brand-text/20" />
+                    <span className="text-[11px] font-black text-brand-primary">+63</span>
+                  </div>
+                  <input 
+                    required
+                    type="tel" 
+                    placeholder="Phone Number (e.g. 9123456789)" 
+                    maxLength={10}
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
+                    className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-16 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
                   />
                 </div>
               </motion.div>
@@ -159,13 +202,17 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
           </AnimatePresence>
 
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
+            {mode === "login" ? (
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
+            ) : (
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
+            )}
             <input 
               required
-              type="email" 
-              placeholder="Email Address" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type={mode === "login" ? "text" : "email"} 
+              placeholder={mode === "login" ? "Email / Username / Number" : "Email Address"} 
+              value={mode === "login" ? identifier : email}
+              onChange={(e) => mode === "login" ? setIdentifier(e.target.value) : setEmail(e.target.value)}
               className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
             />
           </div>

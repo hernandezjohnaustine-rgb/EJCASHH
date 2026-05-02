@@ -249,7 +249,7 @@ export default function HomeScreen({
                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                            <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Profit Claimed</span>
                         </div>
-                        <span className="text-[10px] text-emerald-500/60 font-bold">+₱18.00 today</span>
+                        <span className="text-[10px] text-emerald-500/60 font-bold">+₱{(stats.tradingInvested * 0.05).toLocaleString()} today</span>
                      </div>
                    ) : (
                      <button 
@@ -261,7 +261,7 @@ export default function HomeScreen({
                        className="w-full py-3 bg-brand-primary text-brand-black rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(250,204,21,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
                      >
                        <TrendingUp className="w-4 h-4" />
-                       Claim Daily Profit (5%)
+                       Claim Daily Profit (₱{(stats.tradingInvested * 0.05).toLocaleString()})
                      </button>
                    )}
                 </div>
@@ -283,7 +283,7 @@ export default function HomeScreen({
                        <CheckCircle2 className="w-10 h-10 text-brand-black" />
                     </motion.div>
                     <h4 className="text-xl font-display font-black text-brand-primary uppercase italic mb-1">Profit Claimed!</h4>
-                    <p className="text-xs text-brand-text/60 font-bold uppercase tracking-widest">+₱18.00 added to balance</p>
+                    <p className="text-xs text-brand-text/60 font-bold uppercase tracking-widest">+₱{(stats.tradingInvested * 0.05).toLocaleString()} added to balance</p>
                  </motion.div>
                )}
              </AnimatePresence>
