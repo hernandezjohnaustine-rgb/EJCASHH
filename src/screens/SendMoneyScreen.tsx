@@ -14,12 +14,14 @@ interface UserContact {
   initial: string;
 }
 
-export default function SendMoneyScreen({ onBack, onConfirm, balance }: { 
+export default function SendMoneyScreen({ onBack, onConfirm, balance, initialRecipient, onScanClick }: { 
   onBack: () => void, 
   onConfirm: (amount: number, recipient: string) => void,
-  balance: number
+  balance: number,
+  initialRecipient?: UserContact | null,
+  onScanClick?: () => void
 }) {
-  const [recipient, setRecipient] = useState<UserContact | null>(null);
+  const [recipient, setRecipient] = useState<UserContact | null>(initialRecipient || null);
   const [amount, setAmount] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserContact[]>([]);
@@ -38,27 +40,57 @@ export default function SendMoneyScreen({ onBack, onConfirm, balance }: {
 
       setIsSearching(true);
       try {
-        const q = query(
-          collection(db, "users"),
+        const usersCol = collection(db, "users");
+        
+        // Split into 3 queries to avoid range filter on multiple fields index requirement
+        const qEmail = query(
+          usersCol,
           where("email", ">=", searchQuery),
           where("email", "<=", searchQuery + '\uf8ff'),
           limit(5)
         );
-        const snapshot = await getDocs(q);
-        const results = snapshot.docs
-          .map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              name: data.displayName || data.email?.split('@')[0] || "User",
-              email: data.email || "",
-              phone: data.phoneNumber || "",
-              initial: (data.displayName?.[0] || data.email?.[0] || "U").toUpperCase()
-            };
-          })
-          .filter(u => u.id !== auth.currentUser?.uid);
         
-        setSearchResults(results);
+        const qName = query(
+          usersCol,
+          where("displayName", ">=", searchQuery),
+          where("displayName", "<=", searchQuery + '\uf8ff'),
+          limit(5)
+        );
+
+        const qPhone = query(
+          usersCol,
+          where("phoneNumber", ">=", searchQuery),
+          where("phoneNumber", "<=", searchQuery + '\uf8ff'),
+          limit(5)
+        );
+
+        const [snapEmail, snapName, snapPhone] = await Promise.all([
+          getDocs(qEmail),
+          getDocs(qName),
+          getDocs(qPhone)
+        ]);
+
+        const allDocs = [...snapEmail.docs, ...snapName.docs, ...snapPhone.docs];
+        
+        // Deduplicate and process results
+        const seenIds = new Set();
+        const results: UserContact[] = [];
+
+        for (const doc of allDocs) {
+          if (seenIds.has(doc.id) || doc.id === auth.currentUser?.uid) continue;
+          
+          seenIds.add(doc.id);
+          const data = doc.data();
+          results.push({
+            id: doc.id,
+            name: data.displayName || data.email?.split('@')[0] || "User",
+            email: data.email || "",
+            phone: data.phoneNumber || "",
+            initial: (data.displayName?.[0] || data.email?.[0] || "U").toUpperCase()
+          });
+        }
+        
+        setSearchResults(results.slice(0, 10));
       } catch (err) {
         console.error("Search error:", err);
       } finally {
@@ -238,7 +270,7 @@ export default function SendMoneyScreen({ onBack, onConfirm, balance }: {
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Recipient email..."
+            placeholder="Name, number or email..."
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all text-sm font-medium italic"
           />
           {isSearching && (
@@ -280,7 +312,10 @@ export default function SendMoneyScreen({ onBack, onConfirm, balance }: {
 
       {/* Quick Services */}
       <section className="grid grid-cols-2 gap-3">
-        <button className="btn-ghost !py-4 border-brand-primary/5">
+        <button 
+          onClick={onScanClick}
+          className="btn-ghost !py-4 border-brand-primary/5 active:scale-95 transition-all"
+        >
           <ScanLine className="w-5 h-5 text-brand-primary" />
           <span className="text-[10px] font-black uppercase tracking-widest">Scan QR</span>
         </button>

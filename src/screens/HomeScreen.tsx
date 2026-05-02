@@ -98,9 +98,9 @@ export default function HomeScreen({
                 <span className="text-[12px] tracking-[4px] mt-1">CASHH</span>
              </div>
           </div>
-          <h1 className="text-2xl font-display font-black tracking-[4px] text-brand-primary">EJCASHH</h1>
+          <h1 className="text-2xl font-display font-black tracking-[4.5px] text-brand-primary italic">EJCASHH</h1>
         </div>
-        <p className="text-[10px] text-brand-primary/60 font-bold uppercase tracking-[0.3em] font-sans">Digital Marketing Services</p>
+        <p className="text-[10px] text-brand-primary/60 font-black uppercase tracking-[0.4em] font-sans">Digital Marketing Services</p>
       </header>
 
       {/* Wallet Card */}
@@ -117,9 +117,9 @@ export default function HomeScreen({
           <div className="relative h-full p-8 flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.2em] font-bold">{activeWallet.label}</span>
+                <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.2em] font-black">{activeWallet.label}</span>
                 <div className="flex items-center gap-3">
-                  <h1 className={`text-3xl font-display font-bold tracking-tight transition-all duration-300 ${activeWallet.color}`}>
+                  <h1 className={`text-4xl font-display font-black tracking-tight italic transition-all duration-300 ${activeWallet.color}`}>
                     {showBalance ? (
                       <AnimatedNumber value={activeWallet.balance} className={activeWallet.color} />
                     ) : (
@@ -128,14 +128,14 @@ export default function HomeScreen({
                   </h1>
                   <button 
                     onClick={() => setShowBalance(!showBalance)}
-                    className="p-1.5 bg-brand-text/5 hover:bg-brand-text/10 rounded-xl transition-colors border border-brand-border"
+                    className="p-1.5 bg-brand-text/10 hover:bg-brand-text/20 rounded-xl transition-colors border border-brand-border/30 backdrop-blur-sm"
                   >
-                    {showBalance ? <Eye className="w-4 h-4 text-brand-text/80" /> : <EyeOff className="w-4 h-4 text-brand-text/80" />}
+                    {showBalance ? <Eye className="w-4 h-4 text-brand-text/60" /> : <EyeOff className="w-4 h-4 text-brand-text/60" />}
                   </button>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <div className="w-11 h-11 bg-brand-primary/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-brand-primary/30 shadow-[0_0_15px_rgba(250,204,21,0.2)]">
+                <div className="w-11 h-11 bg-brand-primary/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-brand-primary/30 shadow-[0_5px_15px_rgba(16,185,129,0.2)]">
                   <div className="relative text-[10px] font-black italic tracking-tighter text-brand-primary">EJ</div>
                 </div>
                 <div className="flex gap-1 justify-center mt-2">
@@ -153,18 +153,18 @@ export default function HomeScreen({
             <div className="flex items-end justify-between">
               <div className="flex gap-6">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.1em] font-bold mb-1">Total Earnings</span>
-                  <div className="text-sm font-semibold text-brand-primary drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]">
-                    <AnimatedNumber value={stats.totalEarnings} className="text-brand-primary font-semibold" />
+                  <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.1em] font-black mb-1">Total Earnings</span>
+                  <div className="text-sm font-black text-brand-primary italic drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                    <AnimatedNumber value={stats.totalEarnings} className="text-brand-primary font-black italic" />
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.1em] font-bold mb-1">Referrals</span>
-                  <span className="text-sm font-semibold">{stats.directReferrals} Users</span>
+                  <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.1em] font-black mb-1">Referrals</span>
+                  <span className="text-sm font-black italic">{stats.directReferrals} Users</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-brand-primary/10 backdrop-blur-md py-1.5 px-4 rounded-full border border-brand-primary/30">
-                <div className="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse shadow-[0_0_8px_#FACC15]"></div>
+                <div className="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse shadow-[0_0_8px_#10B981]"></div>
                 <span className="text-[9px] font-black uppercase tracking-widest text-brand-primary">Verified</span>
               </div>
             </div>

@@ -43,8 +43,8 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
 
   const wallets: WalletType[] = [
     { label: "Earnings Wallet", balance: stats.totalEarnings, type: "earnings", color: "text-brand-primary" },
-    { label: "Withdrawal Wallet", balance: 5200.50, type: "withdraw", color: "text-brand-primary" },
-    { label: "Cashback Wallet", balance: 840.25, type: "cashback", color: "text-brand-accent" },
+    { label: "Withdrawal Wallet", balance: 0, type: "withdraw", color: "text-brand-primary" },
+    { label: "Cashback Wallet", balance: 0, type: "cashback", color: "text-brand-accent" },
   ];
 
   return (

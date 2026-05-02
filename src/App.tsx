@@ -421,6 +421,7 @@ export default function App() {
   }, []);
 
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
+  const [scannedRecipient, setScannedRecipient] = useState<any | null>(null);
 
   const addTransaction = async (tx: any) => {
   if (!user) return;
@@ -456,9 +457,10 @@ export default function App() {
       updateData.tradingClaimedToday = false;
       updateData.tradingDaysCompleted = 0;
     } else if (tx.category === "Withdrawal") {
-      const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet ?? 0) : (userProfile?.earningsWallet ?? 0);
-      updateData.balance = freshBalance - tx.rawAmount;
-      updateData.earningsWallet = currentEarnings - tx.rawAmount;
+      const dbData = freshDoc.exists() ? freshDoc.data() : {};
+      const currentEarnings = dbData.earningsWallet ?? dbData.stats?.totalEarnings ?? 0;
+      updateData.balance = Math.max(0, freshBalance - tx.rawAmount);
+      updateData.earningsWallet = Math.max(0, currentEarnings - tx.rawAmount);
     } else {
       updateData.balance = tx.type === "in"
         ? freshBalance + tx.rawAmount
@@ -562,7 +564,7 @@ export default function App() {
     switch (activeView) {
       case "activation": return <ActivationScreen uid={user.uid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
       case "cashin": return <CashInScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, method: string) => addTransaction({ title: `Cash In via ${method}`, rawAmount: amt, category: "Cash In", type: "in" })} />;
-      case "send": return <SendMoneyScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, name: string) => addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" })} balance={balance} />;
+      case "send": return <SendMoneyScreen onBack={() => { setActiveView(null); setScannedRecipient(null); }} onConfirm={(amt: number, name: string) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }} balance={balance} initialRecipient={scannedRecipient} onScanClick={() => { setActiveView(null); setActiveTab("scan"); }} />;
       case "load": return <BuyLoadScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, provider: string) => addTransaction({ title: `${provider} Load`, rawAmount: amt, category: "Mobile Load", type: "out" })} balance={balance} />;
       case "bank": return <BankTransferScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, bank: string) => addTransaction({ title: `Transfer to ${bank}`, rawAmount: amt, category: "Bank Transfer", type: "out" })} balance={balance} />;
       case "bills": return <PayBillsScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, biller: string) => addTransaction({ title: `Paid ${biller}`, rawAmount: amt, category: "Bills", type: "out" })} balance={balance} />;
@@ -667,17 +669,28 @@ export default function App() {
 
           {activeTab === "send" && (
              <motion.div key="send" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-               <SendMoneyScreen 
-                 onBack={() => setActiveTab("home")} 
-                 balance={balance}
-                 onConfirm={(amt, name) => addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" })}
-               />
+                <SendMoneyScreen 
+                  onBack={() => { setActiveTab("home"); setScannedRecipient(null); }} 
+                  balance={balance}
+                  onConfirm={(amt, name) => {
+                    addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" });
+                    setScannedRecipient(null);
+                  }}
+                  initialRecipient={scannedRecipient}
+                  onScanClick={() => setActiveTab("scan")}
+                />
              </motion.div>
           )}
 
           {activeTab === "scan" && (
              <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-               <QrPayScreen onBack={() => setActiveTab("home")} />
+               <QrPayScreen 
+                onBack={() => setActiveTab("home")} 
+                onResult={(recipient) => {
+                  setScannedRecipient(recipient);
+                  setActiveTab("send");
+                }}
+               />
              </motion.div>
           )}
 
