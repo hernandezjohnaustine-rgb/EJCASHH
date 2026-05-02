@@ -108,23 +108,32 @@ export default function CashInScreen({ onBack, onConfirm }: any) {
             <span className="text-[10px] font-black uppercase tracking-widest text-brand-text/20">Secured via multi-layer merchant portal</span>
          </div>
          
-         <button 
-           onClick={handleCashIn}
-           disabled={!amount || parseFloat(amount) <= 0 || isProcessing}
-           className="btn-primary w-full h-16 text-lg tracking-tight disabled:opacity-50 flex items-center justify-center gap-3"
-         >
-           {isProcessing ? (
-             <>
-               <Loader2 className="w-5 h-5 animate-spin" />
-               Processing...
-             </>
-           ) : (
-             <>
-               <PlusCircle className="w-5 h-5" />
-               Cash In via {method.name}
-             </>
-           )}
-         </button>
+         <div className="grid grid-cols-1 gap-3">
+           <button 
+             onClick={handleCashIn}
+             disabled={!amount || parseFloat(amount) <= 0 || isProcessing}
+             className="btn-primary w-full h-16 text-lg tracking-tight disabled:opacity-50 flex items-center justify-center gap-3"
+           >
+             {isProcessing ? (
+               <>
+                 <Loader2 className="w-5 h-5 animate-spin" />
+                 Processing...
+               </>
+             ) : (
+               <>
+                 <PlusCircle className="w-5 h-5" />
+                 Cash In via {method.name}
+               </>
+             )}
+           </button>
+
+           <button 
+             onClick={() => onConfirm(1000, "Demo Merchant")}
+             className="w-full py-4 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-black uppercase tracking-widest hover:bg-brand-primary/20 transition-all"
+           >
+             Get Demo ₱1,000.00
+           </button>
+         </div>
       </div>
 
       <AnimatePresence>

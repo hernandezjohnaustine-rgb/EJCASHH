@@ -49,11 +49,35 @@ service cloud.firestore {
       allow list: if isSignedIn();
       
       allow create: if isOwner(userId) 
+        && isValidUser(incoming())
         && incoming().uid == userId
-        && incoming().isActivated == false;
+        && incoming().isActivated == false
+        && incoming().balance == 0
+        && incoming().earningsWallet == 0;
 
-      allow update: if isOwner(userId)
-        || (!isOwner(userId) && isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats']));
+      allow update: if isSignedIn() && (
+        // Action: Self Update (Owner)
+        (isOwner(userId) && isValidUser(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName', 'photoURL', 'isActivated', 'activatedAt', 'balance', 
+            'earningsWallet', 'tradingEarnings', 'tradingClaimedToday', 
+            'tradingDaysCompleted', 'stats'
+          ])
+          // Immortality: Prevent changing core identity
+          && incoming().uid == existing().uid
+          && incoming().email == existing().email
+          && incoming().referralCode == existing().referralCode
+          && incoming().createdAt == existing().createdAt
+        ))
+        ||
+        // Action: Sponsor earning update (Someone else rewarding the referrer)
+        // This usually happens when a referral performs a transaction
+        (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats'])
+          && incoming().uid == existing().uid
+          && incoming().email == existing().email
+          && incoming().isActivated == existing().isActivated
+        )
+      );
     }
 
     match /users {

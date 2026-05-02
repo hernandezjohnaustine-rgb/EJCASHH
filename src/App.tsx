@@ -124,6 +124,11 @@ export default function App() {
                 isActivated: false,
                 balance: 0,
                 earningsWallet: 0,
+                tradingInvested: 0,
+                tradingEarnings: 0,
+                tradingActive: false,
+                tradingClaimedToday: false,
+                tradingDaysCompleted: 0,
                 referralCode: "EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase(),
                 referredBy: referredBy || null,
                 createdAt: new Date().toISOString(),
@@ -136,19 +141,38 @@ export default function App() {
               };
               await setDoc(userDocRef, newUser);
               setUserProfile(newUser);
-              setUserStats(prev => ({ ...prev, isActivated: false }));
+              setUserStats({ 
+                isActivated: false,
+                vipLevel: 1,
+                directReferrals: 0,
+                teamSize: 0,
+                totalEarnings: 0,
+                tradingInvested: 0,
+                tradingEarnings: 0,
+                tradingActive: false,
+                tradingClaimedToday: false,
+                tradingDaysCompleted: 0
+              });
               localStorage.removeItem("referredBy");
             } else {
               const data = userDoc.data();
+              const today = new Date().toISOString().split('T')[0];
+              const tradingClaimedToday = data.lastClaimDate !== today ? false : (data.tradingClaimedToday || false);
+              
               setUserProfile(data);
               setBalance(data.balance || 0);
-              setUserStats(prev => ({
-                ...prev,
-                isActivated: data.isActivated || false,
-                totalEarnings: data.earningsWallet || 0,
+              setUserStats({
+                vipLevel: data.stats?.vipLevel || 1,
                 directReferrals: data.stats?.directReferrals || 0,
-                teamSize: data.stats?.teamSize || 0
-              }));
+                teamSize: data.stats?.teamSize || 0,
+                totalEarnings: data.earningsWallet || data.stats?.totalEarnings || 0,
+                isActivated: data.isActivated || false,
+                tradingInvested: data.tradingInvested || 0,
+                tradingEarnings: data.tradingEarnings || 0,
+                tradingActive: data.tradingActive || false,
+                tradingClaimedToday: tradingClaimedToday,
+                tradingDaysCompleted: data.tradingDaysCompleted || 0,
+              });
             }
           } catch (error: any) {
             if ((retryCount < 2 && (error.code === 'permission-denied' || error.message?.includes('permissions'))) || 
@@ -167,15 +191,23 @@ export default function App() {
         const subUser = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const data = doc.data();
+            const today = new Date().toISOString().split('T')[0];
+            const tradingClaimedToday = data.lastClaimDate !== today ? false : (data.tradingClaimedToday || false);
+
             setUserProfile(data);
             setBalance(data.balance || 0);
-            setUserStats(prev => ({
-              ...prev,
-              isActivated: data.isActivated || false,
-              totalEarnings: data.earningsWallet || 0,
+            setUserStats({
+              vipLevel: data.stats?.vipLevel || 1,
               directReferrals: data.stats?.directReferrals || 0,
-              teamSize: data.stats?.teamSize || 0
-            }));
+              teamSize: data.stats?.teamSize || 0,
+              totalEarnings: data.earningsWallet || data.stats?.totalEarnings || 0,
+              isActivated: data.isActivated || false,
+              tradingInvested: data.tradingInvested || 0,
+              tradingEarnings: data.tradingEarnings || 0,
+              tradingActive: data.tradingActive || false,
+              tradingClaimedToday: tradingClaimedToday,
+              tradingDaysCompleted: data.tradingDaysCompleted || 0,
+            });
           }
         }, (error) => {
           handleFirestoreError(error, OperationType.GET, "users/" + firebaseUser.uid);
@@ -219,25 +251,39 @@ export default function App() {
   }, []);
 
   const handleClaimTrading = async () => {
-    if (!user || userStats.tradingClaimedToday) return;
+    if (!user || userStats.tradingClaimedToday || userStats.tradingInvested <= 0) return;
     
-    const profit = userStats.tradingInvested * 0.05;
+    // Profit is based on the active package's ROI (simulated as 5-10% here or fixed based on current logic)
+    // For simplicity, we'll use 5% as a base for the standard bot
+    const profit = userStats.tradingInvested * 0.05; 
     const userDocRef = doc(db, "users", user.uid);
     
-    await setDoc(userDocRef, {
-      balance: balance + profit,
-      tradingEarnings: userStats.tradingEarnings + profit,
-      tradingClaimedToday: true,
-      tradingDaysCompleted: userStats.tradingDaysCompleted + 1
-    }, { merge: true });
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await setDoc(userDocRef, {
+        balance: balance + profit,
+        tradingEarnings: (userStats.tradingEarnings || 0) + profit,
+        tradingClaimedToday: true,
+        lastClaimDate: today,
+        tradingDaysCompleted: (userStats.tradingDaysCompleted || 0) + 1,
+        // Also update the earnings wallet which is what users withdraw
+        earningsWallet: (userProfile.earningsWallet || 0) + profit,
+        stats: {
+          ...userProfile.stats,
+          totalEarnings: (userProfile.stats?.totalEarnings || 0) + profit
+        }
+      }, { merge: true });
 
-    await addTransaction({
-      title: "Trading ROI Distribution",
-      rawAmount: profit,
-      category: "Trading",
-      type: "in",
-      status: "Completed"
-    });
+      await addTransaction({
+        title: "Trading ROI Distribution",
+        rawAmount: profit,
+        category: "Trading",
+        type: "in",
+        status: "Completed"
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+    }
   };
 
   const handleTabChange = (tab: string) => {
@@ -254,8 +300,6 @@ export default function App() {
   const addTransaction = async (tx: any) => {
     if (!user) return;
     
-    // In a real app, this would be a secure function/transaction
-    // For now, we simulate it by adding to the transactions collection
     const txData = {
       userId: user.uid,
       type: tx.type || "out",
@@ -269,12 +313,23 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(collection(db, "transactions")), txData);
+      const { addDoc } = await import("firebase/firestore");
+      await addDoc(collection(db, "transactions"), txData);
       
-      // Update balance locally/server-side
       const userDocRef = doc(db, "users", user.uid);
-      const newBalance = tx.type === "in" ? balance + tx.rawAmount : balance - tx.rawAmount;
-      await setDoc(userDocRef, { balance: newBalance }, { merge: true });
+      const updateData: any = {};
+      
+      if (tx.category === "Trading" && tx.type === "out") {
+        updateData.balance = balance - tx.rawAmount;
+        updateData.tradingInvested = (userStats.tradingInvested || 0) + tx.rawAmount;
+        updateData.tradingActive = true;
+        updateData.tradingClaimedToday = false;
+        updateData.tradingDaysCompleted = 0;
+      } else {
+        updateData.balance = tx.type === "in" ? balance + tx.rawAmount : balance - tx.rawAmount;
+      }
+      
+      await setDoc(userDocRef, updateData, { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "transactions or users");
     }

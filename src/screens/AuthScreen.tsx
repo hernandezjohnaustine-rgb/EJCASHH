@@ -175,10 +175,20 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
                  type="text" 
                  placeholder="Referral Code (Optional)" 
                  value={referralCode}
-                 onChange={(e) => setReferralCode(e.target.value)}
+                 onChange={(e) => {
+                   setReferralCode(e.target.value);
+                   localStorage.setItem("referredBy", e.target.value);
+                 }}
                  className="w-full h-14 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/50 transition-all font-mono text-xs font-bold text-brand-primary"
                />
              </div>
+          )}
+
+          {mode === "register" && referralCode && (
+            <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2 mb-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Referral Applied: {referralCode}</span>
+            </div>
           )}
 
           <button 
