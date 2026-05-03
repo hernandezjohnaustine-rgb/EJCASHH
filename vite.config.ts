@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png'],
+        workbox: {
+          maximumFileSizeToCacheInBytes: 5000000,
+        },
         manifest: {
           name: 'EJCASHH',
           short_name: 'EJCASHH',
