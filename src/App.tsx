@@ -125,26 +125,26 @@ export default function App() {
 
         // ✅ Different user logged in — clear old state first
         if (currentUserId && currentUserId !== firebaseUser.uid) {
-          setUserProfile(null);
-          setBalance(0);
-          setTransactions([]);
-          setUserStats({
-            vipLevel: 1,
-            directReferrals: 0,
-            totalReferrals: 0,
-            teamSize: 0,
-            totalEarnings: 0,
-            isActivated: false,
-            tradingInvested: 0,
-            tradingEarnings: 0,
-            tradingDaysCompleted: 0,
-            tradingActive: false,
-            tradingClaimedToday: false,
-          });
-          setActiveTab("home");
-          setActiveView(null);
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
+  setActiveTab("home");
+  setActiveView(null);
+  setUserProfile(null);
+  setBalance(0);
+  setTransactions([]);
+  setUserStats({
+    vipLevel: 1,
+    directReferrals: 0,
+    totalReferrals: 0,
+    teamSize: 0,
+    totalEarnings: 0,
+    isActivated: false,
+    tradingInvested: 0,
+    tradingEarnings: 0,
+    tradingDaysCompleted: 0,
+    tradingActive: false,
+    tradingClaimedToday: false,
+  });
+  await new Promise(resolve => setTimeout(resolve, 200));
+}
 
         currentUserId = firebaseUser.uid;
         setUser(firebaseUser);
@@ -325,6 +325,8 @@ export default function App() {
       } else {
         // ✅ Clear ALL state on logout
         currentUserId = null;
+        setActiveTab("home");
+        setActiveView(null);
         setUser(null);
         setUserProfile(null);
         setBalance(0);
@@ -342,13 +344,10 @@ export default function App() {
           tradingActive: false,
           tradingClaimedToday: false,
         });
-        setActiveTab("home");
-        setActiveView(null);
         setShowSuccess(null);
         setIsLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
