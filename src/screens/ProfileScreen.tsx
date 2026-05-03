@@ -1,6 +1,15 @@
 import { motion } from "motion/react";
 import { User, Shield, CreditCard, Bell, HelpCircle, LogOut, ChevronRight, Moon, Settings, Camera, Smartphone, TrendingUp } from "lucide-react";
 
+{user?.isAdmin && (
+  <button
+    onClick={() => setActiveView("admin")}
+    className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
+  >
+    <Shield className="w-4 h-4" />
+    Admin Panel
+  </button>
+)}
 interface ProfileScreenProps {
   onLogout: () => void;
   theme: string;
