@@ -348,11 +348,6 @@ export default function App() {
         setIsLoading(false);
       }
     });
-      } else {
-        setUser(null);
-        setIsLoading(false);
-      }
-    });
 
     return () => unsubscribe();
   }, []);
