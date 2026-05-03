@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import AdminScreen from "./screens/AdminScreen";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
@@ -561,7 +560,6 @@ export default function App() {
         addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" });
       }} />;
       case "network": return <TeamNetworkScreen onBack={() => setActiveView(null)} referralCode={userProfile?.referralCode || ""} />;
-        case "admin": return userProfile?.isAdmin ? <AdminScreen onBack={() => setActiveView(null)} /> : null;
       default: return null;
     }
   };
