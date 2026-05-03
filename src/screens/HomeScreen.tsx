@@ -507,7 +507,7 @@ export default function HomeScreen({
         </div>
       </section>
 
-      {/* Transaction History */}
+            {/* Transaction History */}
       <section className="px-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30 px-2">Recent Activity</h3>
@@ -547,26 +547,16 @@ export default function HomeScreen({
             </motion.div>
           ))}
         </div>
+
+        {transactions.length > 5 && (
+          <button
+            onClick={onViewHistory}
+            className="flex items-center justify-center gap-2 py-4 px-6 rounded-2xl border border-brand-border text-brand-primary text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary/5 active:scale-95 transition-all"
+          >
+            View More History ({transactions.length - 5} more)
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        )}
       </section>
-
-      {/* Security Footer */}
-      <footer className="flex flex-col items-center gap-2 mt-4 px-6 mb-8">
-         <div className="flex items-center gap-2 text-brand-text/20">
-            <ShieldCheck className="w-4 h-4" />
-            <span className="text-[9px] font-black uppercase tracking-[0.3em]">End-to-End Secure</span>
-         </div>
-      </footer>
-
-      <TransactionDetailModal 
-        transaction={selectedTx} 
-        onClose={() => setSelectedTx(null)} 
-      />
-
-      <QrInviteModal 
-        isOpen={isQrModalOpen}
-        onClose={() => setIsQrModalOpen(false)}
-        referralCode={referralCode}
-      />
-    </div>
   );
 }
