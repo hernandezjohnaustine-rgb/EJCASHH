@@ -41,7 +41,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
   const [shortenedLink, setShortenedLink] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   
-  const shareLink = `${window.location.origin}/${referralCode}`;
+  const shareLink = `${window.location.origin}${window.location.pathname}?ref=${referralCode}`;
 
   useEffect(() => {
     const getShort = async () => {
