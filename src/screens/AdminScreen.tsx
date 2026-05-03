@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, updateDoc, setDoc, query, orderBy, limit, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, setDoc, getDoc, onSnapshot, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban } from "lucide-react";
+import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 type AdminTab = "users" | "withdrawals" | "transactions";
+
+const STATUS_COLORS: Record<string, string> = {
+  pending:  "bg-yellow-500/20 text-yellow-400 border-yellow-500/20",
+  approved: "bg-green-500/20 text-green-400 border-green-500/20",
+  rejected: "bg-red-500/20 text-red-400 border-red-500/20",
+};
 
 export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
@@ -11,6 +18,10 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [withdrawalFilter, setWithdrawalFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [note, setNote] = useState("");
   const [stats, setStats] = useState({
     totalUsers: 0,
     activatedUsers: 0,
@@ -18,31 +29,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     pendingWithdrawals: 0,
   });
 
+  // ── Fetch users & transactions (one-time) ─────────────────────────────────
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch users
       const usersSnap = await getDocs(collection(db, "users"));
       const usersData = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setUsers(usersData);
 
-      // Calculate stats
       const totalBalance = usersData.reduce((sum: number, u: any) => sum + (u.balance || 0), 0);
       const activatedUsers = usersData.filter((u: any) => u.isActivated).length;
-      setStats({
-        totalUsers: usersData.length,
-        activatedUsers,
-        totalBalance,
-        pendingWithdrawals: 0,
-      });
+      setStats(prev => ({ ...prev, totalUsers: usersData.length, activatedUsers, totalBalance }));
 
-      // Fetch withdrawals
-      const wSnap = await getDocs(collection(db, "withdrawals"));
-      const wData = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setWithdrawals(wData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      setStats(prev => ({ ...prev, pendingWithdrawals: wData.filter((w: any) => w.status === "PENDING").length }));
-
-      // Fetch transactions
       const tSnap = await getDocs(collection(db, "transactions"));
       const tData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setTransactions(tData.sort((a: any, b: any) => {
@@ -50,7 +48,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         const bTime = b.timestamp?.toDate?.() || new Date(b.timestamp);
         return bTime.getTime() - aTime.getTime();
       }));
-
     } catch (err) {
       console.error("Admin fetch error:", err);
     } finally {
@@ -60,6 +57,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   useEffect(() => { fetchData(); }, []);
 
+  // ── Real-time withdrawalRequests listener ────────────────────────────────
+  useEffect(() => {
+    const q = query(collection(db, "withdrawalRequests"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setWithdrawals(data);
+      setStats(prev => ({ ...prev, pendingWithdrawals: data.filter((w: any) => w.status === "pending").length }));
+    });
+    return () => unsub();
+  }, []);
+
+  // ── User actions ─────────────────────────────────────────────────────────
   const handleActivateUser = async (userId: string) => {
     if (!confirm("Manually activate this account?")) return;
     try {
@@ -68,11 +77,9 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         activatedAt: new Date().toISOString(),
         manuallyActivated: true,
       });
-      alert("✅ Account activated successfully!");
+      alert("✅ Account activated!");
       fetchData();
-    } catch (err) {
-      alert("❌ Failed to activate account");
-    }
+    } catch { alert("❌ Failed to activate"); }
   };
 
   const handleDeactivateUser = async (userId: string) => {
@@ -81,64 +88,99 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       await updateDoc(doc(db, "users", userId), { isActivated: false });
       alert("✅ Account deactivated");
       fetchData();
-    } catch (err) {
-      alert("❌ Failed to deactivate");
-    }
-  };
-
-  const handleApproveWithdrawal = async (withdrawal: any) => {
-    if (!confirm(`Approve withdrawal of ₱${withdrawal.amount}?`)) return;
-    try {
-      await updateDoc(doc(db, "withdrawals", withdrawal.id), {
-        status: "COMPLETED",
-        approvedAt: new Date().toISOString(),
-      });
-      alert("✅ Withdrawal approved!");
-      fetchData();
-    } catch (err) {
-      alert("❌ Failed to approve");
-    }
-  };
-
-  const handleRejectWithdrawal = async (withdrawal: any) => {
-    if (!confirm(`Reject withdrawal of ₱${withdrawal.amount}? This will refund the user.`)) return;
-    try {
-      // Refund user
-      const userRef = doc(db, "users", withdrawal.userId);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        await updateDoc(userRef, {
-          earningsWallet: (data.earningsWallet || 0) + withdrawal.amount,
-          balance: (data.balance || 0) + withdrawal.amount,
-        });
-      }
-      await updateDoc(doc(db, "withdrawals", withdrawal.id), {
-        status: "REJECTED",
-        rejectedAt: new Date().toISOString(),
-      });
-      alert("✅ Withdrawal rejected and refunded!");
-      fetchData();
-    } catch (err) {
-      alert("❌ Failed to reject");
-    }
+    } catch { alert("❌ Failed to deactivate"); }
   };
 
   const handleAdjustBalance = async (userId: string, currentBalance: number) => {
     const input = prompt(`Current balance: ₱${currentBalance}\nEnter new balance:`);
     if (!input) return;
     const newBalance = parseFloat(input);
-    if (isNaN(newBalance) || newBalance < 0) {
-      alert("Invalid amount");
-      return;
-    }
+    if (isNaN(newBalance) || newBalance < 0) { alert("Invalid amount"); return; }
     try {
       await updateDoc(doc(db, "users", userId), { balance: newBalance });
       alert("✅ Balance updated!");
       fetchData();
+    } catch { alert("❌ Failed to update balance"); }
+  };
+
+  // ── Withdrawal actions ───────────────────────────────────────────────────
+  const handleApprove = async (w: any) => {
+    setProcessingId(w.id);
+    try {
+      await updateDoc(doc(db, "withdrawalRequests", w.id), {
+        status: "approved",
+        processedAt: Timestamp.now(),
+        note: note || "",
+      });
+
+      // Add transaction record
+      const { addDoc } = await import("firebase/firestore");
+      await addDoc(collection(db, "transactions"), {
+        userId: w.userId,
+        type: "out",
+        title: `Withdrawal via ${w.methodLabel || w.method}`,
+        amount: w.amount,
+        category: "Withdrawal",
+        status: "Completed",
+        referenceNo: "EJ-W-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        paymentMethod: w.methodLabel || w.method,
+        timestamp: Timestamp.now(),
+      });
+
+      setNote("");
+      setExpandedId(null);
     } catch (err) {
-      alert("❌ Failed to update balance");
+      console.error("Approve error:", err);
+      alert("❌ Failed to approve");
+    } finally {
+      setProcessingId(null);
     }
+  };
+
+  const handleReject = async (w: any) => {
+    setProcessingId(w.id);
+    try {
+      // Refund earnings wallet
+      const userRef = doc(db, "users", w.userId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        await setDoc(userRef, {
+          earningsWallet: (data.earningsWallet || 0) + w.amount,
+        }, { merge: true });
+      }
+
+      await updateDoc(doc(db, "withdrawalRequests", w.id), {
+        status: "rejected",
+        processedAt: Timestamp.now(),
+        note: note || "Rejected by admin",
+      });
+
+      setNote("");
+      setExpandedId(null);
+    } catch (err) {
+      console.error("Reject error:", err);
+      alert("❌ Failed to reject");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const formatDate = (ts: any) => {
+    if (!ts) return "";
+    const date = ts?.toDate ? ts.toDate() : new Date(ts);
+    return date.toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const filteredWithdrawals = withdrawalFilter === "all"
+    ? withdrawals
+    : withdrawals.filter(w => w.status === withdrawalFilter);
+
+  const withdrawalCounts = {
+    all: withdrawals.length,
+    pending: withdrawals.filter(w => w.status === "pending").length,
+    approved: withdrawals.filter(w => w.status === "approved").length,
+    rejected: withdrawals.filter(w => w.status === "rejected").length,
   };
 
   const TABS = [
@@ -205,7 +247,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           </div>
         ) : (
           <>
-            {/* USERS TAB */}
+            {/* ── USERS TAB ── */}
             {activeTab === "users" && (
               <div className="flex flex-col gap-3">
                 <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black px-1">{users.length} Total Users</p>
@@ -225,44 +267,30 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 mb-3">
-                      <div className="bg-brand-black/40 rounded-xl p-2 text-center">
-                        <p className="text-xs font-black text-brand-primary">₱{(u.balance || 0).toLocaleString()}</p>
-                        <p className="text-[8px] text-brand-text/30 uppercase">Balance</p>
-                      </div>
-                      <div className="bg-brand-black/40 rounded-xl p-2 text-center">
-                        <p className="text-xs font-black text-green-400">₱{(u.earningsWallet || 0).toLocaleString()}</p>
-                        <p className="text-[8px] text-brand-text/30 uppercase">Earnings</p>
-                      </div>
-                      <div className="bg-brand-black/40 rounded-xl p-2 text-center">
-                        <p className="text-xs font-black text-blue-400">{u.stats?.teamSize || 0}</p>
-                        <p className="text-[8px] text-brand-text/30 uppercase">Team</p>
-                      </div>
+                      {[
+                        { label: "Balance", value: `₱${(u.balance || 0).toLocaleString()}`, color: "text-brand-primary" },
+                        { label: "Earnings", value: `₱${(u.earningsWallet || 0).toLocaleString()}`, color: "text-green-400" },
+                        { label: "Team", value: u.stats?.teamSize || 0, color: "text-blue-400" },
+                      ].map(s => (
+                        <div key={s.label} className="bg-brand-black/40 rounded-xl p-2 text-center">
+                          <p className={`text-xs font-black ${s.color}`}>{s.value}</p>
+                          <p className="text-[8px] text-brand-text/30 uppercase">{s.label}</p>
+                        </div>
+                      ))}
                     </div>
 
                     <div className="flex gap-2">
                       {!u.isActivated ? (
-                        <button
-                          onClick={() => handleActivateUser(u.id)}
-                          className="flex-1 py-2 rounded-xl bg-brand-primary/20 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
-                        >
-                          <CheckCircle2 className="w-3 h-3" />
-                          Activate
+                        <button onClick={() => handleActivateUser(u.id)} className="flex-1 py-2 rounded-xl bg-brand-primary/20 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Activate
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleDeactivateUser(u.id)}
-                          className="flex-1 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
-                        >
-                          <Ban className="w-3 h-3" />
-                          Deactivate
+                        <button onClick={() => handleDeactivateUser(u.id)} className="flex-1 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+                          <Ban className="w-3 h-3" /> Deactivate
                         </button>
                       )}
-                      <button
-                        onClick={() => handleAdjustBalance(u.id, u.balance || 0)}
-                        className="flex-1 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
-                      >
-                        <Wallet className="w-3 h-3" />
-                        Balance
+                      <button onClick={() => handleAdjustBalance(u.id, u.balance || 0)} className="flex-1 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+                        <Wallet className="w-3 h-3" /> Balance
                       </button>
                     </div>
                   </div>
@@ -270,55 +298,148 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
               </div>
             )}
 
-            {/* WITHDRAWALS TAB */}
+            {/* ── WITHDRAWALS TAB ── */}
             {activeTab === "withdrawals" && (
               <div className="flex flex-col gap-3">
-                <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black px-1">{withdrawals.length} Total Withdrawals</p>
-                {withdrawals.length === 0 && (
-                  <div className="text-center py-12 text-brand-text/40 text-sm">No withdrawals yet</div>
-                )}
-                {withdrawals.map((w) => (
-                  <div key={w.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="text-lg font-black text-brand-primary">₱{(w.amount || 0).toLocaleString()}</p>
-                        <p className="text-[10px] text-brand-text/40">{w.method} — {w.accountNumber}</p>
-                        <p className="text-[10px] text-brand-text/40">{w.accountName}</p>
-                        <p className="text-[9px] text-brand-text/20 mt-1">{w.createdAt ? new Date(w.createdAt).toLocaleString() : ""}</p>
-                      </div>
-                      <div className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${
-                        w.status === "COMPLETED" ? "bg-green-500/20 text-green-400" :
-                        w.status === "REJECTED" ? "bg-red-500/20 text-red-400" :
-                        "bg-yellow-500/20 text-yellow-400"
-                      }`}>
-                        {w.status || "PENDING"}
-                      </div>
-                    </div>
+                {/* Filter pills */}
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {(["pending", "approved", "rejected", "all"] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setWithdrawalFilter(f)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap flex items-center gap-2 transition-all ${
+                        withdrawalFilter === f
+                          ? "bg-brand-primary text-brand-black"
+                          : "bg-brand-card/5 border border-brand-border text-brand-text/40"
+                      }`}
+                    >
+                      {f}
+                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${withdrawalFilter === f ? "bg-brand-black/20" : "bg-brand-border"}`}>
+                        {withdrawalCounts[f]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
 
-                    {(w.status === "PENDING" || !w.status) && (
-                      <div className="flex gap-2">
+                {filteredWithdrawals.length === 0 && (
+                  <div className="text-center py-12 text-brand-text/40 text-sm">No {withdrawalFilter} requests</div>
+                )}
+
+                <AnimatePresence>
+                  {filteredWithdrawals.map((w) => {
+                    const isExpanded = expandedId === w.id;
+                    return (
+                      <motion.div
+                        key={w.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="bg-brand-card/5 border border-brand-border rounded-2xl overflow-hidden"
+                      >
+                        {/* Row */}
                         <button
-                          onClick={() => handleApproveWithdrawal(w)}
-                          className="flex-1 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
+                          onClick={() => setExpandedId(isExpanded ? null : w.id)}
+                          className="w-full p-4 flex items-center justify-between"
                         >
-                          <CheckCircle2 className="w-3 h-3" />
-                          Approve
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center">
+                              <Wallet className="w-5 h-5 text-brand-primary" />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-black">₱{(w.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[10px] text-brand-text/40">{w.methodLabel || w.method} · {formatDate(w.createdAt)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border ${STATUS_COLORS[w.status] || STATUS_COLORS.pending}`}>
+                              {w.status || "pending"}
+                            </span>
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-brand-text/20" /> : <ChevronDown className="w-4 h-4 text-brand-text/20" />}
+                          </div>
                         </button>
-                        <button
-                          onClick={() => handleRejectWithdrawal(w)}
-                          className="flex-1 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
-                        >
-                          <XCircle className="w-3 h-3" />
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+
+                        {/* Expanded */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden border-t border-brand-border"
+                            >
+                              <div className="p-4 flex flex-col gap-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="bg-brand-black/40 rounded-xl p-3">
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <User className="w-3 h-3 text-brand-text/30" />
+                                      <span className="text-[9px] text-brand-text/30 font-black uppercase">Account Name</span>
+                                    </div>
+                                    <p className="text-xs font-bold">{w.accountName}</p>
+                                  </div>
+                                  <div className="bg-brand-black/40 rounded-xl p-3">
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <Hash className="w-3 h-3 text-brand-text/30" />
+                                      <span className="text-[9px] text-brand-text/30 font-black uppercase">
+                                        {w.method === "bank" ? "Acct No." : w.method === "crypto" ? "Address" : "Mobile No."}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs font-bold break-all">{w.accountNumber}</p>
+                                  </div>
+                                </div>
+
+                                <div className="bg-brand-black/40 rounded-xl p-3">
+                                  <span className="text-[9px] text-brand-text/30 font-black uppercase">User ID</span>
+                                  <p className="text-[10px] font-mono mt-1 text-brand-text/50 break-all">{w.userId}</p>
+                                </div>
+
+                                {w.status === "pending" && (
+                                  <>
+                                    <input
+                                      type="text"
+                                      placeholder="Add a note (optional)"
+                                      value={note}
+                                      onChange={(e) => setNote(e.target.value)}
+                                      className="w-full bg-brand-black/40 border border-brand-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-brand-primary/50 placeholder:text-brand-text/20"
+                                    />
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <button
+                                        disabled={processingId === w.id}
+                                        onClick={() => handleReject(w)}
+                                        className="py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1 disabled:opacity-50"
+                                      >
+                                        <XCircle className="w-3 h-3" />
+                                        {processingId === w.id ? "..." : "Reject"}
+                                      </button>
+                                      <button
+                                        disabled={processingId === w.id}
+                                        onClick={() => handleApprove(w)}
+                                        className="py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1 disabled:opacity-50"
+                                      >
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        {processingId === w.id ? "..." : "Approve"}
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+
+                                {w.status !== "pending" && w.note && (
+                                  <div className="bg-brand-black/40 rounded-xl p-3">
+                                    <span className="text-[9px] text-brand-text/30 font-black uppercase">Note</span>
+                                    <p className="text-xs mt-1">{w.note}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               </div>
             )}
 
-            {/* TRANSACTIONS TAB */}
+            {/* ── TRANSACTIONS TAB ── */}
             {activeTab === "transactions" && (
               <div className="flex flex-col gap-3">
                 <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black px-1">{transactions.length} Total Transactions</p>
@@ -328,11 +449,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     <div key={t.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4 flex items-center justify-between">
                       <div>
                         <p className="text-sm font-bold">{t.title}</p>
-                        <p className="text-[10px] text-brand-text/40">{t.category} • {ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-[10px] text-brand-text/40">{t.category} · {ts.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
                         <p className="text-[9px] text-brand-text/20 font-mono">{t.referenceNo}</p>
                       </div>
-                      <p className={`text-sm font-black ${t.type === 'in' ? 'text-brand-primary' : 'text-brand-text'}`}>
-                        {t.type === 'in' ? '+' : '-'}₱{(t.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <p className={`text-sm font-black ${t.type === "in" ? "text-brand-primary" : "text-brand-text"}`}>
+                        {t.type === "in" ? "+" : "-"}₱{(t.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                   );
