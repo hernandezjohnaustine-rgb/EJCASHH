@@ -1,4 +1,4 @@
-const FUNCTION_URL = "/.netlify/functions/paymongo";
+const FUNCTION_URL = "https://ejcashh.netlify.app/.netlify/functions/paymongo";
 
 export async function createPaymentLink(
   amount: number,
