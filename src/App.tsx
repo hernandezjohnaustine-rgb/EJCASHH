@@ -688,15 +688,16 @@ export default function App() {
             )}
 
             {activeTab === "profile" && (
-              <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <ProfileScreen
-                  onLogout={() => auth.signOut()}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                  user={user}
-                />
-              </motion.div>
-            )}
+  <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+    <ProfileScreen
+      onLogout={() => auth.signOut()}
+      theme={theme}
+      onToggleTheme={toggleTheme}
+      user={userProfile}
+      onNavigate={(view) => setActiveView(view)}
+    />
+  </motion.div>
+)}
           </AnimatePresence>
 
           {activeTab !== 'profile' && activeTab !== 'scan' && activeTab !== 'send' && (
