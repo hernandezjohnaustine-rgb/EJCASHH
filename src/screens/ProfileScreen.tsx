@@ -5,10 +5,11 @@ interface ProfileScreenProps {
   onLogout: () => void;
   theme: string;
   onToggleTheme: () => void;
-  user: any | null; // Use any to allow UserProfile or FirebaseUser
+  user: any | null;
+  onNavigate?: (view: string) => void; // Added missing prop
 }
 
-export default function ProfileScreen({ onLogout, theme, onToggleTheme, user }: ProfileScreenProps) {
+export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, onNavigate }: ProfileScreenProps) {
   const isDark = theme === "dark";
   
   const menuItems = [
@@ -108,15 +109,17 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user }: 
                ></motion.div>
             </div>
          </div>
-{user?.isAdmin && (
-  <button
-    onClick={() => setActiveView("admin")}
-    className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
-  >
-    <Shield className="w-4 h-4" />
-    Admin Panel
-  </button>
-)}
+
+        {user?.isAdmin && (
+          <button
+            onClick={() => onNavigate?.("admin")} // Fixed: use onNavigate prop instead of undefined setActiveView
+            className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
+          >
+            <Shield className="w-4 h-4" />
+            Admin Panel
+          </button>
+        )}
+
          <button
            onClick={onLogout}
            className="flex items-center justify-center gap-3 py-5 px-6 rounded-3xl bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold uppercase tracking-[0.2em] text-xs transition-all mb-8 border border-red-500/10 active:scale-95"
