@@ -243,14 +243,7 @@ export default function CashInScreen({ onBack, onConfirm }: any) {
             </>
           )}
         </button>
-
-        {/* Demo button for testing */}
-        <button
-          onClick={() => onConfirm(1000, "Demo")}
-          className="w-full py-4 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-black uppercase tracking-widest hover:bg-brand-primary/20 transition-all"
-        >
-          Get Demo ₱1,000.00
-        </button>
+        
       </div>
 
       {/* Payment Verify Modal */}
