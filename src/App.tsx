@@ -69,24 +69,6 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
 
-  // ✅ Auto logout after 15 minutes of inactivity
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    const resetTimer = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        auth.signOut();
-      }, 15 * 60 * 1000);
-    };
-    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
-    events.forEach(event => window.addEventListener(event, resetTimer));
-    resetTimer();
-    return () => {
-      clearTimeout(timer);
-      events.forEach(event => window.removeEventListener(event, resetTimer));
-    };
-  }, []);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     let ref = params.get("ref") || params.get("r");
@@ -136,8 +118,35 @@ export default function App() {
 
     testConnection();
 
+    let currentUserId: string | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+
+        // ✅ Different user logged in — clear old state first
+        if (currentUserId && currentUserId !== firebaseUser.uid) {
+          setUserProfile(null);
+          setBalance(0);
+          setTransactions([]);
+          setUserStats({
+            vipLevel: 1,
+            directReferrals: 0,
+            totalReferrals: 0,
+            teamSize: 0,
+            totalEarnings: 0,
+            isActivated: false,
+            tradingInvested: 0,
+            tradingEarnings: 0,
+            tradingDaysCompleted: 0,
+            tradingActive: false,
+            tradingClaimedToday: false,
+          });
+          setActiveTab("home");
+          setActiveView(null);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        currentUserId = firebaseUser.uid;
         setUser(firebaseUser);
         const userDocRef = doc(db, "users", firebaseUser.uid);
 
@@ -294,10 +303,51 @@ export default function App() {
         });
 
         setIsLoading(false);
+
+        // ✅ Auto logout — only runs when user IS logged in
+        let inactivityTimer: ReturnType<typeof setTimeout>;
+        const resetInactivityTimer = () => {
+          clearTimeout(inactivityTimer);
+          inactivityTimer = setTimeout(() => {
+            auth.signOut();
+          }, 15 * 60 * 1000); // 15 minutes
+        };
+        const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+        activityEvents.forEach(e => window.addEventListener(e, resetInactivityTimer));
+        resetInactivityTimer();
+
         return () => {
           subUser();
           subTx();
+          clearTimeout(inactivityTimer);
+          activityEvents.forEach(e => window.removeEventListener(e, resetInactivityTimer));
         };
+      } else {
+        // ✅ Clear ALL state on logout
+        currentUserId = null;
+        setUser(null);
+        setUserProfile(null);
+        setBalance(0);
+        setTransactions([]);
+        setUserStats({
+          vipLevel: 1,
+          directReferrals: 0,
+          totalReferrals: 0,
+          teamSize: 0,
+          totalEarnings: 0,
+          isActivated: false,
+          tradingInvested: 0,
+          tradingEarnings: 0,
+          tradingDaysCompleted: 0,
+          tradingActive: false,
+          tradingClaimedToday: false,
+        });
+        setActiveTab("home");
+        setActiveView(null);
+        setShowSuccess(null);
+        setIsLoading(false);
+      }
+    });
       } else {
         setUser(null);
         setIsLoading(false);
@@ -446,7 +496,34 @@ export default function App() {
 
   const handleTabChange = (tab: string) => setActiveTab(tab);
 
-  const handleActivationComplete = () => {
+  const handleActivationComplete = async () => {
+    // ✅ Always reload fresh data for CURRENT logged in user
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const userDocRef = doc(db, "users", currentUser.uid);
+      const freshDoc = await getDoc(userDocRef);
+      if (freshDoc.exists()) {
+        const data = freshDoc.data();
+        const today = new Date().toISOString().split('T')[0];
+        const tradingClaimedToday = data.lastClaimDate !== today ? false : (data.tradingClaimedToday || false);
+        const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
+        setUserProfile({ ...data, dailyClaimedToday });
+        setBalance(data.balance || 0);
+        setUserStats({
+          vipLevel: data.stats?.vipLevel || 1,
+          directReferrals: data.stats?.directReferrals || 0,
+          totalReferrals: data.stats?.totalReferrals || 0,
+          teamSize: data.stats?.teamSize || 0,
+          totalEarnings: data.earningsWallet ?? data.stats?.totalEarnings ?? 0,
+          isActivated: data.isActivated || false,
+          tradingInvested: data.tradingInvested || 0,
+          tradingEarnings: data.tradingEarnings || 0,
+          tradingActive: data.tradingActive || false,
+          tradingClaimedToday,
+          tradingDaysCompleted: data.tradingDaysCompleted || 0,
+        });
+      }
+    }
     setShowSuccess("Account Activated Successfully!");
     setActiveView(null);
     setActiveTab("home");
