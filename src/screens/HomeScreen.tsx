@@ -558,5 +558,25 @@ export default function HomeScreen({
           </button>
         )}
       </section>
+
+      {/* Security Footer */}
+      <footer className="flex flex-col items-center gap-2 mt-4 px-6 mb-8">
+         <div className="flex items-center gap-2 text-brand-text/20">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em]">End-to-End Secure</span>
+         </div>
+      </footer>
+
+      <TransactionDetailModal 
+        transaction={selectedTx} 
+        onClose={() => setSelectedTx(null)} 
+      />
+
+      <QrInviteModal 
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        referralCode={referralCode}
+      />
+    </div>
   );
 }
