@@ -3,7 +3,7 @@
 
 import type { Handler } from "@netlify/functions";
 
-const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY!;
+const PAYMONGO_SECRET_KEY = process.env.VITE_PAYMONGO_SECRET_KEY!;
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 
 const authHeader = `Basic ${Buffer.from(PAYMONGO_SECRET_KEY + ":").toString("base64")}`;
