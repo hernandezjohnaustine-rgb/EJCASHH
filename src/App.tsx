@@ -305,16 +305,18 @@ export default function App() {
         setIsLoading(false);
 
         // ✅ Auto logout — only runs when user IS logged in
-        let inactivityTimer: ReturnType<typeof setTimeout>;
-        const resetInactivityTimer = () => {
-          clearTimeout(inactivityTimer);
-          inactivityTimer = setTimeout(() => {
-            auth.signOut();
-          }, 15 * 60 * 1000); // 15 minutes
-        };
-        const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
-        activityEvents.forEach(e => window.addEventListener(e, resetInactivityTimer));
-        resetInactivityTimer();
+let inactivityTimer: ReturnType<typeof setTimeout>;
+
+const resetInactivityTimer = () => {
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(async () => {
+    await auth.signOut();
+  }, 1 * 60 * 1000); // 1 minutes
+};
+
+const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+activityEvents.forEach(e => window.addEventListener(e, resetInactivityTimer, { passive: true }));
+resetInactivityTimer();
 
         return () => {
           subUser();
