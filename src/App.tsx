@@ -304,19 +304,28 @@ export default function App() {
 
         setIsLoading(false);
 
-        // ✅ Auto logout — only runs when user IS logged in
-let inactivityTimer: ReturnType<typeof setTimeout>;
-
-const resetInactivityTimer = () => {
-  clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(async () => {
-    await auth.signOut();
-  }, 1 * 60 * 1000); // 1 minutes
+        // ✅ Auto logout — when user leaves and comes back to the app
+const handleVisibilityChange = () => {
+  if (document.visibilityState === 'hidden') {
+    // App went to background — start a 5 minute timer
+    inactivityTimer = setTimeout(async () => {
+      await auth.signOut();
+    }, 1 * 60 * 1000); // 1 minutes in background = logout
+  } else {
+    // App came back to foreground — cancel the timer
+    clearTimeout(inactivityTimer);
+  }
 };
 
-const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
-activityEvents.forEach(e => window.addEventListener(e, resetInactivityTimer, { passive: true }));
-resetInactivityTimer();
+let inactivityTimer: ReturnType<typeof setTimeout>;
+document.addEventListener('visibilitychange', handleVisibilityChange);
+
+return () => {
+  subUser();
+  subTx();
+  clearTimeout(inactivityTimer);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+};
 
         return () => {
           subUser();
