@@ -65,6 +65,29 @@ export default function App() {
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
+  // Auto logout after 15 minutes of inactivity
+useEffect(() => {
+  let timer: ReturnType<typeof setTimeout>;
+
+  const resetTimer = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      auth.signOut();
+    }, 15 * 60 * 1000); // 15 minutes
+  };
+
+  // Track user activity
+  const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+  events.forEach(event => window.addEventListener(event, resetTimer));
+
+  // Start the timer
+  resetTimer();
+
+  return () => {
+    clearTimeout(timer);
+    events.forEach(event => window.removeEventListener(event, resetTimer));
+  };
+}, []);
 
   useEffect(() => {
     // Capture referral code from URL
