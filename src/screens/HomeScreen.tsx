@@ -520,7 +520,7 @@ export default function HomeScreen({
         </div>
         
         <div className="flex flex-col gap-3">
-          {transactions.map((tx, i) => (
+          {transactions.slice(0, 5).map((tx, i) => (
             <motion.div
               key={tx.id}
               initial={{ opacity: 0, x: -10 }}
