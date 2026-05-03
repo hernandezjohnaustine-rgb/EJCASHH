@@ -1,94 +1,34 @@
-// services/paymongoService.ts
-// Replace the values below with your actual PayMongo credentials and domain
+// src/services/paymongoService.ts
+// Calls the Netlify serverless proxy — no CORS, secret key stays server-side
 
-const PAYMONGO_SECRET_KEY = "sk_live_BUwH1EadmPrGeNSnZ1SAPu9x"; // e.g. sk_live_xxxxxxxxxxxx
-const APP_DOMAIN = "ejcashh.netlify.app"; // e.g. https://ejcashh.com
+const FUNCTION_URL = "/.netlify/functions/paymongo";
 
-const PAYMONGO_API = "https://api.paymongo.com/v1";
-
-const headers = {
-  "Content-Type": "application/json",
-  Authorization: `Basic ${btoa(PAYMONGO_SECRET_KEY + ":")}`,
-};
-
-// ─── Create a Payment Link ────────────────────────────────────────────────────
+// ─── Create Payment Link ──────────────────────────────────────────────────────
 export async function createPaymentLink(
   amount: number,
   description: string,
   metadata: Record<string, string>
 ) {
-  const response = await fetch(`${PAYMONGO_API}/links`, {
+  const res = await fetch(FUNCTION_URL, {
     method: "POST",
-    headers,
-    body: JSON.stringify({
-      data: {
-        attributes: {
-          amount: Math.round(amount * 100), // PayMongo uses centavos
-          description,
-          remarks: `Cash In for user ${metadata.userId}`,
-          metadata,
-        },
-      },
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "createPaymentLink", amount, description, metadata }),
   });
 
-  const json = await response.json();
-
-  if (!response.ok) {
-    const msg = json?.errors?.[0]?.detail || "Failed to create payment link.";
-    throw new Error(msg);
-  }
-
-  return json.data;
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error || "Failed to create payment link.");
+  return json;
 }
 
 // ─── Get Payment Link Status ──────────────────────────────────────────────────
 export async function getPaymentLinkStatus(linkId: string) {
-  const response = await fetch(`${PAYMONGO_API}/links/${linkId}`, {
-    method: "GET",
-    headers,
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    const msg = json?.errors?.[0]?.detail || "Failed to fetch payment status.";
-    throw new Error(msg);
-  }
-
-  return json.data;
-}
-
-// ─── Create a GCash / Maya Source (for direct method redirect) ───────────────
-export async function createSource(
-  amount: number,
-  type: "gcash" | "paymaya",
-  userId: string
-) {
-  const response = await fetch(`${PAYMONGO_API}/sources`, {
+  const res = await fetch(FUNCTION_URL, {
     method: "POST",
-    headers,
-    body: JSON.stringify({
-      data: {
-        attributes: {
-          amount: Math.round(amount * 100),
-          currency: "PHP",
-          type,
-          redirect: {
-            success: `${APP_DOMAIN}/?payment_status=success&user_id=${userId}&amount=${amount}`,
-            failed: `${APP_DOMAIN}/?payment_status=failed`,
-          },
-        },
-      },
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "getPaymentLinkStatus", linkId }),
   });
 
-  const json = await response.json();
-
-  if (!response.ok) {
-    const msg = json?.errors?.[0]?.detail || "Failed to create payment source.";
-    throw new Error(msg);
-  }
-
-  return json.data;
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error || "Failed to fetch payment status.");
+  return json;
 }
