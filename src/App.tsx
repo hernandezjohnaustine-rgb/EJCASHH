@@ -746,14 +746,21 @@ return () => {
   onProfileClick={() => setActiveTab('profile')}
 />
                 <HomeScreen
-                  stats={userStats}
-                  onActivate={handleRequestActivation}
-                  balance={balance}
-                  transactions={transactions}
-                  onServiceClick={(serviceId) => setActiveView(serviceId)}
-                  onViewHistory={() => setActiveTab("history")}
-                  onClaimTrading={handleClaimTrading}
-                  referralCode={userProfile?.referralCode || ""}
+  stats={userStats}
+  onActivate={handleRequestActivation}
+  balance={balance}
+  transactions={transactions}
+  onServiceClick={(serviceId) => setActiveView(serviceId)}
+  onViewHistory={() => setActiveTab("history")}
+  onClaimTrading={handleClaimTrading}
+  referralCode={userProfile?.referralCode || ""}
+  onClaimDirectsReward={handleClaimDirectsReward}
+  directsRewardClaimed={directsRewardClaimed || userProfile?.directsRewardClaimed || false}
+  showCertificate={showCertificate}
+  onOpenCertificate={() => setShowCertificate(true)}
+  onCloseCertificate={() => setShowCertificate(false)}
+  userName={userProfile?.displayName || user?.displayName || "Member"}
+/>
                 />
               </motion.div>
             )}
