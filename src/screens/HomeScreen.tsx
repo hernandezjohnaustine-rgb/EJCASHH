@@ -131,7 +131,11 @@ export default function HomeScreen({
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.2em] font-black">{activeWallet.label}</span>
                 <div className="flex items-center gap-3">
-                  <h1 className={`text-4xl font-display font-black tracking-tight italic transition-all duration-300 ${activeWallet.color}`}>
+                  <h1 className={`font-display font-black tracking-tight italic transition-all duration-300 ${activeWallet.color} ${
+  activeWallet.balance >= 100000 ? 'text-2xl' :
+  activeWallet.balance >= 10000 ? 'text-3xl' :
+  'text-4xl'
+}`}>
                     {showBalance ? (
                       <AnimatedNumber value={activeWallet.balance} className={activeWallet.color} />
                     ) : (
