@@ -35,6 +35,20 @@ import RiderScreen from "./screens/RiderScreen";
 import MarketplaceScreen from "./screens/MarketplaceScreen";
 import AssistantScreen from "./screens/AssistantScreen";
 
+const EMPTY_STATS: UserStats = {
+  vipLevel: 1,
+  directReferrals: 0,
+  totalReferrals: 0,
+  teamSize: 0,
+  totalEarnings: 0,
+  isActivated: false,
+  tradingInvested: 0,
+  tradingEarnings: 0,
+  tradingDaysCompleted: 0,
+  tradingActive: false,
+  tradingClaimedToday: false,
+};
+
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
@@ -42,27 +56,14 @@ export default function App() {
   const [activeView, setActiveView] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [userStats, setUserStats] = useState<UserStats>({
-    vipLevel: 1,
-    directReferrals: 0,
-    totalReferrals: 0,
-    teamSize: 0,
-    totalEarnings: 0,
-    isActivated: false,
-    tradingInvested: 0,
-    tradingEarnings: 0,
-    tradingDaysCompleted: 0,
-    tradingActive: false,
-    tradingClaimedToday: false,
-  });
-
+  const [userStats, setUserStats] = useState<UserStats>(EMPTY_STATS);
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [firebaseError, setFirebaseError] = useState<{ title: string; message: string; code: string } | null>(null);
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
   const [scannedRecipient, setScannedRecipient] = useState<any | null>(null);
   const [directsRewardClaimed, setDirectsRewardClaimed] = useState(false);
-const [showCertificate, setShowCertificate] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
 
   useEffect(() => {
     document.documentElement.className = theme;
@@ -71,15 +72,14 @@ const [showCertificate, setShowCertificate] = useState(false);
 
   const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
 
+  // Capture referral code from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     let ref = params.get("ref") || params.get("r");
     const path = window.location.pathname.substring(1).toUpperCase();
     if (!ref && path && (path.startsWith('EJ-') || (path.length >= 3 && path.length <= 15))) {
       const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE'];
-      if (!internalPaths.includes(path)) {
-        ref = path;
-      }
+      if (!internalPaths.includes(path)) ref = path;
     }
     if (ref) {
       localStorage.setItem("referredBy", ref);
@@ -89,28 +89,24 @@ const [showCertificate, setShowCertificate] = useState(false);
     }
   }, []);
 
+  // Main auth + Firestore effect
   useEffect(() => {
     const testConnection = async (retries = 3) => {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
         console.log("Firestore connection verified.");
       } catch (error: any) {
-        if (
-          error.code === 'not-found' ||
-          error.message?.includes('No document') ||
-          error.message?.includes('not-found')
-        ) {
-          console.log("Firestore connection verified (test doc not found, that's OK).");
+        if (error.code === 'not-found' || error.message?.includes('not-found') || error.message?.includes('No document')) {
+          console.log("Firestore connection verified (test doc not found, OK).");
           return;
         }
         if (error.message?.includes('the client is offline') || error.code === 'unavailable') {
           if (retries > 0) {
-            console.warn(`Firestore offline, retrying... (${retries} attempts left)`);
             setTimeout(() => testConnection(retries - 1), 2000);
           } else {
             setFirebaseError({
               title: "Firestore Offline",
-              message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode' in your new Firebase project console.",
+              message: "Firestore is unreachable. Please ensure you have created a Firestore Database in 'Native Mode'.",
               code: "offline"
             });
           }
@@ -127,26 +123,15 @@ const [showCertificate, setShowCertificate] = useState(false);
 
         // ✅ Different user logged in — clear old state first
         if (currentUserId && currentUserId !== firebaseUser.uid) {
-  setActiveTab("home");
-  setActiveView(null);
-  setUserProfile(null);
-  setBalance(0);
-  setTransactions([]);
-  setUserStats({
-    vipLevel: 1,
-    directReferrals: 0,
-    totalReferrals: 0,
-    teamSize: 0,
-    totalEarnings: 0,
-    isActivated: false,
-    tradingInvested: 0,
-    tradingEarnings: 0,
-    tradingDaysCompleted: 0,
-    tradingActive: false,
-    tradingClaimedToday: false,
-  });
-  await new Promise(resolve => setTimeout(resolve, 200));
-}
+          setUserProfile(null);
+          setBalance(0);
+          setTransactions([]);
+          setUserStats(EMPTY_STATS);
+          setActiveTab("home");
+          setActiveView(null);
+          setShowSuccess(null);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
 
         currentUserId = firebaseUser.uid;
         setUser(firebaseUser);
@@ -193,35 +178,17 @@ const [showCertificate, setShowCertificate] = useState(false);
                 tradingClaimedToday: false,
                 tradingDaysCompleted: 0,
                 referralCode: username ? username.toUpperCase() : ("EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase()),
-                referredBy: referredBy,
-                sponsorId: sponsorId,
+                referredBy,
+                sponsorId,
                 createdAt: new Date().toISOString(),
-                stats: {
-                  vipLevel: 1,
-                  directReferrals: 0,
-                  totalReferrals: 0,
-                  teamSize: 0,
-                  totalEarnings: 0
-                }
+                stats: { vipLevel: 1, directReferrals: 0, totalReferrals: 0, teamSize: 0, totalEarnings: 0 }
               };
               await setDoc(userDocRef, newUser);
               setUserProfile(newUser);
               localStorage.removeItem("pendingUsername");
               localStorage.removeItem("pendingPhone");
-              setUserStats({
-                isActivated: false,
-                vipLevel: 1,
-                directReferrals: 0,
-                totalReferrals: 0,
-                teamSize: 0,
-                totalEarnings: 0,
-                tradingInvested: 0,
-                tradingEarnings: 0,
-                tradingActive: false,
-                tradingClaimedToday: false,
-                tradingDaysCompleted: 0
-              });
               localStorage.removeItem("referredBy");
+              setUserStats(EMPTY_STATS);
             } else {
               const data = userDoc.data();
               const today = new Date().toISOString().split('T')[0];
@@ -239,14 +206,13 @@ const [showCertificate, setShowCertificate] = useState(false);
                 tradingInvested: data.tradingInvested || 0,
                 tradingEarnings: data.tradingEarnings || 0,
                 tradingActive: data.tradingActive || false,
-                tradingClaimedToday: tradingClaimedToday,
+                tradingClaimedToday,
                 tradingDaysCompleted: data.tradingDaysCompleted || 0,
               });
             }
           } catch (error: any) {
             if ((retryCount < 2 && (error.code === 'permission-denied' || error.message?.includes('permissions'))) ||
               (retryCount < 3 && error.message?.includes('offline'))) {
-              console.log(`Retrying profile fetch... (Attempt ${retryCount + 1}) - Reason: ${error.message}`);
               await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
               return fetchUserProfile(retryCount + 1);
             }
@@ -256,6 +222,7 @@ const [showCertificate, setShowCertificate] = useState(false);
 
         await fetchUserProfile();
 
+        // Real-time user data listener
         const subUser = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const data = doc.data();
@@ -274,7 +241,7 @@ const [showCertificate, setShowCertificate] = useState(false);
               tradingInvested: data.tradingInvested || 0,
               tradingEarnings: data.tradingEarnings || 0,
               tradingActive: data.tradingActive || false,
-              tradingClaimedToday: tradingClaimedToday,
+              tradingClaimedToday,
               tradingDaysCompleted: data.tradingDaysCompleted || 0,
             });
           }
@@ -282,17 +249,14 @@ const [showCertificate, setShowCertificate] = useState(false);
           handleFirestoreError(error, OperationType.GET, "users/" + firebaseUser.uid);
         });
 
-        const q = query(
-          collection(db, "transactions"),
-          where("userId", "==", firebaseUser.uid),
-          limit(50)
-        );
+        // Real-time transactions listener
+        const q = query(collection(db, "transactions"), where("userId", "==", firebaseUser.uid), limit(50));
         const subTx = onSnapshot(q, (snapshot) => {
-          const txs: any[] = snapshot.docs.map(doc => {
-            const data = doc.data();
+          const txs: any[] = snapshot.docs.map(d => {
+            const data = d.data();
             const ts = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
             return {
-              id: doc.id,
+              id: d.id,
               ...data,
               timestampValue: ts.getTime(),
               amount: `${data.type === 'in' ? '+' : '-'}₱${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
@@ -306,77 +270,54 @@ const [showCertificate, setShowCertificate] = useState(false);
 
         setIsLoading(false);
 
-        // ✅ Auto logout — when user leaves and comes back to the app
-const handleVisibilityChange = () => {
-  if (document.visibilityState === 'hidden') {
-    // App went to background — start a 5 minute timer
-    inactivityTimer = setTimeout(async () => {
-      await auth.signOut();
-    }, 1 * 60 * 1000); // 1 minutes in background = logout
-  } else {
-    // App came back to foreground — cancel the timer
-    clearTimeout(inactivityTimer);
-  }
-};
-
-let inactivityTimer: ReturnType<typeof setTimeout>;
-document.addEventListener('visibilitychange', handleVisibilityChange);
-
-return () => {
-  subUser();
-  subTx();
-  clearTimeout(inactivityTimer);
-  document.removeEventListener('visibilitychange', handleVisibilityChange);
-};
+        // ✅ Auto logout when app goes to background for more than 1 minute
+        let inactivityTimer: ReturnType<typeof setTimeout>;
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'hidden') {
+            inactivityTimer = setTimeout(async () => {
+              await auth.signOut();
+            }, 1 * 60 * 1000);
+          } else {
+            clearTimeout(inactivityTimer);
+          }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
           subUser();
           subTx();
           clearTimeout(inactivityTimer);
-          activityEvents.forEach(e => window.removeEventListener(e, resetInactivityTimer));
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
+
       } else {
         // ✅ Clear ALL state on logout
         currentUserId = null;
-        setActiveTab("home");
-        setActiveView(null);
         setUser(null);
         setUserProfile(null);
         setBalance(0);
         setTransactions([]);
-        setUserStats({
-          vipLevel: 1,
-          directReferrals: 0,
-          totalReferrals: 0,
-          teamSize: 0,
-          totalEarnings: 0,
-          isActivated: false,
-          tradingInvested: 0,
-          tradingEarnings: 0,
-          tradingDaysCompleted: 0,
-          tradingActive: false,
-          tradingClaimedToday: false,
-        });
+        setUserStats(EMPTY_STATS);
+        setActiveTab("home");
+        setActiveView(null);
         setShowSuccess(null);
         setIsLoading(false);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
-  // ✅ FIXED addTransaction — checks balance before proceeding
+  // ✅ addTransaction — checks balance before proceeding, does NOT update balance for "record_only"
   const addTransaction = async (tx: any) => {
     if (!user) return;
-
     try {
       const userDocRef = doc(db, "users", user.uid);
-
-      // Always read latest balance from Firestore first
       const freshDoc = await getDoc(userDocRef);
       const freshBalance = freshDoc.exists() ? (freshDoc.data().balance || 0) : 0;
       const freshEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
 
-      // ✅ Block transaction if insufficient balance BEFORE writing anything
+      // ✅ Block if insufficient balance
       if (tx.type === "out") {
         if (tx.category === "Withdrawal") {
           if (tx.rawAmount > freshEarnings) {
@@ -406,8 +347,10 @@ return () => {
       const { addDoc } = await import("firebase/firestore");
       await addDoc(collection(db, "transactions"), txData);
 
-      const updateData: any = {};
+      // ✅ Skip balance update if record_only (used by trading claim to avoid double update)
+      if (tx.recordOnly) return;
 
+      const updateData: any = {};
       if (tx.category === "Trading" && tx.type === "out") {
         updateData.balance = Math.max(0, freshBalance - tx.rawAmount);
         updateData.tradingInvested = (userStats.tradingInvested || 0) + tx.rawAmount;
@@ -418,7 +361,6 @@ return () => {
         updateData.balance = Math.max(0, freshBalance - tx.rawAmount);
         updateData.earningsWallet = Math.max(0, freshEarnings - tx.rawAmount);
       } else {
-        // ✅ Never allow negative balance
         updateData.balance = tx.type === "in"
           ? freshBalance + tx.rawAmount
           : Math.max(0, freshBalance - tx.rawAmount);
@@ -428,78 +370,102 @@ return () => {
 
       setShowSuccess(tx.title || "Transaction Successful");
       setActiveView(null);
-
-      setTimeout(() => {
-        setShowSuccess(null);
-        setActiveTab("history");
-      }, 2000);
+      setTimeout(() => { setShowSuccess(null); setActiveTab("history"); }, 2000);
 
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "transactions or users");
     }
   };
 
+  // ✅ FIXED — no double balance update
   const handleClaimTrading = async () => {
     if (!user || userStats.tradingClaimedToday || userStats.tradingInvested <= 0) return;
-    const profit = userStats.tradingInvested * 0.05;
+
     const userDocRef = doc(db, "users", user.uid);
     try {
+      // Always read fresh data
       const freshDoc = await getDoc(userDocRef);
-      const currentBalance = freshDoc.exists() ? (freshDoc.data().balance || 0) : balance;
-      const currentEarningsWallet = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : (userProfile.earningsWallet || 0);
+      if (!freshDoc.exists()) return;
+
+      const freshData = freshDoc.data();
       const today = new Date().toISOString().split('T')[0];
+
+      // ✅ Prevent double claim on same day
+      if (freshData.lastClaimDate === today && freshData.tradingClaimedToday === true) {
+        alert("⚠️ You already claimed today's profit. Come back tomorrow!");
+        return;
+      }
+
+      const invested = freshData.tradingInvested || 0;
+      if (invested <= 0) return;
+
+      // ✅ Exactly 5% of invested amount only
+      const profit = invested * 0.05;
+      const currentBalance = freshData.balance || 0;
+      const currentEarnings = freshData.earningsWallet || 0;
+      const currentTradingEarnings = freshData.tradingEarnings || 0;
+      const daysCompleted = freshData.tradingDaysCompleted || 0;
+
+      // ✅ Update Firestore ONCE
       await setDoc(userDocRef, {
         balance: currentBalance + profit,
-        tradingEarnings: (userStats.tradingEarnings || 0) + profit,
+        earningsWallet: currentEarnings + profit,
+        tradingEarnings: currentTradingEarnings + profit,
         tradingClaimedToday: true,
         lastClaimDate: today,
-        tradingDaysCompleted: (userStats.tradingDaysCompleted || 0) + 1,
-        earningsWallet: currentEarningsWallet + profit,
+        tradingDaysCompleted: daysCompleted + 1,
         stats: {
-          ...userProfile.stats,
-          totalEarnings: (userProfile.stats?.totalEarnings || 0) + profit
+          ...freshData.stats,
+          totalEarnings: (freshData.stats?.totalEarnings || 0) + profit
         }
       }, { merge: true });
+
+      // ✅ Record transaction WITHOUT updating balance again (recordOnly: true)
       await addTransaction({
         title: "Trading ROI Distribution",
         rawAmount: profit,
         category: "Trading",
         type: "in",
-        status: "Completed"
+        recordOnly: true, // ← this skips the balance update in addTransaction
       });
+
+      setShowSuccess(`Trading profit of ₱${profit.toLocaleString('en-US', { minimumFractionDigits: 2 })} claimed!`);
+      setTimeout(() => { setShowSuccess(null); }, 2000);
+
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
     }
   };
 
   const handleClaimDirectsReward = async () => {
-  if (!user || directsRewardClaimed) return;
-  const reward = 300;
-  const userDocRef = doc(db, "users", user.uid);
-  try {
-    const freshDoc = await getDoc(userDocRef);
-    const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
-    await setDoc(userDocRef, {
-      earningsWallet: currentEarnings + reward,
-      directsRewardClaimed: true,
-      stats: {
-        ...userProfile.stats,
-        totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
-      }
-    }, { merge: true });
-    await addTransaction({
-      title: "10 Directs Milestone Reward",
-      rawAmount: reward,
-      category: "Bonus",
-      type: "in",
-      status: "Completed"
-    });
-    setDirectsRewardClaimed(true);
-    setShowCertificate(false);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
-  }
-};
+    if (!user || directsRewardClaimed) return;
+    const reward = 300;
+    const userDocRef = doc(db, "users", user.uid);
+    try {
+      const freshDoc = await getDoc(userDocRef);
+      const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
+      await setDoc(userDocRef, {
+        earningsWallet: currentEarnings + reward,
+        directsRewardClaimed: true,
+        stats: {
+          ...userProfile.stats,
+          totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
+        }
+      }, { merge: true });
+      await addTransaction({
+        title: "10 Directs Milestone Reward",
+        rawAmount: reward,
+        category: "Bonus",
+        type: "in",
+        recordOnly: true,
+      });
+      setDirectsRewardClaimed(true);
+      setShowCertificate(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+    }
+  };
+
   const handleClaimDaily = async () => {
     if (!user || userProfile.dailyClaimedToday) return;
     const userDocRef = doc(db, "users", user.uid);
@@ -522,7 +488,7 @@ return () => {
         rawAmount: reward,
         category: "Bonus",
         type: "in",
-        status: "Completed"
+        recordOnly: true,
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
@@ -531,8 +497,8 @@ return () => {
 
   const handleTabChange = (tab: string) => setActiveTab(tab);
 
+  // ✅ Always reloads CURRENT user's fresh data after activation
   const handleActivationComplete = async () => {
-    // ✅ Always reload fresh data for CURRENT logged in user
     const currentUser = auth.currentUser;
     if (currentUser) {
       const userDocRef = doc(db, "users", currentUser.uid);
@@ -575,9 +541,7 @@ return () => {
       processActivation(userIdInUrl).then(() => {
         window.history.replaceState({}, "", window.location.pathname);
         handleActivationComplete();
-      }).catch(err => {
-        console.error("PayMongo Activation Error:", err);
-      });
+      }).catch(err => console.error("PayMongo Activation Error:", err));
     }
   }, []);
 
@@ -607,10 +571,8 @@ return () => {
               </ul>
             )}
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl hover:bg-brand-primary/90 transition-all active:scale-95"
-          >
+          <button onClick={() => window.location.reload()}
+            className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl hover:bg-brand-primary/90 transition-all active:scale-95">
             I've Updated My Console
           </button>
         </div>
@@ -621,11 +583,7 @@ return () => {
   if (isLoading) {
     return (
       <div className="h-screen w-full bg-brand-black flex flex-col items-center justify-center gap-8 overflow-hidden">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-24 h-24 relative"
-        >
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-24 h-24 relative">
           <div className="absolute inset-0 bg-brand-primary blur-[50px] opacity-20"></div>
           <div className="absolute inset-0 rounded-3xl border border-brand-primary/30 bg-brand-navy flex items-center justify-center overflow-hidden">
             <div className="relative text-2xl font-display font-black italic tracking-tighter text-brand-primary flex flex-col items-center">
@@ -649,17 +607,16 @@ return () => {
     );
   }
 
-  if (!user) {
-    return <AuthScreen onLogin={() => {}} />;
-  }
+  if (!user) return <AuthScreen onLogin={() => {}} />;
 
   const renderActiveView = () => {
+    const currentUid = auth.currentUser?.uid || user.uid;
     const coreFeatures = ["send", "bank", "bills", "load", "trading", "rider", "market"];
     if (coreFeatures.includes(activeView || "") && !userStats.isActivated) {
-      return <ActivationScreen uid={user.uid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
+      return <ActivationScreen uid={currentUid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
     }
     switch (activeView) {
-      case "activation": return <ActivationScreen uid={user.uid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
+      case "activation": return <ActivationScreen uid={currentUid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
       case "cashin": return <CashInScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, method: string) => addTransaction({ title: `Cash In via ${method}`, rawAmount: amt, category: "Cash In", type: "in" })} />;
       case "send": return <SendMoneyScreen onBack={() => { setActiveView(null); setScannedRecipient(null); }} onConfirm={(amt: number, name: string) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }} balance={balance} initialRecipient={scannedRecipient} onScanClick={() => { setActiveView(null); setActiveTab("scan"); }} />;
       case "load": return <BuyLoadScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, provider: string) => addTransaction({ title: `${provider} Load`, rawAmount: amt, category: "Mobile Load", type: "out" })} balance={balance} />;
@@ -669,9 +626,7 @@ return () => {
       case "rider": return <RiderScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, service: string) => addTransaction({ title: `Rider: ${service}`, rawAmount: amt, category: "Services", type: "out" })} />;
       case "market": return <MarketplaceScreen onBack={() => setActiveView(null)} balance={balance} userProfile={userProfile} onConfirm={(amt: number, title: string) => addTransaction({ title: `Market: ${title}`, rawAmount: amt, category: "Shopping", type: "out" })} />;
       case "assistant": return <AssistantScreen onBack={() => setActiveView(null)} />;
-      case "withdraw": return <WithdrawScreen balance={userStats.totalEarnings} onBack={() => setActiveView(null)} onConfirm={(amt: number) => {
-        addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" });
-      }} />;
+      case "withdraw": return <WithdrawScreen balance={userStats.totalEarnings} onBack={() => setActiveView(null)} onConfirm={(amt: number) => addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" })} />;
       case "network": return <TeamNetworkScreen onBack={() => setActiveView(null)} referralCode={userProfile?.referralCode || ""} />;
       case "admin": return userProfile?.isAdmin ? <AdminScreen onBack={() => setActiveView(null)} /> : null;
       default: return null;
@@ -685,9 +640,7 @@ return () => {
           <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
             <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-brand-primary/10 rounded-full blur-[80px]"></div>
           </div>
-          <div className="relative z-10">
-            {renderActiveView()}
-          </div>
+          <div className="relative z-10">{renderActiveView()}</div>
         </div>
       </div>
     );
@@ -704,29 +657,20 @@ return () => {
         <div className="relative z-10">
           <AnimatePresence>
             {showSuccess && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] bg-brand-black flex flex-col items-center justify-center p-8 text-center"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] bg-brand-black flex flex-col items-center justify-center p-8 text-center">
                 <div className="absolute inset-0 bg-brand-primary/5 blur-[100px]"></div>
-                <motion.div
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", damping: 15 }}
-                  className="w-32 h-32 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.2)]"
-                >
+                  className="w-32 h-32 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.2)]">
                   <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
                     <CheckCircle2 className="w-12 h-12 text-emerald-500" />
                   </div>
                 </motion.div>
                 <h2 className="text-3xl font-display font-black tracking-tight mb-3">Success!</h2>
                 <p className="text-brand-text/60 font-medium mb-10 max-w-[250px]">{showSuccess}</p>
-                <button
-                  onClick={() => setShowSuccess(null)}
-                  className="w-full max-w-[200px] h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center gap-3 mb-8 active:scale-95 transition-all"
-                >
+                <button onClick={() => setShowSuccess(null)}
+                  className="w-full max-w-[200px] h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center gap-3 mb-8 active:scale-95 transition-all">
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Securely Processed</span>
                 </button>
@@ -738,90 +682,70 @@ return () => {
           <AnimatePresence mode="wait">
             {activeTab === "home" && (
               <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Header 
-  userName={user?.displayName || "User"}
-  userSeed={userProfile?.username || user?.displayName || "John"}
-  theme={theme}
-  onToggleTheme={toggleTheme}
-  onProfileClick={() => setActiveTab('profile')}
-/>
+                <Header
+                  userName={user?.displayName || "User"}
+                  userSeed={userProfile?.username || user?.displayName || "John"}
+                  theme={theme}
+                  onToggleTheme={toggleTheme}
+                  onProfileClick={() => setActiveTab('profile')}
+                />
                 <HomeScreen
-  stats={userStats}
-  onActivate={handleRequestActivation}
-  balance={balance}
-  transactions={transactions}
-  onServiceClick={(serviceId) => setActiveView(serviceId)}
-  onViewHistory={() => setActiveTab("history")}
-  onClaimTrading={handleClaimTrading}
-  referralCode={userProfile?.referralCode || ""}
-  onClaimDirectsReward={handleClaimDirectsReward}
-  directsRewardClaimed={directsRewardClaimed || userProfile?.directsRewardClaimed || false}
-  showCertificate={showCertificate}
-  onOpenCertificate={() => setShowCertificate(true)}
-  onCloseCertificate={() => setShowCertificate(false)}
-  userName={userProfile?.displayName || user?.displayName || "Member"}
-/>
+                  stats={userStats}
+                  onActivate={handleRequestActivation}
+                  balance={balance}
+                  transactions={transactions}
+                  onServiceClick={(serviceId) => setActiveView(serviceId)}
+                  onViewHistory={() => setActiveTab("history")}
+                  onClaimTrading={handleClaimTrading}
+                  referralCode={userProfile?.referralCode || ""}
+                  onClaimDirectsReward={handleClaimDirectsReward}
+                  directsRewardClaimed={directsRewardClaimed || userProfile?.directsRewardClaimed || false}
+                  showCertificate={showCertificate}
+                  onOpenCertificate={() => setShowCertificate(true)}
+                  onCloseCertificate={() => setShowCertificate(false)}
+                  userName={userProfile?.displayName || user?.displayName || "Member"}
+                />
               </motion.div>
             )}
-
             {activeTab === "send" && (
               <motion.div key="send" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <SendMoneyScreen
-                  onBack={() => { setActiveTab("home"); setScannedRecipient(null); }}
-                  balance={balance}
-                  onConfirm={(amt, name) => {
-                    addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" });
-                    setScannedRecipient(null);
-                  }}
-                  initialRecipient={scannedRecipient}
-                  onScanClick={() => setActiveTab("scan")}
-                />
+                <SendMoneyScreen onBack={() => { setActiveTab("home"); setScannedRecipient(null); }} balance={balance}
+                  onConfirm={(amt, name) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }}
+                  initialRecipient={scannedRecipient} onScanClick={() => setActiveTab("scan")} />
               </motion.div>
             )}
-
             {activeTab === "scan" && (
               <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <QrPayScreen
-                  onBack={() => setActiveTab("home")}
-                  onResult={(recipient) => {
-                    setScannedRecipient(recipient);
-                    setActiveTab("send");
-                  }}
-                  referralCode={userProfile?.referralCode || ""}
-                />
+                <QrPayScreen onBack={() => setActiveTab("home")}
+                  onResult={(recipient) => { setScannedRecipient(recipient); setActiveTab("send"); }}
+                  referralCode={userProfile?.referralCode || ""} />
               </motion.div>
             )}
-
             {activeTab === "history" && (
               <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <TransactionHistoryScreen onBack={() => setActiveTab("home")} transactions={transactions} />
               </motion.div>
             )}
-
             {activeTab === "rewards" && (
               <motion.div key="rewards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <ReferralDashboard
-                  stats={userStats}
-                  onWithdraw={() => setActiveView("withdraw")}
-                  onViewNetwork={() => setActiveView("network")}
-                  referralCode={userProfile?.referralCode || ""}
-                  onClaimDaily={handleClaimDaily}
-                  isDailyClaimed={userProfile.dailyClaimedToday}
-                />
+                <ReferralDashboard stats={userStats} onWithdraw={() => setActiveView("withdraw")}
+                  onViewNetwork={() => setActiveView("network")} referralCode={userProfile?.referralCode || ""}
+                  onClaimDaily={handleClaimDaily} isDailyClaimed={userProfile.dailyClaimedToday} />
               </motion.div>
             )}
-
             {activeTab === "profile" && (
-  <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-    <ProfileScreen
-      onLogout={() => auth.signOut()}
-      theme={theme}
-      onToggleTheme={toggleTheme}
-      user={userProfile}
-      onNavigate={(view) => setActiveView(view)}
-    />
-  </motion.div>
-)}
+              <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ProfileScreen
+                  onLogout={() => {
+                    localStorage.removeItem("referredBy");
+                    localStorage.removeItem("pendingUsername");
+                    localStorage.removeItem("pendingPhone");
+                    auth.signOut();
+                  }}
+                  theme={theme} onToggleTheme={toggleTheme}
+                  user={userProfile} onNavigate={(view) => setActiveView(view)} />
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {!['scan', 'send'].includes(activeTab) && (
