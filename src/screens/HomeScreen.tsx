@@ -1,5 +1,4 @@
 import { motion, AnimatePresence, useSpring, useTransform, animate } from "motion/react";
-import { DirectsCertificateModal, DirectsMilestoneBanner } from "./DirectsCertificate";
 import { useState, useEffect } from "react";
 import { 
   Eye, 
@@ -31,6 +30,7 @@ import GlassCard from "../components/GlassCard";
 import TransactionDetailModal from "../components/TransactionDetailModal";
 import QrInviteModal from "../components/QrInviteModal";
 import AnimatedNumber from "../components/AnimatedNumber";
+import { DirectsCertificateModal, DirectsMilestoneBanner } from "./DirectsCertificate";
 
 interface HomeScreenProps {
   stats: UserStats;
@@ -242,7 +242,6 @@ export default function HomeScreen({
                    </div>
                    
                    <div className="relative">
-                      {/* Day Markers */}
                       <div className="absolute inset-0 flex justify-between px-1 items-center z-10 pointer-events-none">
                         {[...Array(11)].map((_, i) => (
                           <div 
@@ -469,12 +468,14 @@ export default function HomeScreen({
            </button>
         </div>
 
+        {/* ── 10 Directs Milestone Banner ── */}
         {stats.directReferrals >= 10 && !directsRewardClaimed && (
           <DirectsMilestoneBanner
             onTapClaim={onOpenCertificate}
             dismissed={directsRewardClaimed}
           />
         )}
+
         <div className="grid grid-cols-2 gap-4">
            <GlassCard className="!p-5 border-brand-border bg-brand-card/2">
               <div className="flex items-center gap-3 mb-4">
@@ -530,7 +531,7 @@ export default function HomeScreen({
         </div>
       </section>
 
-            {/* Transaction History */}
+      {/* Transaction History */}
       <section className="px-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30 px-2">Recent Activity</h3>
@@ -601,6 +602,7 @@ export default function HomeScreen({
         referralCode={referralCode}
       />
 
+      {/* ── 10 Directs Certificate Modal ── */}
       <DirectsCertificateModal
         visible={showCertificate}
         onClaim={onClaimDirectsReward}
@@ -609,3 +611,4 @@ export default function HomeScreen({
       />
     </div>
   );
+}
