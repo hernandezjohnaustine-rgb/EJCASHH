@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
-
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
@@ -29,7 +28,6 @@
 }
 
 .light {
-  /* Light Theme - Refined Clean Utility */
   --bg-primary: #FDFDFD;
   --bg-secondary: #F4F7F9;
   --text-primary: #0F172A;
@@ -49,9 +47,9 @@
     color: var(--text-primary);
     letter-spacing: -0.01em;
   }
-
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight leading-tight;
+    color: var(--text-primary);
   }
 }
 
@@ -63,15 +61,97 @@
     box-shadow: 0 10px 30px -5px var(--shadow-color);
     @apply rounded-3xl transition-all duration-300;
   }
-  
+
+  /* ✅ Fix white text in light mode globally */
+  .light .glass-card {
+    color: var(--text-primary);
+  }
+
+  .light h1,
+  .light h2,
+  .light h3,
+  .light h4,
+  .light h5,
+  .light h6,
+  .light p,
+  .light span,
+  .light label,
+  .light button {
+    color: var(--text-primary);
+  }
+
+  /* Keep brand-primary colored text intact */
+  .light .text-brand-primary,
+  .light .text-emerald-500,
+  .light .text-red-500,
+  .light .text-red-400 {
+    color: inherit;
+  }
+
+  /* Fix white/20, white/40 opacity texts */
+  .light .text-white\/20,
+  .light .text-white\/30,
+  .light .text-white\/40,
+  .light .text-white\/60,
+  .light .text-white\/80 {
+    color: #64748B !important;
+  }
+
+  .light .text-white {
+    color: #0F172A !important;
+  }
+
+  /* Fix backgrounds */
+  .light .bg-brand-black {
+    background-color: #FDFDFD;
+  }
+
+  .light .bg-white\/5,
+  .light .bg-white\/10,
+  .light .bg-white\/20 {
+    background-color: rgba(15, 23, 42, 0.05) !important;
+  }
+
+  /* Fix borders */
+  .light .border-white\/10,
+  .light .border-white\/20 {
+    border-color: #E2E8F0 !important;
+  }
+
+  /* Fix icon colors */
+  .light svg {
+    color: var(--text-primary);
+  }
+
+  .light .text-brand-primary svg,
+  .light .text-emerald-500 svg {
+    color: #10B981;
+  }
+
+  /* Fix bottom nav */
+  .light .bottom-nav-item {
+    color: #64748B;
+  }
+
+  /* Fix input fields */
+  .light .input-field {
+    background: #F8FAFC;
+    border-color: #E2E8F0;
+    color: #0F172A;
+  }
+
+  .light .input-field::placeholder {
+    color: #94A3B8;
+  }
+
   .neon-border {
     @apply border border-brand-primary/30 shadow-[0_0_20px_rgba(16,185,129,0.25)];
   }
-  
+
   .btn-primary {
     @apply bg-gradient-to-br from-[#10B981] to-[#059669] hover:brightness-110 text-white font-bold py-4 px-6 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 shadow-[0_8px_20px_rgba(16,185,129,0.3)];
   }
-  
+
   .btn-ghost {
     background: var(--card-bg);
     color: var(--text-primary);
@@ -93,4 +173,3 @@
   scrollbar-width: none;
   @apply selection:bg-brand-primary/30;
 }
-
