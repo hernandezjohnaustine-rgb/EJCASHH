@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, where, orderBy, Timestamp, setDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, where, Timestamp, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 const COMMISSION_RATES: Record<number, number> = {
