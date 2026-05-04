@@ -12,6 +12,10 @@ service cloud.firestore {
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
 
     // --- VALIDATION HELPERS ---
     function isValidUser(data) {
@@ -64,28 +68,27 @@ service cloud.firestore {
         && incoming().earningsWallet == 0;
 
       allow update: if isSignedIn() && (
-        // Action: Self Update (Owner)
         (isOwner(userId) && isValidUser(incoming()) && (
           incoming().diff(existing()).affectedKeys().hasOnly([
             'displayName', 'photoURL', 'isActivated', 'activatedAt', 'balance', 
             'earningsWallet', 'tradingInvested', 'tradingEarnings', 'tradingActive', 
             'tradingClaimedToday', 'tradingDaysCompleted', 'lastClaimDate', 'stats',
-            'username', 'phoneNumber'
+            'username', 'phoneNumber', 'avatarSeed', 'avatarStyle',
+            'pendingActivationLinkId', 'dailyClaimedToday', 'lastDailyClaimDate'
           ])
-          // Immortality: Prevent changing core identity
           && incoming().uid == existing().uid
           && incoming().email == existing().email
           && incoming().referralCode == existing().referralCode
           && incoming().createdAt == existing().createdAt
         ))
         ||
-        // Action: Sponsor earning update (Someone else rewarding the referrer)
-        // This usually happens when a referral performs a transaction
         (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats'])
           && incoming().uid == existing().uid
           && incoming().email == existing().email
           && incoming().isActivated == existing().isActivated
         )
+        ||
+        isAdmin()
       );
     }
 
@@ -98,6 +101,9 @@ service cloud.firestore {
       allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() 
         && isValidTransaction(incoming());
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
     }
 
     // Referral Rules
@@ -113,5 +119,29 @@ service cloud.firestore {
       allow update: if isSignedIn() && resource.data.userId == request.auth.uid
         && incoming().diff(existing()).affectedKeys().hasOnly(['daysCompleted', 'lastClaimedAt', 'status']);
     }
+
+    // Withdrawal Requests
+    match /withdrawalRequests/{id} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
+    }
+
+    // Products (Admin adds, users read)
+    match /products/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Orders
+    match /orders/{id} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || isAdmin()
+      );
+      allow update: if isAdmin();
+    }
+
   }
 }
