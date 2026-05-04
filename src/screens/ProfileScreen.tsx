@@ -220,8 +220,12 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="w-full max-w-md bg-brand-black border border-brand-border rounded-t-[2rem] p-6 pb-10"
+              className="w-full max-w-md bg-brand-black border border-brand-border rounded-t-[2rem] flex flex-col overflow-hidden"
+              style={{ maxHeight: "85vh" }}
             >
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 p-6 pb-2">
+
               {/* Handle */}
               <div className="w-10 h-1 bg-brand-text/20 rounded-full mx-auto mb-5" />
 
@@ -402,7 +406,10 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                 )}
               </AnimatePresence>
 
-              {/* Confirm */}
+              </div>{/* end scrollable body */}
+
+              {/* Sticky Save button */}
+              <div className="p-4 pt-2 pb-8 border-t border-brand-border/30 bg-brand-black">
               <AnimatePresence mode="wait">
                 {pendingAvatar.type === "upload" ? (
                   <motion.button
@@ -412,10 +419,8 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 8 }}
                     transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                    className="mt-5 w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-transform flex items-center justify-center gap-2 relative overflow-hidden shadow-lg shadow-brand-primary/30"
-                    style={{ boxShadow: "0 0 0 0 var(--color-primary)" }}
+                    className="w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-transform flex items-center justify-center gap-2 relative overflow-hidden shadow-lg shadow-brand-primary/30"
                   >
-                    {/* Pulse ring */}
                     <span className="absolute inset-0 rounded-2xl animate-ping bg-brand-primary opacity-20 pointer-events-none" />
                     <Check className="w-4 h-4 relative z-10" />
                     <span className="relative z-10">Save This Photo</span>
@@ -428,14 +433,14 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 8 }}
                     transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                    className="mt-5 w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Check className="w-4 h-4" />
                     Apply Avatar
                   </motion.button>
                 )}
               </AnimatePresence>
-            </motion.div>
+              </div>
           </motion.div>
         )}
       </AnimatePresence>
