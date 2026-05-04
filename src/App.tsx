@@ -782,22 +782,6 @@ return () => {
 )}
           </AnimatePresence>
 
-          {activeTab !== 'profile' && activeTab !== 'scan' && activeTab !== 'send' && (
-            <motion.button
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              onClick={() => setActiveTab('profile')}
-              className="fixed top-4 right-20 z-50 w-11 h-11 rounded-2xl bg-brand-card/5 border border-brand-border flex items-center justify-center hover:bg-brand-card/10 transition-colors"
-            >
-              <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=John"
-                alt="Me"
-                className="w-full h-full object-cover rounded-2xl p-1"
-                referrerPolicy="no-referrer"
-              />
-            </motion.button>
-          )}
-
           {!['scan', 'send'].includes(activeTab) && (
             <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
           )}
