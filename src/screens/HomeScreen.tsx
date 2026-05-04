@@ -279,18 +279,37 @@ export default function HomeScreen({
                         </div>
                         <span className="text-[10px] text-emerald-500/60 font-bold">+₱{(stats.tradingInvested * 0.05).toLocaleString()} today</span>
                      </div>
-                   ) : (
-                     <button 
-                       onClick={() => {
-                         onClaimTrading?.();
-                         setShowClaimSuccess(true);
-                         setTimeout(() => setShowClaimSuccess(false), 3000);
-                       }}
-                       className="w-full py-3 bg-brand-primary text-brand-black rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(250,204,21,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
-                     >
-                       <TrendingUp className="w-4 h-4" />
-                       Claim Daily Profit (₱{(stats.tradingInvested * 0.05).toLocaleString()})
-                     </button>
+                   ) : (() => {
+  const now = new Date();
+  const startDate = (stats as any).tradingStartDate ? new Date((stats as any).tradingStartDate) : null;
+  const lastClaimISO = (stats as any).lastClaimISO ? new Date((stats as any).lastClaimISO) : null;
+  const referenceTime = lastClaimISO || startDate;
+  const hoursPassed = referenceTime ? (now.getTime() - referenceTime.getTime()) / (1000 * 60 * 60) : 0;
+  const canClaim = hoursPassed >= 24;
+  const hoursLeft = Math.ceil(24 - hoursPassed);
+
+  return canClaim ? (
+    <button
+      onClick={() => {
+        onClaimTrading?.();
+        setShowClaimSuccess(true);
+        setTimeout(() => setShowClaimSuccess(false), 3000);
+      }}
+      className="w-full py-3 bg-brand-primary text-brand-black rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(250,204,21,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
+    >
+      <TrendingUp className="w-4 h-4" />
+      Claim Daily Profit (₱{(stats.tradingInvested * 0.05).toLocaleString()})
+    </button>
+  ) : (
+    <div className="flex items-center justify-between bg-brand-card/20 border border-brand-border py-3 px-4 rounded-xl">
+      <div className="flex items-center gap-2">
+        <Clock className="w-4 h-4 text-brand-text/40" />
+        <span className="text-[10px] text-brand-text/40 font-black uppercase tracking-widest">Next Claim Available</span>
+      </div>
+      <span className="text-[10px] text-brand-primary font-black">in {hoursLeft}h</span>
+    </div>
+  );
+})()}
                    )}
                 </div>
              </div>
