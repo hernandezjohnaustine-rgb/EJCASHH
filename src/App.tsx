@@ -761,7 +761,6 @@ return () => {
   onCloseCertificate={() => setShowCertificate(false)}
   userName={userProfile?.displayName || user?.displayName || "Member"}
 />
-                />
               </motion.div>
             )}
 
