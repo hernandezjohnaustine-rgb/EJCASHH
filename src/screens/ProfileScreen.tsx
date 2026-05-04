@@ -1,3 +1,4 @@
+import { db, storage } from "../lib/firebase";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef } from "react";
 import {
