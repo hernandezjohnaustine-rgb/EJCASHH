@@ -441,6 +441,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                 )}
               </AnimatePresence>
               </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
