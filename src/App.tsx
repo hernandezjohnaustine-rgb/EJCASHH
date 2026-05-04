@@ -61,6 +61,8 @@ export default function App() {
   const [firebaseError, setFirebaseError] = useState<{ title: string; message: string; code: string } | null>(null);
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
   const [scannedRecipient, setScannedRecipient] = useState<any | null>(null);
+  const [directsRewardClaimed, setDirectsRewardClaimed] = useState(false);
+const [showCertificate, setShowCertificate] = useState(false);
 
   useEffect(() => {
     document.documentElement.className = theme;
@@ -470,6 +472,34 @@ return () => {
     }
   };
 
+  const handleClaimDirectsReward = async () => {
+  if (!user || directsRewardClaimed) return;
+  const reward = 300;
+  const userDocRef = doc(db, "users", user.uid);
+  try {
+    const freshDoc = await getDoc(userDocRef);
+    const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
+    await setDoc(userDocRef, {
+      earningsWallet: currentEarnings + reward,
+      directsRewardClaimed: true,
+      stats: {
+        ...userProfile.stats,
+        totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
+      }
+    }, { merge: true });
+    await addTransaction({
+      title: "10 Directs Milestone Reward",
+      rawAmount: reward,
+      category: "Bonus",
+      type: "in",
+      status: "Completed"
+    });
+    setDirectsRewardClaimed(true);
+    setShowCertificate(false);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+  }
+};
   const handleClaimDaily = async () => {
     if (!user || userProfile.dailyClaimedToday) return;
     const userDocRef = doc(db, "users", user.uid);
