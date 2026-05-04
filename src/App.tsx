@@ -637,7 +637,7 @@ return () => {
       case "bills": return <PayBillsScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, biller: string) => addTransaction({ title: `Paid ${biller}`, rawAmount: amt, category: "Bills", type: "out" })} balance={balance} />;
       case "trading": return <TradingBotScreen onBack={() => setActiveView(null)} balance={balance} onInvest={(amt: number, pkg: any) => addTransaction({ title: `${pkg.title} Deploy`, rawAmount: amt, category: "Trading", type: "out" })} />;
       case "rider": return <RiderScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, service: string) => addTransaction({ title: `Rider: ${service}`, rawAmount: amt, category: "Services", type: "out" })} />;
-      case "market": return <MarketplaceScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, title: string) => addTransaction({ title: `Market: ${title}`, rawAmount: amt, category: "Shopping", type: "out" })} />;
+      case "market": return <MarketplaceScreen onBack={() => setActiveView(null)} balance={balance} userProfile={userProfile} onConfirm={(amt: number, title: string) => addTransaction({ title: `Market: ${title}`, rawAmount: amt, category: "Shopping", type: "out" })} />;
       case "assistant": return <AssistantScreen onBack={() => setActiveView(null)} />;
       case "withdraw": return <WithdrawScreen balance={userStats.totalEarnings} onBack={() => setActiveView(null)} onConfirm={(amt: number) => {
         addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" });
