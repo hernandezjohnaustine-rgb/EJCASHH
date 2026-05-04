@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ShoppingBag, Search, ChevronLeft, Filter, Star, ShoppingCart, Heart, X, MapPin, Package, CheckCircle, Truck, Clock, Wallet, CreditCard } from "lucide-react";
+import { ShoppingBag, Search, ChevronLeft, Filter, Star, ShoppingCart, Heart, X, MapPin, CheckCircle, Wallet, CreditCard } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 import { getProducts, createOrder, distributeMarketplaceCommission } from "../services/marketplaceService";
 import { auth } from "../lib/firebase";
@@ -24,7 +24,6 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
   const [activeCategory, setActiveCategory] = useState("All");
   const [products, setProducts] = useState<any[]>(FALLBACK_PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
   const [cart, setCart] = useState<any[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"wallet" | "gcash">("wallet");
@@ -344,4 +343,76 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                         onClick={() => setPaymentMethod("wallet")}
                         className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${paymentMethod === "wallet" ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-card/20'}`}
                       >
-                        <Wal
+                        <Wallet className="w-5 h-5 text-brand-primary" />
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-brand-text">Main Wallet</p>
+                          <p className={`text-xs font-bold ${balance >= cartTotal ? 'text-brand-primary' : 'text-red-500'}`}>
+                            Balance: ₱{balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setPaymentMethod("gcash")}
+                        className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${paymentMethod === "gcash" ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-card/20'}`}
+                      >
+                        <CreditCard className="w-5 h-5 text-blue-400" />
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-brand-text">GCash / Maya</p>
+                          <p className="text-xs text-brand-text/40">Pay via PayMongo</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Order Summary */}
+                  <GlassCard className="!p-4 mb-6">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-brand-text/60">Subtotal</span>
+                      <span className="font-bold text-brand-text">₱{cartTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-brand-text/60">Shipping</span>
+                      <span className="font-bold text-brand-primary">FREE</span>
+                    </div>
+                    <div className="border-t border-brand-border my-3" />
+                    <div className="flex justify-between">
+                      <span className="font-black text-brand-text">Total</span>
+                      <span className="text-xl font-black text-brand-primary">₱{cartTotal.toLocaleString()}</span>
+                    </div>
+                  </GlassCard>
+
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isProcessing}
+                    className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all disabled:opacity-70"
+                  >
+                    {isProcessing ? "Processing..." : `Place Order • ₱${cartTotal.toLocaleString()}`}
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Order Success */}
+      <AnimatePresence>
+        {orderSuccess && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-[100] bg-brand-black flex flex-col items-center justify-center p-8 text-center"
+          >
+            <div className="w-24 h-24 rounded-full bg-brand-primary/20 flex items-center justify-center mb-6">
+              <CheckCircle className="w-12 h-12 text-brand-primary" />
+            </div>
+            <h2 className="text-3xl font-black text-brand-text mb-2">Order Placed!</h2>
+            <p className="text-brand-text/60 mb-2">Your order is being processed.</p>
+            <p className="text-[10px] text-brand-primary font-black uppercase tracking-widest">MLM Commissions Distributed ✅</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
