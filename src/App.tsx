@@ -708,7 +708,13 @@ return () => {
           <AnimatePresence mode="wait">
             {activeTab === "home" && (
               <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Header userName={user?.displayName || "User"} theme={theme} onToggleTheme={toggleTheme} />
+                <Header 
+  userName={user?.displayName || "User"}
+  userSeed={userProfile?.username || user?.displayName || "John"}
+  theme={theme}
+  onToggleTheme={toggleTheme}
+  onProfileClick={() => setActiveTab('profile')}
+/>
                 <HomeScreen
                   stats={userStats}
                   onActivate={handleRequestActivation}
