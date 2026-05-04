@@ -1,4 +1,5 @@
 import { motion, AnimatePresence, useSpring, useTransform, animate } from "motion/react";
+import { DirectsCertificateModal, DirectsMilestoneBanner } from "./DirectsCertificate";
 import { useState, useEffect } from "react";
 import { 
   Eye, 
@@ -40,6 +41,12 @@ interface HomeScreenProps {
   onViewHistory: () => void;
   onClaimTrading?: () => void;
   referralCode: string;
+  onClaimDirectsReward: () => void;
+  directsRewardClaimed: boolean;
+  showCertificate: boolean;
+  onOpenCertificate: () => void;
+  onCloseCertificate: () => void;
+  userName: string;
 }
 
 const mainServices = [
@@ -72,7 +79,13 @@ export default function HomeScreen({
   onServiceClick, 
   onViewHistory,
   onClaimTrading,
-  referralCode
+  referralCode,
+  onClaimDirectsReward,
+  directsRewardClaimed,
+  showCertificate,
+  onOpenCertificate,
+  onCloseCertificate,
+  userName
 }: HomeScreenProps) {
   const [showBalance, setShowBalance] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -456,6 +469,12 @@ export default function HomeScreen({
            </button>
         </div>
 
+        {stats.directReferrals >= 10 && !directsRewardClaimed && (
+          <DirectsMilestoneBanner
+            onTapClaim={onOpenCertificate}
+            dismissed={directsRewardClaimed}
+          />
+        )}
         <div className="grid grid-cols-2 gap-4">
            <GlassCard className="!p-5 border-brand-border bg-brand-card/2">
               <div className="flex items-center gap-3 mb-4">
@@ -581,6 +600,12 @@ export default function HomeScreen({
         onClose={() => setIsQrModalOpen(false)}
         referralCode={referralCode}
       />
+
+      <DirectsCertificateModal
+        visible={showCertificate}
+        onClaim={onClaimDirectsReward}
+        onClose={onCloseCertificate}
+        userName={userName}
+      />
     </div>
   );
-}
