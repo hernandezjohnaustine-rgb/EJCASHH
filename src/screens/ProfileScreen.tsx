@@ -230,7 +230,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
               <div className="w-10 h-1 bg-brand-text/20 rounded-full mx-auto mb-5" />
 
               {/* Header */}
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-bold tracking-tight">Change Photo</h3>
                   <p className="text-[10px] text-brand-text/40 tracking-wider mt-0.5">Upload or pick an avatar</p>
@@ -244,14 +244,14 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
               </div>
 
               {/* Preview */}
-              <div className="flex justify-center mb-5">
+              <div className="flex justify-center mb-4">
                 <motion.div
                   key={JSON.stringify(pendingAvatar)}
                   initial={{ scale: 0.85, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="w-20 h-20 rounded-[32px] bg-gradient-to-br from-brand-primary to-brand-accent p-1 shadow-xl"
+                  className="w-14 h-14 rounded-[22px] bg-gradient-to-br from-brand-primary to-brand-accent p-1 shadow-xl"
                 >
-                  <div className="w-full h-full rounded-[30px] bg-brand-card overflow-hidden flex items-center justify-center">
+                  <div className="w-full h-full rounded-[20px] bg-brand-card overflow-hidden flex items-center justify-center">
                     <img
                       src={getDisplaySrc(pendingAvatar)}
                       alt="Preview"
@@ -262,7 +262,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
               </div>
 
               {/* Tabs */}
-              <div className="flex bg-brand-card/20 rounded-2xl p-1 mb-5 gap-1">
+              <div className="flex bg-brand-card/20 rounded-2xl p-1 mb-3 gap-1">
                 {([
                   { id: "upload" as Tab, label: "Upload Photo", icon: Upload },
                   { id: "gallery" as Tab, label: "Avatar Gallery", icon: ImageIcon },
@@ -302,7 +302,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                         handleFileChange(e.dataTransfer.files?.[0] ?? null);
                       }}
                       onClick={() => fileInputRef.current?.click()}
-                      className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed cursor-pointer transition-all py-8 px-4 ${
+                      className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed cursor-pointer transition-all py-5 px-4 ${
                         dragOver
                           ? "border-brand-primary bg-brand-primary/10 scale-[1.01]"
                           : pendingAvatar.type === "upload"
@@ -312,13 +312,13 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                     >
                       {pendingAvatar.type === "upload" ? (
                         <>
-                          <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-brand-primary shadow-lg shadow-brand-primary/20">
+                          <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-brand-primary shadow-lg shadow-brand-primary/20">
                             <img src={pendingAvatar.dataUrl} alt="Uploaded" className="w-full h-full object-cover" />
                           </div>
                           <div className="text-center">
                             <p className="text-xs font-bold text-brand-primary">Photo ready!</p>
                             <p className="text-[10px] text-brand-text/40 mt-0.5">Tap to choose a different one</p>
-                            <p className="text-[10px] text-brand-primary/70 mt-2 font-bold animate-pulse">↓ Tap "Save This Photo" below</p>
+                            <p className="text-[10px] text-brand-primary/70 mt-1 font-bold animate-pulse">↓ Tap "Save This Photo" below</p>
                           </div>
                           <button
                             onClick={(e) => {
@@ -333,13 +333,13 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                         </>
                       ) : (
                         <>
-                          <div className="w-14 h-14 rounded-2xl bg-brand-card/20 flex items-center justify-center">
-                            <Upload className="w-6 h-6 text-brand-text/30" />
+                          <div className="w-10 h-10 rounded-2xl bg-brand-card/20 flex items-center justify-center">
+                            <Upload className="w-5 h-5 text-brand-text/30" />
                           </div>
                           <div className="text-center">
                             <p className="text-xs font-bold text-brand-text/70">Tap to upload a photo</p>
-                            <p className="text-[10px] text-brand-text/30 mt-1">or drag & drop here</p>
-                            <p className="text-[9px] text-brand-text/20 mt-1.5 uppercase tracking-widest font-bold">JPG · PNG · WEBP · Max 10MB</p>
+                            <p className="text-[10px] text-brand-text/30 mt-0.5">or drag & drop here</p>
+                            <p className="text-[9px] text-brand-text/20 mt-1 uppercase tracking-widest font-bold">JPG · PNG · WEBP · Max 10MB</p>
                           </div>
                         </>
                       )}
@@ -347,7 +347,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
 
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="mt-3 w-full py-3 rounded-2xl border border-brand-border text-brand-text/50 text-[11px] font-bold uppercase tracking-widest hover:border-brand-primary/40 hover:text-brand-text transition-all flex items-center justify-center gap-2"
+                      className="mt-2 w-full py-3 rounded-2xl border border-brand-border text-brand-text/50 text-[11px] font-bold uppercase tracking-widest hover:border-brand-primary/40 hover:text-brand-text transition-all flex items-center justify-center gap-2"
                     >
                       <Camera className="w-4 h-4" />
                       Browse Files
