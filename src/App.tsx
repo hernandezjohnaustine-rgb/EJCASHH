@@ -352,11 +352,14 @@ export default function App() {
 
       const updateData: any = {};
       if (tx.category === "Trading" && tx.type === "out") {
-        updateData.balance = Math.max(0, freshBalance - tx.rawAmount);
-        updateData.tradingInvested = (userStats.tradingInvested || 0) + tx.rawAmount;
-        updateData.tradingActive = true;
-        updateData.tradingClaimedToday = false;
-        updateData.tradingDaysCompleted = 0;
+  updateData.balance = Math.max(0, freshBalance - tx.rawAmount);
+  updateData.tradingInvested = (userStats.tradingInvested || 0) + tx.rawAmount;
+  updateData.tradingActive = true;
+  updateData.tradingClaimedToday = false;
+  updateData.tradingDaysCompleted = 0;
+  updateData.tradingStartDate = new Date().toISOString(); // ✅ Save start time
+  updateData.lastClaimISO = null; // ✅ Reset last claim
+}
       } else if (tx.category === "Withdrawal") {
         updateData.balance = Math.max(0, freshBalance - tx.rawAmount);
         updateData.earningsWallet = Math.max(0, freshEarnings - tx.rawAmount);
@@ -379,25 +382,77 @@ export default function App() {
 
   // ✅ FIXED — no double balance update
   const handleClaimTrading = async () => {
-    if (!user || userStats.tradingClaimedToday || userStats.tradingInvested <= 0) return;
+  if (!user || userStats.tradingInvested <= 0) return;
 
-    const userDocRef = doc(db, "users", user.uid);
-    try {
-      // Always read fresh data
-      const freshDoc = await getDoc(userDocRef);
-      if (!freshDoc.exists()) return;
+  const userDocRef = doc(db, "users", user.uid);
+  try {
+    const freshDoc = await getDoc(userDocRef);
+    if (!freshDoc.exists()) return;
+    const freshData = freshDoc.data();
 
-      const freshData = freshDoc.data();
-      const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const invested = freshData.tradingInvested || 0;
+    if (invested <= 0) return;
 
-      // ✅ Prevent double claim on same day
-      if (freshData.lastClaimDate === today && freshData.tradingClaimedToday === true) {
-        alert("⚠️ You already claimed today's profit. Come back tomorrow!");
+    // ✅ Check 24 hours from investment start
+    const tradingStartDate = freshData.tradingStartDate;
+    if (tradingStartDate) {
+      const startTime = new Date(tradingStartDate);
+      const hoursSinceStart = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceStart < 24) {
+        const hoursLeft = Math.ceil(24 - hoursSinceStart);
+        alert(`⏳ Profit claimable in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} after investment.`);
         return;
       }
+    }
 
-      const invested = freshData.tradingInvested || 0;
-      if (invested <= 0) return;
+    // ✅ Check 24 hours since last claim
+    const lastClaimISO = freshData.lastClaimISO;
+    if (lastClaimISO) {
+      const lastClaimTime = new Date(lastClaimISO);
+      const hoursSinceLastClaim = (now.getTime() - lastClaimTime.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastClaim < 24) {
+        const hoursLeft = Math.ceil(24 - hoursSinceLastClaim);
+        alert(`⏳ Next claim available in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}.`);
+        return;
+      }
+    }
+
+    const profit = invested * 0.05;
+    const currentBalance = freshData.balance || 0;
+    const currentEarnings = freshData.earningsWallet || 0;
+    const currentTradingEarnings = freshData.tradingEarnings || 0;
+    const daysCompleted = freshData.tradingDaysCompleted || 0;
+
+    await setDoc(userDocRef, {
+      balance: currentBalance + profit,
+      earningsWallet: currentEarnings + profit,
+      tradingEarnings: currentTradingEarnings + profit,
+      tradingClaimedToday: true,
+      lastClaimDate: now.toISOString().split('T')[0],
+      lastClaimISO: now.toISOString(), // ✅ Save full timestamp
+      tradingDaysCompleted: daysCompleted + 1,
+      stats: {
+        ...freshData.stats,
+        totalEarnings: (freshData.stats?.totalEarnings || 0) + profit
+      }
+    }, { merge: true });
+
+    await addTransaction({
+      title: "Trading ROI Distribution",
+      rawAmount: profit,
+      category: "Trading",
+      type: "in",
+      recordOnly: true,
+    });
+
+    setShowSuccess(`Trading profit of ₱${profit.toLocaleString('en-US', { minimumFractionDigits: 2 })} claimed!`);
+    setTimeout(() => setShowSuccess(null), 2000);
+
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+  }
+};
 
       // ✅ Exactly 5% of invested amount only
       const profit = invested * 0.05;
