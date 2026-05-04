@@ -356,7 +356,9 @@ export default function App() {
   updateData.tradingInvested = (userStats.tradingInvested || 0) + tx.rawAmount;
   updateData.tradingActive = true;
   updateData.tradingClaimedToday = false;
-  updateData.tradingDaysCompleted = 0;
+      updateData.tradingDaysCompleted = 0;
+      updateData.tradingStartDate = new Date().toISOString();
+      updateData.lastClaimISO = null;
   updateData.tradingStartDate = new Date().toISOString(); // ✅ Save start time
   updateData.lastClaimISO = null; // ✅ Reset last claim
 }
@@ -467,7 +469,8 @@ export default function App() {
         earningsWallet: currentEarnings + profit,
         tradingEarnings: currentTradingEarnings + profit,
         tradingClaimedToday: true,
-        lastClaimDate: today,
+        lastClaimDate: now.toISOString().split('T')[0],
+      lastClaimISO: now.toISOString(),
         tradingDaysCompleted: daysCompleted + 1,
         stats: {
           ...freshData.stats,
