@@ -314,6 +314,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                           <div className="text-center">
                             <p className="text-xs font-bold text-brand-primary">Photo ready!</p>
                             <p className="text-[10px] text-brand-text/40 mt-0.5">Tap to choose a different one</p>
+                            <p className="text-[10px] text-brand-primary/70 mt-2 font-bold animate-pulse">↓ Tap "Save This Photo" below</p>
                           </div>
                           <button
                             onClick={(e) => {
@@ -402,13 +403,38 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
               </AnimatePresence>
 
               {/* Confirm */}
-              <button
-                onClick={confirmPick}
-                className="mt-5 w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                Apply Photo
-              </button>
+              <AnimatePresence mode="wait">
+                {pendingAvatar.type === "upload" ? (
+                  <motion.button
+                    key="apply-upload"
+                    onClick={confirmPick}
+                    initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                    className="mt-5 w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-transform flex items-center justify-center gap-2 relative overflow-hidden shadow-lg shadow-brand-primary/30"
+                    style={{ boxShadow: "0 0 0 0 var(--color-primary)" }}
+                  >
+                    {/* Pulse ring */}
+                    <span className="absolute inset-0 rounded-2xl animate-ping bg-brand-primary opacity-20 pointer-events-none" />
+                    <Check className="w-4 h-4 relative z-10" />
+                    <span className="relative z-10">Save This Photo</span>
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    key="apply-default"
+                    onClick={confirmPick}
+                    initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                    className="mt-5 w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Apply Avatar
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}
