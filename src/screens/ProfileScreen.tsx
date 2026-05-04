@@ -212,7 +212,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm pb-20"
             onClick={(e) => e.target === e.currentTarget && setShowPicker(false)}
           >
             <motion.div
@@ -220,8 +220,8 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="w-full max-w-md bg-brand-black border border-brand-border rounded-t-[2rem] flex flex-col overflow-hidden"
-              style={{ maxHeight: "85vh" }}
+              className="w-full max-w-md bg-brand-black border border-brand-border rounded-t-[2rem] rounded-b-[2rem] flex flex-col overflow-hidden"
+              style={{ maxHeight: "70vh" }}
             >
               {/* Scrollable body */}
               <div className="overflow-y-auto flex-1 p-6 pb-2">
