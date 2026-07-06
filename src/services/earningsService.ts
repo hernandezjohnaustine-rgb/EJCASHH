@@ -15,15 +15,15 @@ import { handleFirestoreError, OperationType } from "../lib/firestoreUtils";
 
 const REWARD_STRUCTURE = [
   { level: 1, percent: 0.30, amount: 100.00 }, // Direct
-  { level: 2, percent: 0.10, amount: 36.00 },
-  { level: 3, percent: 0.05, amount: 18.00 },
-  { level: 4, percent: 0.03, amount: 10.80 },
-  { level: 5, percent: 0.02, amount: 7.20 },
-  { level: 6, percent: 0.01, amount: 3.60 },
-  { level: 7, percent: 0.01, amount: 3.60 },
-  { level: 8, percent: 0.01, amount: 3.60 },
-  { level: 9, percent: 0.01, amount: 3.60 },
-  { level: 10, percent: 0.01, amount: 3.60 },
+  { level: 2, percent: 0.03, amount: 3.00 },
+  { level: 3, percent: 0.03, amount: 3.00 },
+  { level: 4, percent: 0.03, amount: 3.00 },
+  { level: 5, percent: 0.03, amount: 3.00 },
+  { level: 6, percent: 0.03, amount: 3.00 },
+  { level: 7, percent: 0.03, amount: 3.00 },
+  { level: 8, percent: 0.03, amount: 3.00 },
+  { level: 9, percent: 0.03, amount: 3.00 },
+  { level: 10, percent: 0.03, amount: 3.00 },
 ];
 
 export async function processActivation(userId: string) {
