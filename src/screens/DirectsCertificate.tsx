@@ -1,70 +1,53 @@
 import { motion, AnimatePresence } from "motion/react";
-import { useState, useEffect } from "react";
-import { CheckCircle2, X, Star, Award } from "lucide-react";
+import { Trophy, Star, Award, CheckCircle2, Gift } from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-interface DirectsCertificateProps {
+// ── Milestone Config ──────────────────────────────────────────────
+export const MILESTONES = [
+  { level: 1, label: "Pioneer", directs: 10, teamSize: 10, reward: 300, color: "#10B981", claimableAt: 1 },
+  { level: 2, label: "Builder", directs: 0, teamSize: 100, reward: 300, color: "#3B82F6", claimableAt: 3 },
+  { level: 3, label: "Leader", directs: 0, teamSize: 1000, reward: 3000, color: "#8B5CF6", claimableAt: 3 },
+  { level: 4, label: "Manager", directs: 0, teamSize: 10000, reward: 30000, color: "#F59E0B", claimableAt: 4 },
+  { level: 5, label: "Director", directs: 0, teamSize: 100000, reward: 300000, color: "#EF4444", claimableAt: 5 },
+  { level: 6, label: "Executive", directs: 0, teamSize: 1000000, reward: 3000000, color: "#EC4899", claimableAt: 6 },
+  { level: 7, label: "Vice President", directs: 0, teamSize: 10000000, reward: 30000000, color: "#14B8A6", claimableAt: 7 },
+  { level: 8, label: "President", directs: 0, teamSize: 100000000, reward: 300000000, color: "#F97316", claimableAt: 8 },
+  { level: 9, label: "Ambassador", directs: 0, teamSize: 1000000000, reward: 3000000000, color: "#6366F1", claimableAt: 9 },
+  { level: 10, label: "Crown Diamond", directs: 0, teamSize: 10000000000, reward: 30000000000, color: "#FACC15", claimableAt: 10 },
+];
+
+function formatReward(amount: number) {
+  if (amount >= 1_000_000_000) return `₱${(amount / 1_000_000_000).toFixed(0)}B`;
+  if (amount >= 1_000_000) return `₱${(amount / 1_000_000).toFixed(0)}M`;
+  if (amount >= 1_000) return `₱${(amount / 1_000).toFixed(0)}K`;
+  return `₱${amount.toLocaleString()}`;
+}
+
+function formatTeamSize(size: number) {
+  if (size >= 1_000_000_000) return `${(size / 1_000_000_000).toFixed(0)}B`;
+  if (size >= 1_000_000) return `${(size / 1_000_000).toFixed(0)}M`;
+  if (size >= 1_000) return `${(size / 1_000).toFixed(0)}K`;
+  return size.toLocaleString();
+}
+
+// ── Certificate Modal ─────────────────────────────────────────────
+export function MilestoneCertificateModal({
+  visible,
+  milestone,
+  onClaim,
+  onClose,
+  userName,
+  canClaim,
+  alreadyClaimed,
+}: {
   visible: boolean;
+  milestone: typeof MILESTONES[0] | null;
   onClaim: () => void;
   onClose: () => void;
-  userName?: string;
-}
-
-// ─── Confetti Particle ────────────────────────────────────────────────────────
-function Particle({ delay, color }: { delay: number; color: string }) {
-  const startX = Math.random() * 100;
-  const drift = (Math.random() - 0.5) * 60;
-  return (
-    <motion.div
-      style={{
-        position: "absolute",
-        left: `${startX}%`,
-        top: "-10px",
-        width: 8,
-        height: 8,
-        borderRadius: Math.random() > 0.5 ? "50%" : 2,
-        background: color,
-        pointerEvents: "none",
-      }}
-      animate={{
-        y: ["0vh", "110vh"],
-        x: [0, drift],
-        rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
-        opacity: [1, 1, 0],
-      }}
-      transition={{
-        duration: 2.5 + Math.random() * 1.5,
-        delay,
-        ease: "easeIn",
-      }}
-    />
-  );
-}
-
-const CONFETTI_COLORS = ["#F59E0B", "#10B981", "#3B82F6", "#EC4899", "#8B5CF6", "#EF4444"];
-
-// ─── Certificate Modal ────────────────────────────────────────────────────────
-export function DirectsCertificateModal({ visible, onClaim, onClose, userName = "Member" }: DirectsCertificateProps) {
-  const [claimed, setClaimed] = useState(false);
-  const [particles] = useState(() =>
-    Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      delay: Math.random() * 1.5,
-      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-    }))
-  );
-
-  useEffect(() => {
-    if (!visible) setClaimed(false);
-  }, [visible]);
-
-  const handleClaim = () => {
-    setClaimed(true);
-    setTimeout(() => {
-      onClaim();
-      onClose();
-    }, 1800);
-  };
+  userName: string;
+  canClaim: boolean;
+  alreadyClaimed: boolean;
+}) {
+  if (!milestone) return null;
 
   return (
     <AnimatePresence>
@@ -73,215 +56,94 @@ export function DirectsCertificateModal({ visible, onClaim, onClose, userName = 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.75)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
-            overflow: "hidden",
-          }}
+          className="fixed inset-0 z-[200] bg-brand-black/95 backdrop-blur-xl flex items-center justify-center p-6"
         >
-          {/* Confetti */}
-          <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-            {particles.map((p) => (
-              <Particle key={p.id} delay={p.delay} color={p.color} />
-            ))}
-          </div>
-
-          {/* Certificate Card */}
           <motion.div
-            initial={{ scale: 0.6, y: 60, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ type: "spring", damping: 18, stiffness: 220 }}
-            style={{
-              background: "#fff",
-              borderRadius: 24,
-              width: "100%",
-              maxWidth: 360,
-              overflow: "hidden",
-              position: "relative",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
-            }}
+            initial={{ scale: 0.8, opacity: 0, y: 40 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 40 }}
+            transition={{ type: "spring", damping: 20 }}
+            className="w-full max-w-sm relative"
           >
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              style={{
-                position: "absolute",
-                top: 12,
-                right: 12,
-                background: "rgba(0,0,0,0.08)",
-                border: "none",
-                borderRadius: "50%",
-                width: 32,
-                height: 32,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                zIndex: 10,
-              }}
-            >
-              <X size={16} color="#555" />
-            </button>
-
-            {/* Gold header band */}
+            {/* Certificate Card */}
             <div
-              style={{
-                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%)",
-                padding: "28px 24px 20px",
-                textAlign: "center",
-                position: "relative",
-              }}
+              className="rounded-3xl p-8 text-center relative overflow-hidden border-2"
+              style={{ borderColor: milestone.color, background: `linear-gradient(135deg, ${milestone.color}15, #05070A)` }}
             >
-              {/* Decorative stars */}
-              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 12 }}>
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ scale: 0, rotate: -30 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.3 + i * 0.08, type: "spring", stiffness: 300 }}
-                  >
-                    <Star size={14} fill="#FEF3C7" color="#FEF3C7" />
-                  </motion.div>
+              {/* Glow */}
+              <div
+                className="absolute inset-0 blur-[80px] opacity-20 pointer-events-none"
+                style={{ background: milestone.color }}
+              />
+
+              {/* Icon */}
+              <div
+                className="w-20 h-20 rounded-3xl mx-auto mb-6 flex items-center justify-center relative z-10 border-2"
+                style={{ background: `${milestone.color}20`, borderColor: `${milestone.color}50` }}
+              >
+                <Trophy className="w-10 h-10" style={{ color: milestone.color }} />
+              </div>
+
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 relative z-10" style={{ color: milestone.color }}>
+                Certificate of Achievement
+              </p>
+              <h2 className="text-2xl font-display font-black tracking-tight mb-1 text-brand-text relative z-10">
+                Level {milestone.level} — {milestone.label}
+              </h2>
+              <p className="text-sm text-brand-text/40 mb-6 relative z-10">
+                Awarded to <span className="font-black text-brand-text">{userName}</span>
+              </p>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
+                <div className="rounded-2xl p-3" style={{ background: `${milestone.color}10`, border: `1px solid ${milestone.color}30` }}>
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: milestone.color }}>Team Size</p>
+                  <p className="text-lg font-black text-brand-text">{formatTeamSize(milestone.teamSize)}</p>
+                </div>
+                <div className="rounded-2xl p-3" style={{ background: `${milestone.color}10`, border: `1px solid ${milestone.color}30` }}>
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: milestone.color }}>Reward</p>
+                  <p className="text-lg font-black" style={{ color: milestone.color }}>{formatReward(milestone.reward)}</p>
+                </div>
+              </div>
+
+              {/* Stars */}
+              <div className="flex justify-center gap-1 mb-6 relative z-10">
+                {[...Array(Math.min(milestone.level, 5))].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-current" style={{ color: milestone.color }} />
                 ))}
               </div>
 
-              {/* Shield icon */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 250 }}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.2)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px",
-                  border: "2px solid rgba(255,255,255,0.4)",
-                }}
-              >
-                <Award size={32} color="#FEF3C7" />
-              </motion.div>
-
-              <p style={{ color: "#FEF3C7", fontSize: 11, letterSpacing: 3, margin: "0 0 4px", textTransform: "uppercase", fontWeight: 600 }}>
-                Certificate of Achievement
-              </p>
-              <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 700, margin: 0 }}>
-                10 Directs Complete!
-              </h2>
-            </div>
-
-            {/* Certificate body */}
-            <div
-              style={{
-                padding: "24px",
-                textAlign: "center",
-                background: "#FFFBEB",
-                borderBottom: "1px solid #FDE68A",
-                position: "relative",
-              }}
-            >
-              {/* Decorative corner accents */}
-              <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, borderTop: "2px solid #D97706", borderLeft: "2px solid #D97706" }} />
-              <div style={{ position: "absolute", top: 8, right: 8, width: 20, height: 20, borderTop: "2px solid #D97706", borderRight: "2px solid #D97706" }} />
-              <div style={{ position: "absolute", bottom: 8, left: 8, width: 20, height: 20, borderBottom: "2px solid #D97706", borderLeft: "2px solid #D97706" }} />
-              <div style={{ position: "absolute", bottom: 8, right: 8, width: 20, height: 20, borderBottom: "2px solid #D97706", borderRight: "2px solid #D97706" }} />
-
-              <p style={{ color: "#92400E", fontSize: 13, margin: "0 0 8px" }}>This certifies that</p>
-              <p style={{ color: "#1C1C1E", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>{userName}</p>
-              <p style={{ color: "#78350F", fontSize: 13, margin: "0 0 16px", lineHeight: 1.5 }}>
-                has successfully completed{" "}
-                <span style={{ fontWeight: 700, color: "#B45309" }}>10 Direct Referrals</span>
-                {" "}and has earned a reward of
-              </p>
-
-              {/* Reward amount */}
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                style={{
-                  background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                  borderRadius: 16,
-                  padding: "14px 24px",
-                  display: "inline-block",
-                  margin: "0 0 12px",
-                }}
-              >
-                <p style={{ color: "#fff", fontSize: 11, margin: "0 0 2px", letterSpacing: 2, textTransform: "uppercase", fontWeight: 600 }}>
-                  Reward
-                </p>
-                <p style={{ color: "#fff", fontSize: 36, fontWeight: 800, margin: 0, lineHeight: 1 }}>
-                  ₱300
-                </p>
-              </motion.div>
-
-              <p style={{ color: "#A16207", fontSize: 11, margin: 0 }}>
-                Credited to your Earnings Wallet
-              </p>
-            </div>
-
-            {/* CTA */}
-            <div style={{ padding: "20px 24px", background: "#fff" }}>
-              {!claimed ? (
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={handleClaim}
-                  style={{
-                    width: "100%",
-                    padding: "16px",
-                    borderRadius: 14,
-                    border: "none",
-                    background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                    color: "#fff",
-                    fontSize: 16,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span>Claim ₱300</span>
-                  <motion.span
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.2 }}
+              {/* Claim / Status */}
+              <div className="relative z-10">
+                {alreadyClaimed ? (
+                  <div className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Reward Claimed</span>
+                  </div>
+                ) : canClaim ? (
+                  <button
+                    onClick={onClaim}
+                    className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-brand-black active:scale-95 transition-all"
+                    style={{ background: milestone.color }}
                   >
-                    →
-                  </motion.span>
-                </motion.button>
-              ) : (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: "16px",
-                    background: "#ECFDF5",
-                    borderRadius: 14,
-                    color: "#065F46",
-                    fontWeight: 700,
-                    fontSize: 15,
-                  }}
-                >
-                  <CheckCircle2 size={20} color="#10B981" />
-                  ₱300 Added to Earnings!
-                </motion.div>
-              )}
+                    <Gift className="w-4 h-4 inline mr-2" />
+                    Claim {formatReward(milestone.reward)}
+                  </button>
+                ) : (
+                  <div className="py-3 px-4 rounded-2xl bg-brand-card/20 border border-brand-border">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-text/40">
+                      🔒 Complete Level 3 to unlock cash rewards
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={onClose}
+                className="mt-4 text-[10px] font-black uppercase tracking-widest text-brand-text/30 relative z-10"
+              >
+                Close
+              </button>
             </div>
           </motion.div>
         </motion.div>
@@ -290,77 +152,65 @@ export function DirectsCertificateModal({ visible, onClaim, onClose, userName = 
   );
 }
 
-// ─── Banner Notification (shown in HomeScreen network progress section) ────────
-interface DirectsBannerProps {
-  onTapClaim: () => void;
-  dismissed: boolean;
+// ── Milestone Banner (shown on HomeScreen) ────────────────────────
+export function MilestoneBanner({
+  milestone,
+  onTap,
+  alreadyClaimed,
+}: {
+  milestone: typeof MILESTONES[0];
+  onTap: () => void;
+  alreadyClaimed: boolean;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      onClick={onTap}
+      className="rounded-2xl p-4 flex items-center gap-4 cursor-pointer active:scale-95 transition-all border"
+      style={{ background: `${milestone.color}10`, borderColor: `${milestone.color}30` }}
+    >
+      <div
+        className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+        style={{ background: `${milestone.color}20` }}
+      >
+        <Award className="w-6 h-6" style={{ color: milestone.color }} />
+      </div>
+      <div className="flex-1">
+        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: milestone.color }}>
+          {alreadyClaimed ? "Achievement Unlocked" : "🎉 New Milestone!"}
+        </p>
+        <p className="text-sm font-black text-brand-text">Level {milestone.level} — {milestone.label}</p>
+        <p className="text-[10px] text-brand-text/40">{alreadyClaimed ? "View Certificate" : `Claim ${formatReward(milestone.reward)}`}</p>
+      </div>
+      <Trophy className="w-5 h-5" style={{ color: milestone.color }} />
+    </motion.div>
+  );
 }
 
-export function DirectsMilestoneBanner({ onTapClaim, dismissed }: DirectsBannerProps) {
+// ── Keep old exports for backward compatibility ───────────────────
+export function DirectsMilestoneBanner({ onTapClaim, dismissed }: { onTapClaim: () => void; dismissed: boolean }) {
+  const milestone = MILESTONES[0];
+  return <MilestoneBanner milestone={milestone} onTap={onTapClaim} alreadyClaimed={dismissed} />;
+}
+
+export function DirectsCertificateModal({
+  visible, onClaim, onClose, userName
+}: {
+  visible: boolean;
+  onClaim: () => void;
+  onClose: () => void;
+  userName: string;
+}) {
   return (
-    <AnimatePresence>
-      {!dismissed && (
-        <motion.button
-          initial={{ opacity: 0, y: -12, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -8, scale: 0.97 }}
-          transition={{ type: "spring", stiffness: 260, damping: 22 }}
-          onClick={onTapClaim}
-          style={{
-            width: "100%",
-            border: "none",
-            borderRadius: 16,
-            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%)",
-            padding: "14px 16px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 12,
-            boxShadow: "0 4px 20px rgba(217,119,6,0.35)",
-          }}
-        >
-          {/* Pulsing icon */}
-          <motion.div
-            animate={{ scale: [1, 1.15, 1] }}
-            transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Award size={22} color="#FEF3C7" />
-          </motion.div>
-
-          {/* Text */}
-          <div style={{ flex: 1, textAlign: "left" }}>
-            <p style={{ color: "#FEF3C7", fontSize: 11, margin: "0 0 2px", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
-              🎉 Milestone Reached!
-            </p>
-            <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, margin: 0, lineHeight: 1.3 }}>
-              Congrats! You completed 10 directs!
-            </p>
-            <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, margin: "2px 0 0" }}>
-              You earned ₱300 — tap to claim
-            </p>
-          </div>
-
-          {/* Arrow */}
-          <motion.div
-            animate={{ x: [0, 4, 0] }}
-            transition={{ repeat: Infinity, duration: 1.2 }}
-            style={{ color: "#FEF3C7", fontSize: 18, flexShrink: 0 }}
-          >
-            →
-          </motion.div>
-        </motion.button>
-      )}
-    </AnimatePresence>
+    <MilestoneCertificateModal
+      visible={visible}
+      milestone={MILESTONES[0]}
+      onClaim={onClaim}
+      onClose={onClose}
+      userName={userName}
+      canClaim={true}
+      alreadyClaimed={false}
+    />
   );
 }
