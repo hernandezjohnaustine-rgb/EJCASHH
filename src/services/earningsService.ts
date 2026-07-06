@@ -14,7 +14,7 @@ import { db } from "../lib/firebase";
 import { handleFirestoreError, OperationType } from "../lib/firestoreUtils";
 
 const REWARD_STRUCTURE = [
-  { level: 1, percent: 0.30, amount: 100.00 }, // Direct
+  { level: 1, percent: 0.2778, amount: 100.00 }, // Direct
 
 ];
 
