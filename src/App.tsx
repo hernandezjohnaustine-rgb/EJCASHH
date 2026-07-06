@@ -64,6 +64,8 @@ export default function App() {
   const [scannedRecipient, setScannedRecipient] = useState<any | null>(null);
   const [directsRewardClaimed, setDirectsRewardClaimed] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [activeMilestone, setActiveMilestone] = useState<any>(null);
+  const [showMilestoneCertificate, setShowMilestoneCertificate] = useState(false);
 
   useEffect(() => {
     document.documentElement.className = theme;
