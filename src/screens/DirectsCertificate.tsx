@@ -3,7 +3,7 @@ import { Trophy, Star, Award, CheckCircle2, Gift } from "lucide-react";
 
 // ── Milestone Config ──────────────────────────────────────────────
 export const MILESTONES = [
-  { level: 1, label: "Pioneer", directs: 10, teamSize: 10, reward: 300, color: "#10B981", claimableAt: 1 },
+  { level: 1, label: "Pioneer", directs: 10, teamSize: 10, reward: 30, color: "#10B981", claimableAt: 3 },
   { level: 2, label: "Builder", directs: 0, teamSize: 100, reward: 300, color: "#3B82F6", claimableAt: 3 },
   { level: 3, label: "Leader", directs: 0, teamSize: 1000, reward: 3000, color: "#8B5CF6", claimableAt: 3 },
   { level: 4, label: "Manager", directs: 0, teamSize: 10000, reward: 30000, color: "#F59E0B", claimableAt: 4 },
