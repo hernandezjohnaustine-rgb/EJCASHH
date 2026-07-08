@@ -343,7 +343,7 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-5 h-5 border-2 border-brand-black/20 border-t-brand-black rounded-full" />
              ) : (
                <>
-                 {mode === "login" ? "Enter Gateway" : "Create Account"}
+                 {mode === "login" ? "Log-in" : "Create Account"}
                  <ArrowRight className="w-4 h-4" />
                </>
              )}
