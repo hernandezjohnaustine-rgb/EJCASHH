@@ -180,7 +180,7 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
           </motion.div>
           <div className="text-center">
             <h1 className="text-xl font-display font-black tracking-[4px] text-brand-primary">EJCASHH</h1>
-            <p className="text-[8px] text-brand-primary/60 font-bold uppercase tracking-[0.3em]">Fintech Ecosystem</p>
+            <p className="text-[8px] text-brand-primary/60 font-bold uppercase tracking-[0.3em]">Digital Marketing Services</p>
           </div>
         </div>
 
