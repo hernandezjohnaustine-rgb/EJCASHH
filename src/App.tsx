@@ -211,6 +211,22 @@ export default function App() {
                 tradingClaimedToday,
                 tradingDaysCompleted: data.tradingDaysCompleted || 0,
               });
+              // ✅ Check milestones
+import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
+  const teamSize = data.stats?.teamSize || 0;
+  const directs = data.stats?.directReferrals || 0;
+  for (const m of MILESTONES) {
+    const achievedKey = `milestoneAchieved_L${m.level}`;
+    const size = m.level === 1 ? directs : teamSize;
+    if (size >= m.teamSize && !data[achievedKey]) {
+      setDoc(doc(db, "users", firebaseUser.uid), {
+        [achievedKey]: true,
+      }, { merge: true });
+      setActiveMilestone(m);
+      setShowMilestoneCertificate(true);
+    }
+  }
+});
             }
           } catch (error: any) {
             if ((retryCount < 2 && (error.code === 'permission-denied' || error.message?.includes('permissions'))) ||
@@ -717,6 +733,24 @@ export default function App() {
                   onOpenCertificate={() => setShowCertificate(true)}
                   onCloseCertificate={() => setShowCertificate(false)}
                   userName={userProfile?.displayName || user?.displayName || "Member"}
+                  onOpenMilestone={(level) => {
+  import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
+    setActiveMilestone(MILESTONES.find((m: any) => m.level === level));
+    setShowMilestoneCertificate(true);
+  });
+}}
+claimedMilestones={Object.fromEntries(
+  Array.from({length: 10}, (_, i) => [
+    `milestoneRewardClaimed_L${i+1}`,
+    userProfile?.[`milestoneRewardClaimed_L${i+1}`] || false
+  ])
+)}
+achievedMilestones={Object.fromEntries(
+  Array.from({length: 10}, (_, i) => [
+    `milestoneAchieved_L${i+1}`,
+    userProfile?.[`milestoneAchieved_L${i+1}`] || false
+  ])
+)}
                 />
               </motion.div>
             )}
@@ -761,6 +795,23 @@ export default function App() {
             )}
           </AnimatePresence>
 
+          {/* Milestone Certificate Modal */}
+          {showMilestoneCertificate && activeMilestone && (
+            <MilestoneCertificateModal
+              visible={showMilestoneCertificate}
+              milestone={activeMilestone}
+              onClaim={() => handleClaimMilestoneReward(activeMilestone.level)}
+              onClose={() => setShowMilestoneCertificate(false)}
+              userName={userProfile?.displayName || user?.displayName || "Member"}
+              canClaim={
+                userProfile?.milestoneAchieved_L3 === true ||
+                activeMilestone.level >= 3
+              }
+              alreadyClaimed={
+                userProfile?.[`milestoneRewardClaimed_L${activeMilestone.level}`] || false
+              }
+            />
+          )}
           {!['scan', 'send'].includes(activeTab) && (
             <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
           )}
