@@ -87,7 +87,7 @@ export default function HomeScreen({
   showCertificate,
   onOpenCertificate,
   onCloseCertificate,
-  userName
+  userName,
   onOpenMilestone,
   claimedMilestones,
   achievedMilestones,
