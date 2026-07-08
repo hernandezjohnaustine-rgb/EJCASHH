@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
-import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Phone } from "lucide-react";
+import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Phone, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
@@ -9,6 +9,8 @@ import {
   updateProfile 
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+
+type ReferralStatus = "idle" | "checking" | "valid" | "invalid";
 
 export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -19,10 +21,12 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
   const [username, setUsername] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check for referral code in URL
+  // Check for referral code in URL (or a previously-saved one) and
+  // send referred users straight to the Register form either way.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
@@ -32,9 +36,45 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
       localStorage.setItem("referredBy", ref);
     } else {
       const saved = localStorage.getItem("referredBy");
-      if (saved) setReferralCode(saved);
+      if (saved) {
+        setReferralCode(saved);
+        setMode("register");
+      }
     }
   }, []);
+
+  // Validate the referral code against Firestore's users collection.
+  const validateReferralCode = async (code: string): Promise<boolean> => {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) return false;
+    try {
+      const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
+      const { db } = await import("../lib/firebase");
+      const q = query(collection(db, "users"), where("referralCode", "==", trimmed), limit(1));
+      const snap = await getDocs(q);
+      return !snap.empty;
+    } catch (err) {
+      console.error("Referral validation error:", err);
+      return false;
+    }
+  };
+
+  // Live-validate as the user types (debounced), so they get feedback
+  // before hitting submit.
+  useEffect(() => {
+    if (mode !== "register") return;
+    const trimmed = referralCode.trim();
+    if (!trimmed) {
+      setReferralStatus("idle");
+      return;
+    }
+    setReferralStatus("checking");
+    const handle = setTimeout(async () => {
+      const valid = await validateReferralCode(trimmed);
+      setReferralStatus(valid ? "valid" : "invalid");
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [referralCode, mode]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -84,9 +124,25 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
         const loginEmail = await findEmailByIdentifier(identifier);
         await signInWithEmailAndPassword(auth, loginEmail, password);
       } else {
+        // Referral code is mandatory — validate before creating the account.
+        const trimmedRef = referralCode.trim();
+        if (!trimmedRef) {
+          setError("A referral code is required to create an account.");
+          setIsLoading(false);
+          return;
+        }
+        const isValidRef = await validateReferralCode(trimmedRef);
+        if (!isValidRef) {
+          setReferralStatus("invalid");
+          setError("That referral code doesn't match any existing account. Please double-check it and try again.");
+          setIsLoading(false);
+          return;
+        }
+
         // Save extra info to localStorage for App.tsx to pick up
         localStorage.setItem("pendingUsername", username);
         localStorage.setItem("pendingPhone", phoneNumber);
+        localStorage.setItem("referredBy", trimmedRef.toUpperCase());
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
@@ -230,31 +286,57 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
           </div>
 
           {mode === "register" && (
-             <div className="relative">
-               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-brand-primary/40 uppercase">REF</div>
-               <input 
-                 type="text" 
-                 placeholder="Referral Code (Optional)" 
-                 value={referralCode}
-                 onChange={(e) => {
-                   setReferralCode(e.target.value);
-                   localStorage.setItem("referredBy", e.target.value);
-                 }}
-                 className="w-full h-14 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/50 transition-all font-mono text-xs font-bold text-brand-primary"
-               />
-             </div>
-          )}
+             <div className="flex flex-col gap-2">
+               <div className="relative">
+                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-brand-primary/40 uppercase">REF</div>
+                 <input 
+                   required
+                   type="text" 
+                   placeholder="Referral Code (Required)" 
+                   value={referralCode}
+                   onChange={(e) => {
+                     setReferralCode(e.target.value);
+                     localStorage.setItem("referredBy", e.target.value);
+                   }}
+                   className={`w-full h-14 bg-brand-primary/5 border rounded-2xl pl-12 pr-12 focus:outline-none transition-all font-mono text-xs font-bold text-brand-primary ${
+                     referralStatus === "invalid" 
+                       ? "border-red-500/50 focus:border-red-500" 
+                       : referralStatus === "valid" 
+                       ? "border-emerald-500/50 focus:border-emerald-500" 
+                       : "border-brand-primary/20 focus:border-brand-primary/50"
+                   }`}
+                 />
+                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                   {referralStatus === "checking" && (
+                     <Loader2 className="w-4 h-4 text-brand-text/30 animate-spin" />
+                   )}
+                   {referralStatus === "valid" && (
+                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                   )}
+                   {referralStatus === "invalid" && (
+                     <XCircle className="w-4 h-4 text-red-500" />
+                   )}
+                 </div>
+               </div>
 
-          {mode === "register" && referralCode && (
-            <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2 mb-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Referral Applied: {referralCode}</span>
-            </div>
+               {referralStatus === "valid" && (
+                 <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                   <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Referral Applied: {referralCode}</span>
+                 </div>
+               )}
+               {referralStatus === "invalid" && (
+                 <div className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2">
+                   <XCircle className="w-3.5 h-3.5 text-red-500" />
+                   <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Invalid referral code</span>
+                 </div>
+               )}
+             </div>
           )}
 
           <button 
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || (mode === "register" && (referralStatus === "invalid" || referralStatus === "checking" || !referralCode.trim()))}
             className="w-full h-14 bg-brand-primary text-brand-black rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(250,204,21,0.2)] hover:shadow-[0_15px_25px_rgba(250,204,21,0.3)] active:scale-95 transition-all disabled:opacity-50 mt-2"
           >
              {isLoading ? (
@@ -305,4 +387,3 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     </div>
   );
 }
-
