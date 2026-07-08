@@ -94,15 +94,10 @@ export default function App() {
     }
   }, []);
 
-  // Show login promo banner once per day, once the user is authenticated
+ // Show login promo banner every time the user is authenticated
   useEffect(() => {
     if (!user) return;
-    const lastShown = localStorage.getItem("promoLastShown");
-    const today = new Date().toDateString();
-    if (lastShown !== today) {
-      setShowPromo(true);
-      localStorage.setItem("promoLastShown", today);
-    }
+    setShowPromo(true);
   }, [user]);
 
   // Main auth + Firestore effect
