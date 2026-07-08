@@ -15,7 +15,7 @@ export default function ActivationScreen({ uid, onActivate, balance, onBack }: {
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [showVerifyButton, setShowVerifyButton] = useState(false);
 
-  const SUBSCRIPTION = 360;
+  const SUBSCRIPTION_FEE = 360;
   const hasEnoughBalance = (balance || 0) >= SUBSCRIPTION_FEE;
 
   const benefits = [
