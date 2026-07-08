@@ -27,6 +27,8 @@ import CashInScreen from "./screens/CashInScreen";
 import WithdrawScreen from "./screens/WithdrawScreen";
 import TeamNetworkScreen from "./screens/TeamNetworkScreen";
 import { UserStats, Transaction } from "./types";
+import PromoBannerModal from "./components/PromoBannerModal";
+import ejcashhPoster from "./assets/ejcashh-promo-poster.png";
 import { CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
 import { processActivation } from "./services/earningsService";
 
@@ -66,6 +68,7 @@ export default function App() {
   const [showCertificate, setShowCertificate] = useState(false);
   const [activeMilestone, setActiveMilestone] = useState<any>(null);
   const [showMilestoneCertificate, setShowMilestoneCertificate] = useState(false);
+  const [showPromo, setShowPromo] = useState(false);
 
   useEffect(() => {
     document.documentElement.className = theme;
@@ -90,6 +93,17 @@ export default function App() {
       }
     }
   }, []);
+
+  // Show login promo banner once per day, once the user is authenticated
+  useEffect(() => {
+    if (!user) return;
+    const lastShown = localStorage.getItem("promoLastShown");
+    const today = new Date().toDateString();
+    if (lastShown !== today) {
+      setShowPromo(true);
+      localStorage.setItem("promoLastShown", today);
+    }
+  }, [user]);
 
   // Main auth + Firestore effect
   useEffect(() => {
@@ -794,6 +808,12 @@ achievedMilestones={Object.fromEntries(
               </motion.div>
             )}
           </AnimatePresence>
+
+          <PromoBannerModal
+            isOpen={showPromo}
+            onClose={() => setShowPromo(false)}
+            imageUrl={ejcashhPoster}
+          />
 
           {/* Milestone Certificate Modal */}
           {showMilestoneCertificate && activeMilestone && (
