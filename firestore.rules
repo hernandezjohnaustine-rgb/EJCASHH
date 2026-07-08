@@ -48,11 +48,42 @@ service cloud.firestore {
         && data.timestamp != null;
     }
 
+    // Only allow a lookup doc to contain exactly {uid, email} — nothing
+    // else about the account is exposed through these public docs.
+    function isValidLookupDoc(data) {
+      return data.keys().hasOnly(['uid', 'email'])
+        && data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 256;
+    }
+
     // --- COLLECTION RULES ---
 
     // Connection Test
     match /test/connection {
       allow get: if isSignedIn();
+    }
+
+    // Public username -> {uid, email} lookup, used so users can log in
+    // with a username before they're authenticated. Only ever stores
+    // uid + email, never other profile data, so a public read here
+    // can't leak anything sensitive. Writable only by the account owner,
+    // and only at creation (no edits/deletes from the client).
+    match /usernames/{username} {
+      allow get: if true;
+      allow create: if isSignedIn()
+        && isValidLookupDoc(incoming())
+        && incoming().uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Same pattern as /usernames but keyed by phone number, for
+    // phone-number login.
+    match /phoneNumbers/{phoneNumber} {
+      allow get: if true;
+      allow create: if isSignedIn()
+        && isValidLookupDoc(incoming())
+        && incoming().uid == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // User Rules
