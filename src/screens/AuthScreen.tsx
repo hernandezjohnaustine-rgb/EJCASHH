@@ -248,7 +248,7 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
                     required
                     type="tel" 
                     placeholder="Phone Number (e.g. 9123456789)" 
-                    maxLength={10}
+                    maxLength={12}
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
                     className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-16 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
