@@ -86,6 +86,19 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Public referral-code -> uid lookup. Registration must confirm a
+    // referral code exists BEFORE the account (and therefore auth) exists,
+    // so this check can't go through the protected /users collection.
+    // Only ever stores a uid, so a public read can't leak anything.
+    match /referralCodes/{code} {
+      allow get: if true;
+      allow create: if isSignedIn()
+        && incoming().keys().hasOnly(['uid'])
+        && incoming().uid is string && incoming().uid.size() <= 128
+        && incoming().uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // User Rules
     match /users/{userId} {
       allow get: if isSignedIn();
