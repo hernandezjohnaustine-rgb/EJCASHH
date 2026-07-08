@@ -15,14 +15,13 @@ export default function ActivationScreen({ uid, onActivate, balance, onBack }: {
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [showVerifyButton, setShowVerifyButton] = useState(false);
 
-  const ACTIVATION_FEE = 360;
-  const hasEnoughBalance = (balance || 0) >= ACTIVATION_FEE;
+  const SUBSCRIPTION = 360;
+  const hasEnoughBalance = (balance || 0) >= SUBSCRIPTION_FEE;
 
   const benefits = [
-    "30% Direct Referral Commission",
-    "MLM Profit Sharing (Level 1-10)",
+    "100 Direct Referral",
+    "Unlock Certificates (Level 1-10)",
     "Unlock Full Withdrawal Features",
-    "Daily Login Bonus Activation",
     "Unlock VIP Ranking System",
     "Instant EJCASHH ID Verification"
   ];
@@ -32,8 +31,8 @@ export default function ActivationScreen({ uid, onActivate, balance, onBack }: {
     setError(null);
     try {
       if (paymentMethod === "Wallet") {
-        if ((balance || 0) < ACTIVATION_FEE) {
-          setError(`Insufficient Balance. You need ₱${ACTIVATION_FEE} to activate.`);
+        if ((balance || 0) < SUBSCRIPTION_FEE) {
+          setError(`Insufficient Balance. You need ₱${SUBSCRIPTION_FEE} to activate.`);
           setIsProcessing(false);
           return;
         }
@@ -42,8 +41,8 @@ export default function ActivationScreen({ uid, onActivate, balance, onBack }: {
       } else {
         const link = await createPaymentLink(
           360,
-          "EJCASHH Starter Activation Fee",
-          { userId: uid, type: "activation" }
+          "EJCASHH Starter Subcription Fee",
+          { userId: uid, type: "Activate" }
         );
 
         // Save pending payment
