@@ -181,6 +181,7 @@ export default function App() {
                 username: username || null,
                 phoneNumber: phoneNumber || null,
                 isActivated: false,
+                referralLinkEnabled: false,
                 balance: 0,
                 earningsWallet: 0,
                 tradingInvested: 0,
