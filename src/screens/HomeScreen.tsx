@@ -47,8 +47,8 @@ interface HomeScreenProps {
   showCertificate: boolean;
   onOpenCertificate: () => void;
   onCloseCertificate: () => void;
-  userName: string;
-  onOpenMilestone: (level: number) => void;
+  userName, string;
+  onOpenMilestone, (level: number) => void;
   claimedMilestones: Record<string, boolean>;
   achievedMilestones: Record<string, boolean>;
 }
