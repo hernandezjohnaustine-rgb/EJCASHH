@@ -362,7 +362,7 @@ export default function HomeScreen({
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/30 mb-1">Current Status</p>
-                <h4 className="text-lg font-display font-bold tracking-tight">EJCASHH Starter Activation</h4>
+                <h4 className="text-lg font-display font-bold tracking-tight">EJCASHH Subscription</h4>
               </div>
             </div>
 
@@ -373,7 +373,7 @@ export default function HomeScreen({
               </div>
               <div className="flex items-center justify-between p-4 rounded-2xl bg-brand-card/2 border border-brand-border">
                 <span className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold">Included Product</span>
-                <span className="text-sm font-bold text-brand-text/80">Premium Beauty Soap</span>
+                <span className="text-sm font-bold text-brand-text/80">Product</span>
               </div>
             </div>
 
@@ -391,8 +391,8 @@ export default function HomeScreen({
             <div className="flex flex-col gap-3 py-6 border-t border-brand-border">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-text/20 mb-2">Exclusive Benefits</p>
               {[
-                "Earn 30% Direct Referral Bonus",
-                "Unlock 10-Level Rewards",
+                "Earn P100 Direct Referral Bonus",
+                "Unlock Certificate 10-Level Rewards",
                 "Access Cashback & Rewards",
                 "Withdraw Earnings",
                 "Join VIP Ranking System"
