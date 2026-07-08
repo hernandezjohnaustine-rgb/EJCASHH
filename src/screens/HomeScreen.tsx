@@ -368,7 +368,7 @@ export default function HomeScreen({
 
             <div className="space-y-3 mb-8">
               <div className="flex items-center justify-between p-4 rounded-2xl bg-brand-card/2 border border-brand-border">
-                <span className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold">Registration Fee</span>
+                <span className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold">Subscription Fee</span>
                 <span className="text-2xl font-display font-black text-brand-primary italic">₱360.00</span>
               </div>
               <div className="flex items-center justify-between p-4 rounded-2xl bg-brand-card/2 border border-brand-border">
@@ -393,7 +393,7 @@ export default function HomeScreen({
               {[
                 "Earn P100 Direct Referral Bonus",
                 "Unlock Certificate 10-Level Rewards",
-                "Access Cashback & Rewards",
+                "Get Rewards",
                 "Withdraw Earnings",
                 "Join VIP Ranking System"
               ].map((benefit, i) => (
