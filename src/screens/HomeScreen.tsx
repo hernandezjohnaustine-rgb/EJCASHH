@@ -23,7 +23,8 @@ import {
   ShoppingBag,
   Sparkles,
   Wallet as WalletIcon,
-  Network
+  Network,
+  Lock
 } from "lucide-react";
 import { Wallet, UserStats, Transaction } from "../types";
 import GlassCard from "../components/GlassCard";
@@ -42,6 +43,7 @@ interface HomeScreenProps {
   onViewHistory: () => void;
   onClaimTrading?: () => void;
   referralCode: string;
+  referralLinkEnabled: boolean;
   onClaimDirectsReward: () => void;
   directsRewardClaimed: boolean;
   showCertificate: boolean;
@@ -82,6 +84,7 @@ export default function HomeScreen({
   onViewHistory,
   onClaimTrading,
   referralCode,
+  referralLinkEnabled,
   onClaimDirectsReward,
   directsRewardClaimed,
   showCertificate,
@@ -538,33 +541,45 @@ export default function HomeScreen({
         </div>
 
         <div className="flex flex-col gap-4">
-          <GlassCard className="!p-4 flex items-center justify-between border-brand-primary/20 bg-brand-primary/5">
-            <div className="flex items-center gap-4 flex-1 mr-4 overflow-hidden">
-              <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center shrink-0">
-                <PlusCircle className="w-5 h-5 text-brand-primary" />
+          {referralLinkEnabled ? (
+            <GlassCard className="!p-4 flex items-center justify-between border-brand-primary/20 bg-brand-primary/5">
+              <div className="flex items-center gap-4 flex-1 mr-4 overflow-hidden">
+                <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center shrink-0">
+                  <PlusCircle className="w-5 h-5 text-brand-primary" />
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
+                  <p className="text-xs font-mono font-bold truncate opacity-80">
+                    {(shortenedLink || shareLink).replace(/^https?:\/\//, '')}
+                  </p>
+                </div>
               </div>
-              <div className="overflow-hidden">
-                <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
-                <p className="text-xs font-mono font-bold truncate opacity-80">
-                  {(shortenedLink || shareLink).replace(/^https?:\/\//, '')}
-                </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopy}
+                  className="p-3 bg-brand-card/5 hover:bg-brand-primary/20 rounded-xl transition-all active:scale-90"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setIsQrModalOpen(true)}
+                  className="p-3 bg-brand-card/5 hover:bg-brand-primary/20 rounded-xl transition-all active:scale-90"
+                >
+                  <Scan className="w-4 h-4" />
+                </button>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleCopy}
-                className="p-3 bg-brand-card/5 hover:bg-brand-primary/20 rounded-xl transition-all active:scale-90"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsQrModalOpen(true)}
-                className="p-3 bg-brand-card/5 hover:bg-brand-primary/20 rounded-xl transition-all active:scale-90"
-              >
-                <Scan className="w-4 h-4" />
-              </button>
-            </div>
-          </GlassCard>
+            </GlassCard>
+          ) : (
+            <GlassCard className="!p-4 flex items-center gap-4 border-brand-border bg-brand-card/2 opacity-70">
+              <div className="w-10 h-10 rounded-xl bg-brand-text/5 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5 text-brand-text/30" />
+              </div>
+              <div>
+                <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link Locked</p>
+                <p className="text-[10px] text-brand-text/30 font-medium mt-0.5">Contact support to enable referral sharing.</p>
+              </div>
+            </GlassCard>
+          )}
         </div>
       </section>
 
