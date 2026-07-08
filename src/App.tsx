@@ -173,6 +173,9 @@ export default function App() {
                   }
                 }
               }
+              const generatedReferralCode = username
+                ? username.toUpperCase()
+                : ("EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase());
               const newUser: any = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
@@ -189,13 +192,26 @@ export default function App() {
                 tradingActive: false,
                 tradingClaimedToday: false,
                 tradingDaysCompleted: 0,
-                referralCode: username ? username.toUpperCase() : ("EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase()),
+                referralCode: generatedReferralCode,
                 referredBy,
                 sponsorId,
                 createdAt: new Date().toISOString(),
                 stats: { vipLevel: 1, directReferrals: 0, totalReferrals: 0, teamSize: 0, totalEarnings: 0 }
               };
               await setDoc(userDocRef, newUser);
+
+              // Publish a public referralCodes/{code} -> {uid} lookup doc
+              // so this account's referral code can be validated by new
+              // registrants BEFORE they're authenticated (see firestore.rules
+              // and AuthScreen.tsx's validateReferralCode).
+              try {
+                await setDoc(doc(db, "referralCodes", generatedReferralCode), {
+                  uid: firebaseUser.uid,
+                });
+              } catch (e) {
+                console.error("Failed to create referralCodes lookup doc:", e);
+              }
+
               setUserProfile(newUser);
               localStorage.removeItem("pendingUsername");
               localStorage.removeItem("pendingPhone");
@@ -788,6 +804,7 @@ achievedMilestones={Object.fromEntries(
               <motion.div key="rewards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <ReferralDashboard stats={userStats} onWithdraw={() => setActiveView("withdraw")}
                   onViewNetwork={() => setActiveView("network")} referralCode={userProfile?.referralCode || ""}
+                  referralLinkEnabled={userProfile?.referralLinkEnabled === true}
                   onClaimDaily={handleClaimDaily} isDailyClaimed={userProfile.dailyClaimedToday} />
               </motion.div>
             )}
