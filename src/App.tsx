@@ -737,6 +737,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
                   onViewHistory={() => setActiveTab("history")}
                   onClaimTrading={handleClaimTrading}
                   referralCode={userProfile?.referralCode || ""}
+                  referralLinkEnabled={userProfile?.referralLinkEnabled === true}
                   onClaimDirectsReward={handleClaimDirectsReward}
                   directsRewardClaimed={directsRewardClaimed || userProfile?.directsRewardClaimed || false}
                   showCertificate={showCertificate}
