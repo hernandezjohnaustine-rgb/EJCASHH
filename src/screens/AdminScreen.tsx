@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, doc, updateDoc, setDoc, getDoc, onSnapshot, query, orderBy, Timestamp, addDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X } from "lucide-react";
+import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X, Lock, Unlock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 type AdminTab = "users" | "withdrawals" | "transactions" | "products" | "orders";
@@ -114,6 +114,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       await updateDoc(doc(db, "users", userId), { balance: newBalance });
       alert("✅ Balance updated!"); fetchData();
     } catch { alert("❌ Failed to update balance"); }
+  };
+
+  // ── Referral link lock/unlock ──────────────────────────────────────────────
+  const handleToggleReferralLink = async (userId: string, currentValue: boolean) => {
+    if (!confirm(`${currentValue ? "Lock" : "Unlock"} this user's referral link sharing?`)) return;
+    try {
+      await updateDoc(doc(db, "users", userId), { referralLinkEnabled: !currentValue });
+      alert(`✅ Referral link ${currentValue ? "locked" : "unlocked"}`);
+      fetchData();
+    } catch {
+      alert("❌ Failed to update referral link status");
+    }
   };
 
   const handleApprove = async (w: any) => {
@@ -290,8 +302,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         <p className="text-[10px] text-brand-text/40">{u.email}</p>
                         <p className="text-[9px] text-brand-text/20 font-mono mt-1">{u.referralCode}</p>
                       </div>
-                      <div className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${u.isActivated ? "bg-brand-primary/20 text-brand-primary" : "bg-red-500/20 text-red-400"}`}>
-                        {u.isActivated ? "Active" : "Inactive"}
+                      <div className="flex flex-col gap-1.5 items-end">
+                        <div className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${u.isActivated ? "bg-brand-primary/20 text-brand-primary" : "bg-red-500/20 text-red-400"}`}>
+                          {u.isActivated ? "Active" : "Inactive"}
+                        </div>
+                        <div className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${u.referralLinkEnabled ? "bg-blue-500/20 text-blue-400" : "bg-brand-text/10 text-brand-text/40"}`}>
+                          {u.referralLinkEnabled ? "Link Unlocked" : "Link Locked"}
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-3">
@@ -306,18 +323,32 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         </div>
                       ))}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {!u.isActivated ? (
-                        <button onClick={() => handleActivateUser(u.id)} className="flex-1 py-2 rounded-xl bg-brand-primary/20 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+                        <button onClick={() => handleActivateUser(u.id)} className="flex-1 min-w-[100px] py-2 rounded-xl bg-brand-primary/20 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
                           <CheckCircle2 className="w-3 h-3" /> Activate
                         </button>
                       ) : (
-                        <button onClick={() => handleDeactivateUser(u.id)} className="flex-1 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+                        <button onClick={() => handleDeactivateUser(u.id)} className="flex-1 min-w-[100px] py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
                           <Ban className="w-3 h-3" /> Deactivate
                         </button>
                       )}
-                      <button onClick={() => handleAdjustBalance(u.id, u.balance || 0)} className="flex-1 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+                      <button onClick={() => handleAdjustBalance(u.id, u.balance || 0)} className="flex-1 min-w-[100px] py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
                         <Wallet className="w-3 h-3" /> Balance
+                      </button>
+                      <button
+                        onClick={() => handleToggleReferralLink(u.id, !!u.referralLinkEnabled)}
+                        className={`flex-1 min-w-[100px] py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1 ${
+                          u.referralLinkEnabled
+                            ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"
+                            : "bg-brand-primary/10 border border-brand-primary/20 text-brand-primary"
+                        }`}
+                      >
+                        {u.referralLinkEnabled ? (
+                          <><Lock className="w-3 h-3" /> Lock Link</>
+                        ) : (
+                          <><Unlock className="w-3 h-3" /> Unlock Link</>
+                        )}
                       </button>
                     </div>
                   </div>
