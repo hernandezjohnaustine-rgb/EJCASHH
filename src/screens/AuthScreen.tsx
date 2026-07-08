@@ -98,21 +98,56 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     }
   };
 
+  // --- USERNAME / PHONE -> EMAIL LOOKUP ---
+  // These read from small, purpose-built public lookup docs
+  // (usernames/{username} and phoneNumbers/{phone}) instead of querying
+  // the protected `users` collection, since that collection requires
+  // isSignedIn() and the caller isn't authenticated yet at login time.
   const findEmailByIdentifier = async (id: string): Promise<string> => {
     if (id.includes("@")) return id;
-    
-    const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
+
+    const { doc, getDoc } = await import("firebase/firestore");
     const { db } = await import("../lib/firebase");
-    
+
     // Check if it's a phone number (all digits)
     const isPhone = /^\d+$/.test(id);
-    const field = isPhone ? "phoneNumber" : "username";
-    
-    const q = query(collection(db, "users"), where(field, "==", id), limit(1));
-    const snap = await getDocs(q);
-    
-    if (snap.empty) throw new Error(`${isPhone ? "Phone Number" : "Username"} not found.`);
-    return snap.docs[0].data().email;
+    const lookupCollection = isPhone ? "phoneNumbers" : "usernames";
+    const lookupKey = isPhone ? id : id.toLowerCase();
+
+    const lookupRef = doc(db, lookupCollection, lookupKey);
+    const lookupSnap = await getDoc(lookupRef);
+
+    if (!lookupSnap.exists()) {
+      throw new Error(`${isPhone ? "Phone Number" : "Username"} not found.`);
+    }
+
+    const email = lookupSnap.data().email;
+    if (!email) {
+      throw new Error(`${isPhone ? "Phone Number" : "Username"} not found.`);
+    }
+    return email;
+  };
+
+  // Writes the public lookup docs used by findEmailByIdentifier above.
+  // Called right after account creation so future username/phone logins
+  // can resolve to this account's email.
+  const createLookupDocs = async (uid: string, uname: string, phone: string, userEmail: string) => {
+    const { doc, setDoc } = await import("firebase/firestore");
+    const { db } = await import("../lib/firebase");
+
+    const writes: Promise<void>[] = [];
+
+    if (uname.trim()) {
+      const usernameKey = uname.trim().toLowerCase();
+      writes.push(setDoc(doc(db, "usernames", usernameKey), { uid, email: userEmail }));
+    }
+    if (phone.trim()) {
+      writes.push(setDoc(doc(db, "phoneNumbers", phone.trim()), { uid, email: userEmail }));
+    }
+
+    if (writes.length) {
+      await Promise.all(writes);
+    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -147,6 +182,14 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
+
+        // Create the public username/phone -> email lookup docs so this
+        // account can be found by username or phone at login time.
+        try {
+          await createLookupDocs(userCredential.user.uid, username, phoneNumber, email);
+        } catch (lookupErr) {
+          console.error("Failed to create username/phone lookup docs:", lookupErr);
+        }
       }
       onLogin();
     } catch (err: any) {
