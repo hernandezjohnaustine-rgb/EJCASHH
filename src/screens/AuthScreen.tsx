@@ -44,16 +44,18 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     }
   }, []);
 
-  // Validate the referral code against Firestore's users collection.
+  // Validate the referral code against the public referralCodes lookup
+  // collection (NOT the protected `users` collection — that requires
+  // isSignedIn(), but this check runs before the account exists, i.e.
+  // while unauthenticated, so it must use a publicly-readable doc).
   const validateReferralCode = async (code: string): Promise<boolean> => {
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) return false;
     try {
-      const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
+      const { doc, getDoc } = await import("firebase/firestore");
       const { db } = await import("../lib/firebase");
-      const q = query(collection(db, "users"), where("referralCode", "==", trimmed), limit(1));
-      const snap = await getDocs(q);
-      return !snap.empty;
+      const snap = await getDoc(doc(db, "referralCodes", trimmed));
+      return snap.exists();
     } catch (err) {
       console.error("Referral validation error:", err);
       return false;
