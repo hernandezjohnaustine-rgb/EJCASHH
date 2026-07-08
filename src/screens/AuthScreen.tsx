@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
-import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Phone, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Phone, CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
@@ -16,6 +16,7 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [identifier, setIdentifier] = useState(""); // Combined Email/Username/Phone
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState(""); // For registration
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -277,12 +278,20 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/20" />
             <input 
               required
-              type="password" 
+              type={showPassword ? "text" : "password"} 
               placeholder="Password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-4 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
+              className="w-full h-14 bg-brand-text/5 border border-brand-border rounded-2xl pl-12 pr-12 focus:outline-none focus:border-brand-primary/30 transition-all font-bold text-sm"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-text/30 hover:text-brand-text/60 transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
           </div>
 
           {mode === "register" && (
