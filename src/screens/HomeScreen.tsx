@@ -30,7 +30,7 @@ import GlassCard from "../components/GlassCard";
 import TransactionDetailModal from "../components/TransactionDetailModal";
 import QrInviteModal from "../components/QrInviteModal";
 import AnimatedNumber from "../components/AnimatedNumber";
-import { DirectsCertificateModal, DirectsMilestoneBanner } from "./DirectsCertificate";
+import { DirectsCertificateModal, DirectsMilestoneBanner, MILESTONES, MilestoneBanner } from "./DirectsCertificate";
 import { shortenUrl } from "../lib/shortener";
 
 interface HomeScreenProps {
@@ -48,6 +48,9 @@ interface HomeScreenProps {
   onOpenCertificate: () => void;
   onCloseCertificate: () => void;
   userName: string;
+  onOpenMilestone: (level: number) => void;
+  claimedMilestones: Record<string, boolean>;
+  achievedMilestones: Record<string, boolean>;
 }
 
 const mainServices = [
@@ -85,6 +88,9 @@ export default function HomeScreen({
   onOpenCertificate,
   onCloseCertificate,
   userName
+  onOpenMilestone,
+  claimedMilestones,
+  achievedMilestones,
 }: HomeScreenProps) {
   const [showBalance, setShowBalance] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -494,7 +500,20 @@ export default function HomeScreen({
             dismissed={directsRewardClaimed}
           />
         )}
-
+{/* Milestone Banners L2-L10 */}
+{MILESTONES.slice(1).map(m => {
+  const achievedKey = `milestoneAchieved_L${m.level}`;
+  const claimedKey = `milestoneRewardClaimed_L${m.level}`;
+  if (!achievedMilestones[achievedKey]) return null;
+  return (
+    <MilestoneBanner
+      key={m.level}
+      milestone={m}
+      onTap={() => onOpenMilestone(m.level)}
+      alreadyClaimed={claimedMilestones[claimedKey] || false}
+    />
+  );
+})}
         <div className="grid grid-cols-2 gap-4">
           <GlassCard className="!p-5 border-brand-border bg-brand-card/2">
             <div className="flex items-center gap-3 mb-4">
