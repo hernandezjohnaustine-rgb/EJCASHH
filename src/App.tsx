@@ -522,32 +522,30 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
   };
       
 
-  const handleClaimMilestoneReward = async (level: number) => {
-  if (!user || !activeMilestone) return;
-  const rewardKey = `milestoneRewardClaimed_L${level}`;
-  if (userProfile?.[rewardKey]) return;
-
-  const reward = activeMilestone.reward;
+  const handleClaimDirectsReward = async () => {
+  if (!user || directsRewardClaimed) return;
+  const reward = 300;
   const userDocRef = doc(db, "users", user.uid);
   try {
     const freshDoc = await getDoc(userDocRef);
     const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
     await setDoc(userDocRef, {
       earningsWallet: currentEarnings + reward,
-      [rewardKey]: true,
+      directsRewardClaimed: true,
       stats: {
         ...userProfile.stats,
         totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
       }
     }, { merge: true });
     await addTransaction({
-      title: `Level ${level} Milestone — ${activeMilestone.label}`,
+      title: "10 Directs Milestone Reward",
       rawAmount: reward,
       category: "Bonus",
       type: "in",
       recordOnly: true,
     });
-    setShowMilestoneCertificate(false);
+    setDirectsRewardClaimed(true);
+    setShowCertificate(false);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
   }
