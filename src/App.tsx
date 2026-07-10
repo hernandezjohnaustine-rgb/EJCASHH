@@ -156,23 +156,19 @@ export default function App() {
               const referredBy = referredByRaw ? referredByRaw.toUpperCase() : null;
               const username = localStorage.getItem("pendingUsername");
               const phoneNumber = localStorage.getItem("pendingPhone");
-              let sponsorId = null;
+
+              // Resolve the sponsor's uid. This is a plain read-only
+              // lookup, so it doesn't need to be part of the atomic
+              // transaction below.
+              let sponsorId: string | null = null;
               if (referredBy) {
                 const q = query(collection(db, "users"), where("referralCode", "==", referredBy), limit(1));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
                   sponsorId = snap.docs[0].id;
-                  const { updateDoc, increment } = await import("firebase/firestore");
-                  try {
-                    await updateDoc(doc(db, "users", sponsorId), {
-                      "stats.totalReferrals": increment(1),
-                      "stats.teamSize": increment(1)
-                    });
-                  } catch (e) {
-                    console.error("Failed to update sponsor stats:", e);
-                  }
                 }
               }
+
               const generatedReferralCode = username
                 ? username.toUpperCase()
                 : ("EJ-" + firebaseUser.uid.substring(0, 6).toUpperCase());
@@ -198,12 +194,45 @@ export default function App() {
                 createdAt: new Date().toISOString(),
                 stats: { vipLevel: 1, directReferrals: 0, totalReferrals: 0, teamSize: 0, totalEarnings: 0 }
               };
-              await setDoc(userDocRef, newUser);
+
+              // Create the user doc AND increment the sponsor's stats
+              // atomically, in one transaction. This is what makes the
+              // whole operation safe to retry: if fetchUserProfile gets
+              // retried (e.g. after a permission error elsewhere) and this
+              // account was already created by an earlier attempt, the
+              // transaction sees the doc already exists and skips both the
+              // creation AND the sponsor increment — instead of
+              // incrementing the sponsor's totalReferrals/teamSize again
+              // for an account that already counted.
+              const { runTransaction, increment } = await import("firebase/firestore");
+              try {
+                await runTransaction(db, async (transaction) => {
+                  const freshSnap = await transaction.get(userDocRef);
+                  if (freshSnap.exists()) {
+                    // Already created by a previous attempt — do nothing,
+                    // to avoid double-counting the sponsor's stats.
+                    return;
+                  }
+
+                  transaction.set(userDocRef, newUser);
+
+                  if (sponsorId) {
+                    transaction.update(doc(db, "users", sponsorId), {
+                      "stats.totalReferrals": increment(1),
+                      "stats.teamSize": increment(1),
+                    });
+                  }
+                });
+              } catch (e) {
+                console.error("Failed to create user / update sponsor stats:", e);
+                throw e; // let the outer retry logic handle it
+              }
 
               // Publish a public referralCodes/{code} -> {uid} lookup doc
               // so this account's referral code can be validated by new
               // registrants BEFORE they're authenticated (see firestore.rules
-              // and AuthScreen.tsx's validateReferralCode).
+              // and AuthScreen.tsx's validateReferralCode). Safe to redo on
+              // retry since it's just an overwrite with the same values.
               try {
                 await setDoc(doc(db, "referralCodes", generatedReferralCode), {
                   uid: firebaseUser.uid,
