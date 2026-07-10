@@ -36,6 +36,7 @@ import TradingBotScreen from "./screens/TradingBotScreen";
 import RiderScreen from "./screens/RiderScreen";
 import MarketplaceScreen from "./screens/MarketplaceScreen";
 import AssistantScreen from "./screens/AssistantScreen";
+import { MilestoneCertificateModal } from "./screens/DirectsCertificate";
 
 const EMPTY_STATS: UserStats = {
   vipLevel: 1,
@@ -521,34 +522,36 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
   };
       
 
-  const handleClaimDirectsReward = async () => {
-    if (!user || directsRewardClaimed) return;
-    const reward = 300;
-    const userDocRef = doc(db, "users", user.uid);
-    try {
-      const freshDoc = await getDoc(userDocRef);
-      const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
-      await setDoc(userDocRef, {
-        earningsWallet: currentEarnings + reward,
-        directsRewardClaimed: true,
-        stats: {
-          ...userProfile.stats,
-          totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
-        }
-      }, { merge: true });
-      await addTransaction({
-        title: "10 Directs Milestone Reward",
-        rawAmount: reward,
-        category: "Bonus",
-        type: "in",
-        recordOnly: true,
-      });
-      setDirectsRewardClaimed(true);
-      setShowCertificate(false);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
-    }
-  };
+  const handleClaimMilestoneReward = async (level: number) => {
+  if (!user || !activeMilestone) return;
+  const rewardKey = `milestoneRewardClaimed_L${level}`;
+  if (userProfile?.[rewardKey]) return;
+
+  const reward = activeMilestone.reward;
+  const userDocRef = doc(db, "users", user.uid);
+  try {
+    const freshDoc = await getDoc(userDocRef);
+    const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
+    await setDoc(userDocRef, {
+      earningsWallet: currentEarnings + reward,
+      [rewardKey]: true,
+      stats: {
+        ...userProfile.stats,
+        totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
+      }
+    }, { merge: true });
+    await addTransaction({
+      title: `Level ${level} Milestone — ${activeMilestone.label}`,
+      rawAmount: reward,
+      category: "Bonus",
+      type: "in",
+      recordOnly: true,
+    });
+    setShowMilestoneCertificate(false);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+  }
+};
 
   const handleClaimDaily = async () => {
     if (!user || userProfile.dailyClaimedToday) return;
