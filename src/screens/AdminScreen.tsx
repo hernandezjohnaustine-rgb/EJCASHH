@@ -128,7 +128,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const handleApprove = async (w: any) => {
+  const handleUnlockAllReferralLinks = async () => {
+    if (!confirm("Unlock ALL users referral links? This will allow all users to share their referral links.")) return;
+    try {
+      const usersSnap = await getDocs(collection(db, "users"));
+      const batch = usersSnap.docs.map(d => updateDoc(doc(db, "users", d.id), { referralLinkEnabled: true }));
+      await Promise.all(batch);
+      alert("✅ All referral links unlocked!");
+      fetchData();
+    } catch {
+      alert("❌ Failed to unlock all referral links");
+    }
+  };  const handleApprove = async (w: any) => {
     setProcessingId(w.id);
     try {
       await updateDoc(doc(db, "withdrawalRequests", w.id), { status: "approved", processedAt: Timestamp.now(), note: note || "" });
@@ -293,7 +304,16 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             {/* ── USERS TAB ── */}
             {activeTab === "users" && (
               <div className="flex flex-col gap-3">
-                <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black px-1">{users.length} Total Users</p>
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black">{users.length} Total Users</p>
+                  <button
+                    onClick={handleUnlockAllReferralLinks}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    <Unlock className="w-3 h-3" />
+                    Unlock All Links
+                  </button>
+                </div>
                 {users.map((u) => (
                   <div key={u.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4">
                     <div className="flex items-start justify-between mb-3">
@@ -660,4 +680,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
+
+
 
