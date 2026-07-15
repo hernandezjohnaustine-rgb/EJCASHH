@@ -1,0 +1,6 @@
+﻿content = open('src/App.tsx', 'r', encoding='utf-8').read()
+old = '        // ✅ Auto-placement\n        const sponsorId = freshData.sponsorId || freshData.referredBy;\n        if (sponsorId) {\n          const { autoPlaceUser } = await import("./services/autoPlacementService");\n          await autoPlaceUser(currentUser.uid, sponsorId);\n        }\n        // ✅ Get updated sponsorId after auto-placement\n        const freshDoc2 = await getDoc(userDocRef);\n        const updatedSponsorId = freshDoc2.data()?.sponsorId || freshDoc2.data()?.referredBy;\n        // ✅ Package details'
+new = '        // ✅ Save original referrer BEFORE auto-placement\n        const originalReferrerId = freshData.sponsorId || freshData.referredBy;\n        // ✅ Auto-placement\n        if (originalReferrerId) {\n          const { autoPlaceUser } = await import("./services/autoPlacementService");\n          await autoPlaceUser(currentUser.uid, originalReferrerId);\n        }\n        // ✅ Get updated placement sponsorId after auto-placement\n        const freshDoc2 = await getDoc(userDocRef);\n        const updatedSponsorId = freshDoc2.data()?.sponsorId || freshDoc2.data()?.referredBy;\n        // ✅ Package details'
+content = content.replace(old, new)
+open('src/App.tsx', 'w', encoding='utf-8').write(content)
+print('Done!')
