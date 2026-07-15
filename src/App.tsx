@@ -600,8 +600,8 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
 
         // ✅ Save original referrer BEFORE auto-placement
         // Get original referrer UID from referredBy code (not sponsorId which may be auto-placed)
-        let originalReferrerId = freshData.originalReferrerId || freshData.sponsorId;
-        if (freshData.referredBy && !freshData.originalReferrerId) {
+        let originalReferrerId = freshData.sponsorId; // default
+        if (freshData.referredBy) {
           const refQuery = query(collection(db, "users"), where("referralCode", "==", freshData.referredBy), limit(1));
           const refSnap = await getDocs(refQuery);
           if (!refSnap.empty) originalReferrerId = refSnap.docs[0].id;
