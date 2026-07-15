@@ -1,0 +1,6 @@
+﻿content = open('src/services/earningsService.ts', 'r', encoding='utf-8').read()
+old = '  // ✅ Step 2: Credit Levels 2-10 to PLACEMENT UPLINES (matrix chain)\n  if (!placementSponsorId) return;\n  // Start from placement sponsor upline (skip level 1 since already credited)\n  let currentUid = placementSponsorId;\n  // If placement is same as referrer, skip to their upline for level 2\n  if (currentUid === referrerId) {\n    const placementDoc = await getDoc(doc(db, "users", currentUid));\n    if (placementDoc.exists()) {\n      const placementData = placementDoc.data();\n      currentUid = placementData.sponsorId || placementData.referredBy || "";\n    }\n  }'
+new = '  // ✅ Step 2: Credit Levels 2-10 following REFERRER\'S upline chain\n  // L2 always starts from the referrer\'s upline (not placement)\n  const referrerDoc2 = await getDoc(doc(db, "users", referrerId!));\n  let currentUid = "";\n  if (referrerDoc2.exists()) {\n    const referrerData2 = referrerDoc2.data();\n    currentUid = referrerData2.sponsorId || referrerData2.referredBy || "";\n  }\n  if (!currentUid) return;'
+content = content.replace(old, new)
+open('src/services/earningsService.ts', 'w', encoding='utf-8').write(content)
+print('Done!')
