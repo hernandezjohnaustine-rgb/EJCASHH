@@ -426,6 +426,38 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
       await loadLinkedDevices();
     } catch (err) { console.error(err); }
   };
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
+  const [helpMessages, setHelpMessages] = useState<{role: string, content: string}[]>([
+    { role: "assistant", content: "Hi! I am the EJCASHH AI Assistant. How can I help you today? I can answer questions about packages, commissions, withdrawals, referrals, and more!" }
+  ]);
+  const [helpInput, setHelpInput] = useState("");
+  const [helpLoading, setHelpLoading] = useState(false);
+
+  const handleSendHelp = async () => {
+    if (!helpInput.trim() || helpLoading) return;
+    const userMsg = helpInput.trim();
+    setHelpInput("");
+    setHelpMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    setHelpLoading(true);
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          system: "You are the EJCASHH AI Support Assistant. EJCASHH is a fintech MLM platform in the Philippines. Help users with: Package 1 (₱360 Subscription - L1 gets ₱100, L2-L10 gets ₱3 each), Package 2 (₱3,600 Livelihood Program - L1 gets ₱1,000, L2-L10 gets ₱30 each), Combined Package (₱3,960), referral system, commissions, Credits wallet (locked L2-L10 earnings), Main Balance (withdrawable), certificate milestones, trading bot, marketplace, withdrawals, and account settings. Be helpful, friendly and concise. If you cannot resolve an issue, tell the user to contact admin support.",
+          messages: helpMessages.concat({ role: "user", content: userMsg }).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+        }),
+      });
+      const data = await response.json();
+      const reply = data.content?.[0]?.text || "Sorry, I could not process your request. Please try again.";
+      setHelpMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    } catch (err) {
+      setHelpMessages(prev => [...prev, { role: "assistant", content: "Sorry, I am having trouble connecting. Please try again later or contact admin support." }]);
+    } finally {
+      setHelpLoading(false); }
+  };
   const menuItems = [
     { icon: TrendingUp, label: "Earnings Wallet", sub: "Withdraw commissions" },
     { icon: User, label: "Personal Information", sub: `Update details ${user?.phoneNumber ? `(+63 ${user.phoneNumber})` : ""}`, onClick: () => { setEditName(user?.displayName || ""); setEditPhone(user?.phoneNumber || ""); setShowPersonalInfo(true); } },
@@ -433,7 +465,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
     { icon: CreditCard, label: "Payment Methods", sub: "Stored cards & banks", onClick: () => { loadPaymentMethods(); setShowPaymentMethods(true); } },
     { icon: Bell, label: "Notifications", sub: "Alerts & Transaction SMS", onClick: () => { loadNotifSettings(); setShowNotifications(true); } },
     { icon: Smartphone, label: "Linked Devices", sub: "Manage active sessions", onClick: () => { loadLinkedDevices(); setShowLinkedDevices(true); } },
-    { icon: HelpCircle, label: "Help Center", sub: "FAQs & Live Chat" },
+    { icon: HelpCircle, label: "Help Center", sub: "AI Assistant & Support", onClick: () => setShowHelpCenter(true) },
   ];
 
   return (
@@ -1124,6 +1156,63 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Help Center Modal */}
+      {showHelpCenter && (
+        <div className="fixed inset-0 z-[200] bg-brand-black flex flex-col">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
+            <div>
+              <h3 className="text-lg font-black text-brand-text">Help Center</h3>
+              <p className="text-[10px] text-brand-primary font-black">AI Assistant</p>
+            </div>
+            <button onClick={() => setShowHelpCenter(false)} className="text-brand-text/40 text-2xl">x</button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+            {helpMessages.map((msg, i) => (
+              <div key={i} className={"flex " + (msg.role === "user" ? "justify-end" : "justify-start")}>
+                <div className={"max-w-[85%] rounded-2xl px-4 py-3 " + (msg.role === "user" ? "bg-brand-primary text-brand-black" : "bg-brand-card/20 border border-brand-border text-brand-text")}>
+                  {msg.role === "assistant" && (
+                    <p className="text-[9px] font-black text-brand-primary mb-1 uppercase tracking-widest">EJCASHH AI</p>
+                  )}
+                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                </div>
+              </div>
+            ))}
+            {helpLoading && (
+              <div className="flex justify-start">
+                <div className="bg-brand-card/20 border border-brand-border rounded-2xl px-4 py-3">
+                  <p className="text-[9px] font-black text-brand-primary mb-1 uppercase tracking-widest">EJCASHH AI</p>
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-brand-primary rounded-full animate-bounce" style={{animationDelay: "0ms"}} />
+                    <div className="w-2 h-2 bg-brand-primary rounded-full animate-bounce" style={{animationDelay: "150ms"}} />
+                    <div className="w-2 h-2 bg-brand-primary rounded-full animate-bounce" style={{animationDelay: "300ms"}} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="px-4 py-4 border-t border-brand-border">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={helpInput}
+                onChange={e => setHelpInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSendHelp()}
+                className="flex-1 bg-brand-card/20 border border-brand-border rounded-2xl py-3 px-4 text-brand-text focus:outline-none focus:border-brand-primary/50 text-sm"
+                placeholder="Ask anything about EJCASHH..."
+                disabled={helpLoading}
+              />
+              <button
+                onClick={handleSendHelp}
+                disabled={helpLoading || !helpInput.trim()}
+                className="px-5 py-3 bg-brand-primary text-brand-black font-black rounded-2xl active:scale-95 transition-all disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
           </div>
         </div>
       )}
