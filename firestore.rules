@@ -1,83 +1,35 @@
 ﻿rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     match /{document=**} {
       allow read, write: if false;
     }
-
     function isSignedIn() { return request.auth != null; }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
     function isAdmin() {
-     return isSignedIn() &&
-       exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-   }
-
-    function isValidTransaction(data) {
-      return data.type is string
-        && data.amount is number
-        && data.timestamp != null;
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
-
     match /test/connection {
       allow get: if isSignedIn();
     }
-
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-
-      allow create: if isOwner(userId)
-        && incoming().uid == userId
-        && incoming().isActivated == false
-        && incoming().balance == 0
-        && incoming().earningsWallet == 0;
-
-      allow update: if isSignedIn() && (
-        isOwner(userId)
-        || isAdmin()
-        || (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
-            'balance', 'earningsWallet', 'stats',
-            'sponsorId', 'isAutoPlaced', 'originalReferrerId',
-            'isActivated', 'activatedAt', 'activePackage', 'packageMultiplier',
-            'hasPackage1', 'hasPackage2', 'tradingInvested', 'tradingActive',
-            'tradingClaimedToday', 'tradingDaysCompleted', 'tradingEarnings',
-            'tradingStartDate', 'lastClaimISO', 'lastClaimDate',
-            'avatarSeed', 'avatarStyle', 'referralLinkEnabled',
-            'directsRewardClaimed', 'lastDailyClaimDate', 'dailyClaimedToday'
-          ])
-        )
-      );
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn();
     }
-
-    match /users {
-      allow read: if isSignedIn();
-    }
-
     match /transactions/{transactionId} {
-      allow get, list: if isSignedIn() && (
+      allow read: if isSignedIn() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
-      allow create: if isSignedIn() && isValidTransaction(incoming());
+      allow create: if isSignedIn();
     }
-
     match /referrals/{referralId} {
-      allow read: if isSignedIn() && (
-        resource.data.referrerId == request.auth.uid ||
-        resource.data.refereeId == request.auth.uid
-      );
-      allow create: if isSignedIn() && incoming().refereeId == request.auth.uid;
+      allow read, create: if isSignedIn();
     }
-
     match /trading_packages/{packageId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, create, update: if isSignedIn();
     }
-
     match /withdrawalRequests/{id} {
       allow create: if isSignedIn();
       allow read: if isSignedIn() && (
@@ -85,12 +37,10 @@ service cloud.firestore {
       );
       allow update: if isAdmin();
     }
-
     match /products/{id} {
       allow read: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
-
     match /orders/{id} {
       allow create: if isSignedIn();
       allow read: if isSignedIn() && (
@@ -100,4 +50,3 @@ service cloud.firestore {
     }
   }
 }
-
