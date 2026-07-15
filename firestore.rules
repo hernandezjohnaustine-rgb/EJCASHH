@@ -55,16 +55,8 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     match /users/{userId}/notifications/{notifId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-    match /users/{userId}/paymentMethods/{pmId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-    match /users/{userId}/devices/{deviceId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-    match /users/{userId}/notifications/{notifId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn(); // Allow any signed-in user to send notifications
     }
     match /users/{userId}/paymentMethods/{pmId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
