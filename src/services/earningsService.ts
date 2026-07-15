@@ -10,6 +10,7 @@
   Timestamp,
   increment
 } from "firebase/firestore";
+import { setDoc, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { handleFirestoreError, OperationType } from "../lib/firestoreUtils";
 
