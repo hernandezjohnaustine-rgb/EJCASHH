@@ -40,6 +40,37 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [showProductForm, setShowProductForm] = useState(false);
   const [tradingEnabled, setTradingEnabled] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [gcashAccounts, setGcashAccounts] = useState<any[]>([]);
+  const [showGcashForm, setShowGcashForm] = useState(false);
+  const [gcashForm, setGcashForm] = useState({ accountName: "", accountNumber: "", qrCode: "", order: 1 });
+  const [savingGcash, setSavingGcash] = useState(false);
+
+  const loadGcashAccounts = async () => {
+    try {
+      const snap = await getDocs(collection(db, "gcashSettings"));
+      setGcashAccounts(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => a.order - b.order));
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSaveGcash = async () => {
+    setSavingGcash(true);
+    try {
+      await addDoc(collection(db, "gcashSettings"), { ...gcashForm, createdAt: Timestamp.now() });
+      setGcashForm({ accountName: "", accountNumber: "", qrCode: "", order: 1 });
+      setShowGcashForm(false);
+      await loadGcashAccounts();
+      alert("GCash account added!");
+    } catch { alert("Failed to save."); }
+    finally { setSavingGcash(false); }
+  };
+
+  const handleDeleteGcash = async (id: string) => {
+    if (!confirm("Remove this GCash account?")) return;
+    try {
+      await deleteDoc(doc(db, "gcashSettings", id));
+      await loadGcashAccounts();
+    } catch { alert("Failed to delete."); }
+  };
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState(EMPTY_PRODUCT);
   const [savingProduct, setSavingProduct] = useState(false);
@@ -259,7 +290,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     { id: "transactions", label: "Txns", icon: TrendingUp },
     { id: "products", label: "Products", icon: ShoppingBag },
     { id: "orders", label: "Orders", icon: Package },
-    { id: "settings", label: "Settings", icon: Shield },
+    { id: "gcash", label: "GCash", icon: Wallet },
+          { id: "settings", label: "Settings", icon: Shield },
   ];
 
   return (

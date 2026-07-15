@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+﻿const fs = require("fs");
+
+const content = `import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, Copy, CheckCircle2, Upload, X, Clock } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -71,7 +73,7 @@ export default function CashInScreen({ onBack }: any) {
       });
       await addDoc(collection(db, "users", userId, "notifications"), {
         title: "Deposit Request Submitted",
-        message: "Your GCash deposit of \u20B1" + parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2 }) + " is under review.",
+        message: "Your GCash deposit of \\u20B1" + parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2 }) + " is under review.",
         type: "deposit", read: false, createdAt: Timestamp.now(),
       });
       setStep("success");
@@ -285,3 +287,7 @@ export default function CashInScreen({ onBack }: any) {
     </div>
   );
 }
+`;
+
+fs.writeFileSync("src/screens/CashInScreen.tsx", content, "utf8");
+console.log("Done!");
