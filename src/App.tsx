@@ -610,6 +610,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         // ✅ Get updated sponsorId after auto-placement
         const freshDoc2 = await getDoc(userDocRef);
         const updatedSponsorId = freshDoc2.data()?.sponsorId || freshDoc2.data()?.referredBy;
+        const actualReferrerId = originalReferrerId; // Always use original referrer for L1
 
         // ✅ Package details
         const packageMultiplier = packageId === "package_1" ? 1 : 10;
@@ -632,7 +633,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
 
         // ✅ Distribute commissions
         // L1 commission goes to originalReferrerId, L2-10 go to updatedSponsorId (placement)
-        await processActivation(currentUser.uid, updatedSponsorId, packageId, originalReferrerId);
+        await processActivation(currentUser.uid, updatedSponsorId, packageId, actualReferrerId);
 
         // ✅ Record transaction
         await addTransaction({
