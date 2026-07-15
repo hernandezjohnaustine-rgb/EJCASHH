@@ -850,6 +850,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
                   theme={theme}
                   onToggleTheme={toggleTheme}
                   onProfileClick={() => setActiveTab('profile')}
+                  userId={user?.uid}
                 />
                 <HomeScreen
                   stats={userStats}
