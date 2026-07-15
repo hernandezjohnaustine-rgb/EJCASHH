@@ -863,8 +863,6 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
                   userName={userProfile?.displayName || user?.displayName || "Member"}
               userProfile={userProfile}
               onRequestActivation={() => setActiveView("activation")}
-                  userProfile={userProfile}
-                  onRequestActivation={() => setActiveView("activation")}
                   onOpenMilestone={(level) => {
   import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
     setActiveMilestone(MILESTONES.find((m: any) => m.level === level));
