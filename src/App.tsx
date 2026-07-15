@@ -51,8 +51,6 @@ const EMPTY_STATS: UserStats = {
   tradingActive: false,
   tradingClaimedToday: false,
   creditsBalance: 0,
-  creditsBalance: 0,
-  creditsBalance: 0,
 };
 
 export default function App() {
@@ -61,8 +59,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("home");
   const [activeView, setActiveView] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
-  const [creditsBalance, setCreditsBalance] = useState(0);
-  const [creditsBalance, setCreditsBalance] = useState(0);
   const [creditsBalance, setCreditsBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userStats, setUserStats] = useState<UserStats>(EMPTY_STATS);
@@ -275,8 +271,6 @@ export default function App() {
                 tradingActive: data.tradingActive || false,
                 tradingClaimedToday,
                 tradingDaysCompleted: data.tradingDaysCompleted || 0,
-            creditsBalance: data.creditsBalance || 0,
-            creditsBalance: data.creditsBalance || 0,
             creditsBalance: data.creditsBalance || 0,
               });
               // ✅ Check milestones
