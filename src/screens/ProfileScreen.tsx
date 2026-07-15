@@ -383,13 +383,56 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
     } catch (err) { alert("Failed to save settings."); }
     finally { setSavingNotif(false); }
   };
+  const [showLinkedDevices, setShowLinkedDevices] = useState(false);
+  const [linkedDevices, setLinkedDevices] = useState<any[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+
+  const loadLinkedDevices = async () => {
+    if (!userId) return;
+    setLoadingDevices(true);
+    try {
+      const { collection, getDocs } = await import("firebase/firestore");
+      const { db } = await import("../lib/firebase");
+      const snap = await getDocs(collection(db, "users", userId, "devices"));
+      setLinkedDevices(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) { console.error(err); }
+    finally { setLoadingDevices(false); }
+  };
+
+  const handleRemoveDevice = async (deviceId: string) => {
+    if (!userId) return;
+    if (!confirm("Remove this device?")) return;
+    try {
+      const { doc, deleteDoc } = await import("firebase/firestore");
+      const { db } = await import("../lib/firebase");
+      await deleteDoc(doc(db, "users", userId, "devices", deviceId));
+      await loadLinkedDevices();
+    } catch (err) { alert("Failed to remove device."); }
+  };
+
+  const registerCurrentDevice = async () => {
+    if (!userId) return;
+    try {
+      const { collection, addDoc, Timestamp } = await import("firebase/firestore");
+      const { db } = await import("../lib/firebase");
+      const deviceInfo = {
+        name: navigator.platform || "Unknown Device",
+        browser: navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Firefox") ? "Firefox" : "Browser",
+        lastActive: Timestamp.now(),
+        createdAt: Timestamp.now(),
+        isCurrent: true,
+      };
+      await addDoc(collection(db, "users", userId, "devices"), deviceInfo);
+      await loadLinkedDevices();
+    } catch (err) { console.error(err); }
+  };
   const menuItems = [
     { icon: TrendingUp, label: "Earnings Wallet", sub: "Withdraw commissions" },
     { icon: User, label: "Personal Information", sub: `Update details ${user?.phoneNumber ? `(+63 ${user.phoneNumber})` : ""}`, onClick: () => { setEditName(user?.displayName || ""); setEditPhone(user?.phoneNumber || ""); setShowPersonalInfo(true); } },
     { icon: Shield, label: "Security & Privacy", sub: "Change Password & PIN", onClick: () => setShowSecurity(true) },
     { icon: CreditCard, label: "Payment Methods", sub: "Stored cards & banks", onClick: () => { loadPaymentMethods(); setShowPaymentMethods(true); } },
     { icon: Bell, label: "Notifications", sub: "Alerts & Transaction SMS", onClick: () => { loadNotifSettings(); setShowNotifications(true); } },
-    { icon: Smartphone, label: "Linked Devices", sub: "iPhone 15 Pro, 2 sessions" },
+    { icon: Smartphone, label: "Linked Devices", sub: "Manage active sessions", onClick: () => { loadLinkedDevices(); setShowLinkedDevices(true); } },
     { icon: HelpCircle, label: "Help Center", sub: "FAQs & Live Chat" },
   ];
 
@@ -1018,6 +1061,69 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                 {savingNotif ? "Saving..." : "Save Settings"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Linked Devices Modal */}
+      {showLinkedDevices && (
+        <div className="fixed inset-0 z-[200] bg-brand-black/90 backdrop-blur-xl flex items-end">
+          <div className="w-full bg-brand-navy rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black text-brand-text">Linked Devices</h3>
+              <button onClick={() => setShowLinkedDevices(false)} className="text-brand-text/40 text-2xl">x</button>
+            </div>
+            {loadingDevices ? (
+              <div className="text-center py-8">
+                <p className="text-brand-text/40 font-bold">Loading devices...</p>
+              </div>
+            ) : linkedDevices.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-brand-text/40 font-bold mb-4">No devices registered</p>
+                <button
+                  onClick={registerCurrentDevice}
+                  className="px-6 py-3 bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs rounded-2xl"
+                >
+                  Register This Device
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {linkedDevices.map(device => (
+                  <div key={device.id} className="bg-brand-card/10 border border-brand-border rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                          <Smartphone className="w-5 h-5 text-brand-primary" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black text-brand-text">{device.name}</p>
+                            {device.isCurrent && <span className="text-[9px] bg-brand-primary text-brand-black px-2 py-0.5 rounded-full font-black">CURRENT</span>}
+                          </div>
+                          <p className="text-[10px] text-brand-text/40">{device.browser}</p>
+                          <p className="text-[9px] text-brand-text/30">Last active: {device.lastActive?.toDate?.()?.toLocaleDateString() || "Recently"}</p>
+                        </div>
+                      </div>
+                      {!device.isCurrent && (
+                        <button
+                          onClick={() => handleRemoveDevice(device.id)}
+                          className="text-[9px] font-black text-red-400 border border-red-400/30 px-2 py-1 rounded-lg"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={registerCurrentDevice}
+                  className="w-full py-3 border-2 border-dashed border-brand-border rounded-2xl text-brand-text/40 font-black uppercase tracking-widest text-xs mt-2"
+                >
+                  + Register Current Device
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
