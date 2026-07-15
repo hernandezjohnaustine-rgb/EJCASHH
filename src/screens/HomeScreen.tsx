@@ -139,7 +139,7 @@ export default function HomeScreen({
                     {showBalance ? (
                       <AnimatedNumber value={activeWallet.balance} className={activeWallet.color} />
                     ) : (
-                      "Γé▒ ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
+                      "₱ ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
                     )}
                   </h1>
                   <button 
@@ -212,12 +212,12 @@ export default function HomeScreen({
                 <div className="grid grid-cols-2 gap-4 mb-6">
                    <div className="flex flex-col gap-1">
                       <span className="text-[9px] text-brand-text/30 uppercase font-black tracking-widest">Active Stake</span>
-                      <p className="text-xl font-display font-bold italic tracking-tight text-brand-text/90">Γé▒{stats.tradingInvested.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xl font-display font-bold italic tracking-tight text-brand-text/90">₱{stats.tradingInvested.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                    </div>
                    <div className="flex flex-col gap-1 text-right">
                       <span className="text-[9px] text-brand-text/30 uppercase font-black tracking-widest">Accumulated ROI</span>
                       <p className="text-xl font-display font-bold italic tracking-tight text-brand-primary drop-shadow-[0_0_10px_rgba(250,204,21,0.2)]">
-                        +Γé▒{stats.tradingEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        +₱{stats.tradingEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
                    </div>
                 </div>
@@ -265,7 +265,7 @@ export default function HomeScreen({
                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                            <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Profit Claimed</span>
                         </div>
-                        <span className="text-[10px] text-emerald-500/60 font-bold">+Γé▒{(stats.tradingInvested * 0.05).toLocaleString()} today</span>
+                        <span className="text-[10px] text-emerald-500/60 font-bold">+₱{(stats.tradingInvested * 0.05).toLocaleString()} today</span>
                      </div>
                    ) : (
                      <button 
@@ -277,7 +277,7 @@ export default function HomeScreen({
                        className="w-full py-3 bg-brand-primary text-brand-black rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(250,204,21,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
                      >
                        <TrendingUp className="w-4 h-4" />
-                       Claim Daily Profit (Γé▒{(stats.tradingInvested * 0.05).toLocaleString()})
+                       Claim Daily Profit (₱{(stats.tradingInvested * 0.05).toLocaleString()})
                      </button>
                    )}
                 </div>
@@ -299,7 +299,7 @@ export default function HomeScreen({
                        <CheckCircle2 className="w-10 h-10 text-brand-black" />
                     </motion.div>
                     <h4 className="text-xl font-display font-black text-brand-primary uppercase italic mb-1">Profit Claimed!</h4>
-                    <p className="text-xs text-brand-text/60 font-bold uppercase tracking-widest">+Γé▒{(stats.tradingInvested * 0.05).toLocaleString()} added to balance</p>
+                    <p className="text-xs text-brand-text/60 font-bold uppercase tracking-widest">+₱{(stats.tradingInvested * 0.05).toLocaleString()} added to balance</p>
                  </motion.div>
                )}
              </AnimatePresence>
@@ -369,7 +369,7 @@ export default function HomeScreen({
             <div className="space-y-3 mb-8">
                <div className="flex items-center justify-between p-4 rounded-2xl bg-brand-card/2 border border-brand-border">
                   <span className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold">Registration Fee</span>
-                  <span className="text-2xl font-display font-black text-brand-primary italic">Γé▒360.00</span>
+                  <span className="text-2xl font-display font-black text-brand-primary italic">₱360.00</span>
                </div>
                <div className="flex items-center justify-between p-4 rounded-2xl bg-brand-card/2 border border-brand-border">
                   <span className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold">Included Product</span>
@@ -612,6 +612,7 @@ export default function HomeScreen({
     </div>
   );
 }
+
 
 
 
