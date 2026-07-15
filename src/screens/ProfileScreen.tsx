@@ -247,8 +247,8 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
   };
   const menuItems = [
     { icon: TrendingUp, label: "Earnings Wallet", sub: "Withdraw commissions" },
-    { icon: User, label: "Personal Information", sub: `Update details ${user?.phoneNumber ? `(+63 ${user.phoneNumber})` : ""}` },
-    { icon: Shield, label: "Security & Privacy", sub: "Face ID, PIN, Biometrics" },
+    { icon: User, label: "Personal Information", sub: `Update details ${user?.phoneNumber ? `(+63 ${user.phoneNumber})` : ""}`, onClick: () => { setEditName(user?.displayName || ""); setEditPhone(user?.phoneNumber || ""); setShowPersonalInfo(true); } },
+    { icon: Shield, label: "Security & Privacy", sub: "Change Password & PIN", onClick: () => setShowSecurity(true) },
     { icon: CreditCard, label: "Payment Methods", sub: "Stored cards & banks" },
     { icon: Bell, label: "Notifications", sub: "Alerts & Transaction SMS" },
     { icon: Smartphone, label: "Linked Devices", sub: "iPhone 15 Pro, 2 sessions" },
