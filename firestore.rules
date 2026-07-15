@@ -11,10 +11,23 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     match /test/connection {
-      allow get: if isSignedIn();
+      allow get: if true;
+    }
+    match /referralCodes/{code} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    match /usernames/{username} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    match /phones/{phone} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
     match /users/{userId} {
-      allow get, list: if isSignedIn();
+      allow get: if true;
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn();
     }
