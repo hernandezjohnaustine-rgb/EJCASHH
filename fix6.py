@@ -1,4 +1,4 @@
-import {
+﻿content = '''import {
   doc,
   getDoc,
   setDoc,
@@ -126,3 +126,6 @@ export async function processTransfer(fromUserId: string, toUserId: string, amou
 export const REWARD_STRUCTURE = [
   { level: 1, percent: 0.2778, amount: 100.00 },
 ];
+'''
+open('src/services/earningsService.ts', 'w', encoding='utf-8').write(content)
+print('Done!')
