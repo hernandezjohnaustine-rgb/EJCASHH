@@ -180,14 +180,32 @@ export async function processTransfer(fromUserId: string, toUserId: string, amou
     const fromData = fromSnap.data();
     const toData = toSnap.data();
     if ((fromData.balance || 0) < amount) throw new Error("Insufficient balance");
+    const now = Timestamp.now();
+    const refNo = "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const senderName = fromData.displayName || fromData.username || "Unknown";
+    const recipientName = toData.displayName || toData.username || "Unknown";
     await setDoc(fromRef, { balance: (fromData.balance || 0) - amount }, { merge: true });
     await setDoc(toRef, { balance: (toData.balance || 0) + amount }, { merge: true });
+    await addDoc(collection(db, "transactions"), {
+      userId: fromUserId, type: "out", title: "Sent to " + recipientName,
+      amount: amount, category: "Transfer", status: "Completed",
+      referenceNo: refNo, paymentMethod: "EJCASHH Wallet", timestamp: now,
+    });
+    await addDoc(collection(db, "transactions"), {
+      userId: toUserId, type: "in", title: "Received from " + senderName,
+      amount: amount, category: "Transfer", status: "Completed",
+      referenceNo: refNo, paymentMethod: "EJCASHH Wallet", timestamp: now,
+    });
+    await addDoc(collection(db, "users", toUserId, "notifications"), {
+      title: "Money Received",
+      message: senderName + " sent you \u20B1" + amount.toLocaleString("en-US", { minimumFractionDigits: 2 }),
+      type: "transfer", read: false, createdAt: now,
+    });
   } catch (error) {
     console.error("Transfer error:", error);
     throw error;
   }
 }
-
 export const REWARD_STRUCTURE = [
   { level: 1, percent: 0.2778, amount: 100.00 },
 ];
