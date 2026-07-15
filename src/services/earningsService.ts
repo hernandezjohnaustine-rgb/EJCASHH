@@ -72,8 +72,7 @@ export async function processActivation(
           fromUserId: userId,
           commissionLevel: 1,
         });
-        console.log("Level 1 commission credited to original referrer:", referrerId);
-      }
+        }
     } catch (error) {
       console.error("Level 1 referrer commission error:", error);
     }
@@ -98,12 +97,10 @@ export async function processActivation(
     try {
       const sponsorDoc = await getDoc(doc(db, "users", currentUid));
       if (!sponsorDoc.exists()) {
-        console.log("Upline not found at level", level, "- stopping");
-        break;
+          break;
       }
       const sponsorData = sponsorDoc.data();
       const commission = getCommission(level, packageId);
-      console.log("Level", level, "upline:", currentUid, "commission:", commission);
       await setDoc(doc(db, "users", currentUid), {
         balance: (sponsorData.balance || 0) + commission,
         earningsWallet: (sponsorData.earningsWallet || 0) + commission,
@@ -128,7 +125,6 @@ export async function processActivation(
         fromUserId: userId,
         commissionLevel: level,
       });
-      console.log("Level", level, "commission credited successfully");
       const nextUid = sponsorData.sponsorId || sponsorData.referredBy;
       if (!nextUid) break;
       currentUid = nextUid;
