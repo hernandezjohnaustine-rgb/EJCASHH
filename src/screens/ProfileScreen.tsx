@@ -245,6 +245,44 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
       setSavingInfo(false);
     }
   };
+  const [showSecurity, setShowSecurity] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+    setChangingPassword(true);
+    setPasswordError("");
+    try {
+      const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import("firebase/auth");
+      const { auth } = await import("../lib/firebase");
+      const user = auth.currentUser;
+      if (!user || !user.email) throw new Error("Not logged in");
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => { setPasswordSuccess(false); setShowSecurity(false); }, 2000);
+    } catch (err: any) {
+      setPasswordError(err.message?.includes("wrong-password") ? "Current password is incorrect." : "Failed to change password. Try again.");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
   const menuItems = [
     { icon: TrendingUp, label: "Earnings Wallet", sub: "Withdraw commissions" },
     { icon: User, label: "Personal Information", sub: `Update details ${user?.phoneNumber ? `(+63 ${user.phoneNumber})` : ""}`, onClick: () => { setEditName(user?.displayName || ""); setEditPhone(user?.phoneNumber || ""); setShowPersonalInfo(true); } },
@@ -679,6 +717,59 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
                 className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all disabled:opacity-50 mt-2"
               >
                 {savingInfo ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Security & Privacy Modal */}
+      {showSecurity && (
+        <div className="fixed inset-0 z-[200] bg-brand-black/90 backdrop-blur-xl flex items-end">
+          <div className="w-full bg-brand-navy rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black text-brand-text">Security & Privacy</h3>
+              <button onClick={() => { setShowSecurity(false); setPasswordError(""); }} className="text-brand-text/40 text-2xl">✕</button>
+            </div>
+            {passwordSuccess && (
+              <div className="mb-4 p-3 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-sm font-black text-center">
+                ✅ Password changed successfully!
+              </div>
+            )}
+            {passwordError && (
+              <div className="mb-4 p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-black text-center">
+                {passwordError}
+              </div>
+            )}
+            <p className="text-[10px] font-black uppercase tracking-widest text-brand-text/40 mb-4">Change Password</p>
+            <div className="flex flex-col gap-4">
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 px-5 text-brand-text focus:outline-none focus:border-brand-primary/50"
+                placeholder="Current password"
+              />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 px-5 text-brand-text focus:outline-none focus:border-brand-primary/50"
+                placeholder="New password"
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 px-5 text-brand-text focus:outline-none focus:border-brand-primary/50"
+                placeholder="Confirm new password"
+              />
+              <button
+                onClick={handleChangePassword}
+                disabled={changingPassword}
+                className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all disabled:opacity-50"
+              >
+                {changingPassword ? "Changing..." : "Change Password"}
               </button>
             </div>
           </div>
