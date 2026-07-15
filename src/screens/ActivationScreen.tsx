@@ -1,287 +1,388 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Zap, ShieldCheck, CreditCard, ChevronRight, Check, X, Loader2, AlertCircle } from "lucide-react";
+import { Zap, Crown, Package, CheckCircle, ArrowRight, Gift } from "lucide-react";
 import GlassCard from "../components/GlassCard";
-import { processActivation } from "../services/earningsService";
-import { createPaymentLink } from "../services/paymongoService";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
 
-export default function ActivationScreen({ uid, onActivate, balance, onBack }: { uid: string, onActivate: () => void, balance: number, onBack?: () => void }) {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"GCash" | "Wallet">("GCash");
-  const [error, setError] = useState<string | null>(null);
-  const [paymentLink, setPaymentLink] = useState<string | null>(null);
-  const [showVerifyButton, setShowVerifyButton] = useState(false);
+const PACKAGES = [
+  {
+    id: "package_1",
+    name: "EJCASHH Subscription",
+    price: 360,
+    multiplier: 1,
+    color: "#10B981",
+    icon: Zap,
+    badge: "STARTER",
+    description: "Begin your EJCASHH journey",
+    benefits: [
+      "Earn ₱100 Direct Referral Bonus",
+      "Unlock 10-Level Rewards",
+      "Access Cashback & Rewards",
+      "Withdraw Earnings",
+      "Join VIP Ranking System",
+    ],
+    commissions: [
+      { level: "1", amount: "₱100 fixed" },
+      { level: "2", amount: "₱3 fixed" },
+      { level: "3", amount: "₱3 fixed" },
+      { level: "4", amount: "₱3 fixed" },
+      { level: "5-10", amount: "₱3 fixed each" },
+    ],
+  },
+  {
+    id: "package_2",
+    name: "Activation Livelihood Program",
+    price: 3600,
+    multiplier: 10,
+    color: "#F59E0B",
+    icon: Crown,
+    badge: "10X EARNINGS",
+    description: "Multiply your earnings by 10x",
+    benefits: [
+      "Earn ₱1,000 Direct Referral Bonus (10x)",
+      "10x on ALL Level Commissions",
+      "Unlock 10-Level Rewards",
+      "Priority Withdrawal",
+      "Elite VIP Status",
+    ],
+    commissions: [
+      { level: "1", amount: "₱1,000 fixed (10x)" },
+      { level: "2", amount: "₱30 fixed (10x)" },
+      { level: "3", amount: "₱30 fixed (10x)" },
+      { level: "4", amount: "₱30 fixed (10x)" },
+      { level: "5-10", amount: "₱30 fixed (10x) each" },
+    ],
+  },
+  {
+    id: "combined",
+    name: "Complete Activation Bundle",
+    price: 3960,
+    multiplier: 10,
+    color: "#8B5CF6",
+    icon: Package,
+    badge: "BEST VALUE",
+    description: "Package 1 + Package 2 combined",
+    benefits: [
+      "Everything in Package 1",
+      "Everything in Package 2",
+      "10x Earnings Multiplier",
+      "Full Bundle Savings",
+      "Instant Elite Status",
+    ],
+    commissions: [
+      { level: "1", amount: "₱1,100 fixed (10x)" },
+      { level: "2", amount: "₱33 fixed (10x)" },
+      { level: "3", amount: "₱33 fixed (10x)" },
+      { level: "4", amount: "₱33 fixed (10x)" },
+      { level: "5-10", amount: "₱33 fixed (10x) each" },
+    ],
+  },
+];
 
-  const ACTIVATION_FEE = 360;
-  const hasEnoughBalance = (balance || 0) >= ACTIVATION_FEE;
+interface ActivationScreenProps {
+  balance: number;
+  onActivate: (packageId: string, amount: number) => void;
+  onBack: () => void;
+  uid?: string;
+  isActivated?: boolean;
+  currentPackage?: string;
+}
 
-  const benefits = [
-    "30% Direct Referral Commission",
-    "MLM Profit Sharing (Level 1-10)",
-    "Unlock Full Withdrawal Features",
-    "Daily Login Bonus Activation",
-    "Unlock VIP Ranking System",
-    "Instant EJCASHH ID Verification"
-  ];
+export default function ActivationScreen({
+  balance,
+  onActivate,
+  onBack,
+  uid,
+  isActivated,
+  currentPackage,
+}: ActivationScreenProps) {
+  const [selectedPackage, setSelectedPackage] = useState<string>("package_1");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [expandedPackage, setExpandedPackage] = useState<string | null>(null);
 
-  const handlePay = async () => {
-    setIsProcessing(true);
-    setError(null);
-    try {
-      if (paymentMethod === "Wallet") {
-        if ((balance || 0) < ACTIVATION_FEE) {
-          setError(`Insufficient Balance. You need ₱${ACTIVATION_FEE} to activate.`);
-          setIsProcessing(false);
-          return;
-        }
-        await processActivation(uid);
-        onActivate();
-      } else {
-        const link = await createPaymentLink(
-          360,
-          "EJCASHH Starter Activation Fee",
-          { userId: uid, type: "activation" }
-        );
+  const selected = PACKAGES.find(p => p.id === selectedPackage)!;
+  const hasEnoughBalance = balance >= selected.price;
 
-        // Save pending payment
-        await updateDoc(doc(db, "users", uid), {
-          pendingActivationLinkId: link.id,
-        });
-
-        // Open payment page
-        window.open(link.attributes.checkout_url, "_blank");
-
-        // Show verify button
-        setPaymentLink(link.attributes.checkout_url);
-        setShowVerifyButton(true);
-      }
-    } catch (err: any) {
-      console.error(err);
-      let message = "Failed to process activation. Please try again.";
-      try {
-        const parsed = JSON.parse(err.message);
-        message = parsed.error || message;
-      } catch (e) {
-        message = err.message || message;
-      }
-      setError(message);
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleConfirm = () => {
+    onActivate(selectedPackage, selected.price);
+    setShowConfirm(false);
   };
 
   return (
-    <div className="min-h-screen bg-brand-black flex flex-col p-6 pt-12 overflow-y-auto pb-32 relative">
-      {/* Background Glow */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-brand-primary/20 blur-[100px] pointer-events-none"></div>
-
-      <header className="text-center mb-12 relative z-10">
-        {onBack && (
-          <button 
-            onClick={onBack}
-            className="absolute top-0 right-0 p-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 hover:text-white transition-all transform hover:scale-110 active:scale-90"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-        <div className="w-20 h-20 mx-auto rounded-3xl bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
-          <Zap className="w-10 h-10 text-brand-primary animate-pulse" />
-        </div>
-        <h1 className="text-3xl font-display font-black tracking-tight mb-2">Account Activation</h1>
-        <p className="text-sm text-white/40 font-medium">Activate your account to unlock the full earning potential of EJCASHH.</p>
-      </header>
-
-      <section className="flex flex-col gap-6 relative z-10">
-        <GlassCard className="!p-8 border-brand-primary/20 bg-gradient-to-br from-brand-primary/10 to-brand-accent/5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4">
-             <div className="px-3 py-1 bg-brand-primary text-brand-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_0_15px_#FACC15]">Featured</div>
-          </div>
-          
-          <div className="text-center mb-8">
-            <p className="text-xs text-white/40 uppercase tracking-[0.2em] font-bold mb-2">Activation Package</p>
-            <h2 className="text-5xl font-display font-black tracking-tighter">₱360</h2>
-            <div className="mt-4 inline-flex items-center gap-3 px-4 py-2 bg-brand-primary/5 rounded-2xl border border-brand-primary/10">
-               <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Included Product:</span>
-               <span className="text-[10px] text-brand-primary font-black uppercase tracking-widest">Premium Beauty Soap</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {benefits.map((benefit, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-brand-primary/20 flex items-center justify-center shrink-0">
-                  <Check className="w-3 h-3 text-brand-primary" />
-                </div>
-                <span className="text-sm font-medium text-white/80">{benefit}</span>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
-
-        <div className="flex flex-col gap-4 mt-4">
-           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/30 ml-2">Payment Method</h3>
-           <button 
-             onClick={() => {
-               setPaymentMethod("GCash");
-               setShowConfirmation(true);
-             }}
-             className={`glass-card !p-5 flex items-center justify-between border-transparent transition-all active:scale-95 ${paymentMethod === 'GCash' ? 'ring-2 ring-brand-primary bg-white/10' : 'bg-white/5'}`}
-           >
-              <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center font-black text-blue-500 italic">G</div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-bold">GCash Pay</h4>
-                    <p className="text-[10px] text-white/40 font-medium tracking-wider">Manual Verification</p>
-                 </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-white/20" />
-           </button>
-           <button 
-             onClick={() => {
-               if (hasEnoughBalance) {
-                 setPaymentMethod("Wallet");
-                 setShowConfirmation(true);
-               } else {
-                 setError("Insufficient Wallet Balance. Please cash in first.");
-               }
-             }}
-             disabled={!hasEnoughBalance}
-             className={`glass-card !p-5 flex items-center justify-between border-transparent transition-all active:scale-95 ${paymentMethod === 'Wallet' ? 'ring-2 ring-brand-primary bg-white/10' : 'bg-white/5'} ${!hasEnoughBalance ? 'opacity-60 grayscale' : ''}`}
-           >
-              <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center">
-                   <CreditCard className="w-6 h-6 text-brand-primary" />
-                 </div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-bold">Main Wallet</h4>
-                    <p className={`text-[10px] font-bold tracking-wider ${hasEnoughBalance ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {hasEnoughBalance ? `Balance: ₱${balance.toLocaleString()}` : 'Insufficient Balance'}
-                    </p>
-                 </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-white/20" />
-           </button>
-        </div>
-      </section>
-
-      <div className="mt-auto pt-10 pb-8 relative z-10">
-        <button 
-          onClick={() => {
-            if (!hasEnoughBalance) {
-              setError("Insufficient Balance. Please cash in first.");
-              return;
-            }
-            setShowConfirmation(true);
-          }}
-          disabled={!hasEnoughBalance}
-          className={`btn-primary w-full h-16 text-lg tracking-tight shadow-[0_10px_30px_rgba(250,204,21,0.4)] ${!hasEnoughBalance ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+    <div className="min-h-screen bg-brand-black flex flex-col overflow-y-auto pb-40">
+      {/* Header */}
+      <div className="px-6 pt-8 pb-6">
+        <button
+          onClick={onBack}
+          className="text-brand-text/40 text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-2"
         >
-          {!hasEnoughBalance ? "Insufficient Balance" : paymentMethod === "Wallet" ? `Activation via Wallet (₱360)` : "Activate via GCash (₱360)"}
+          ← Back
         </button>
-        <div className="flex items-center justify-center gap-2 mt-6">
-           <ShieldCheck className="w-4 h-4 text-white/20" />
-           <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Secure Multi-Layer Encryption</span>
-        </div>
+        <h1 className="text-2xl font-display font-black tracking-tight text-brand-text mb-1">
+          Choose Your Package
+        </h1>
+        <p className="text-sm text-brand-text/40">
+          Select the activation package that fits your goals
+        </p>
       </div>
 
-      <AnimatePresence>
-        {showConfirmation && (
-          <div className="fixed inset-0 flex items-center justify-center p-6 z-[60]">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-brand-black/80 backdrop-blur-md"
-              onClick={() => !isProcessing && setShowConfirmation(false)}
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="glass-card w-full max-w-sm relative overflow-hidden"
+      {/* Balance */}
+      <div className="px-6 mb-6">
+        <GlassCard className="!p-4 flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-widest text-brand-text/40">
+            Available Balance
+          </span>
+          <span className={`text-lg font-black ${balance > 0 ? 'text-brand-primary' : 'text-red-500'}`}>
+            ₱{balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </span>
+        </GlassCard>
+      </div>
+
+      {/* Package Cards */}
+      <div className="px-6 flex flex-col gap-4 mb-8">
+        {PACKAGES.map(pkg => {
+          const Icon = pkg.icon;
+          const isSelected = selectedPackage === pkg.id;
+          const isExpanded = expandedPackage === pkg.id;
+          const canAfford = balance >= pkg.price;
+
+          return (
+            <motion.div
+              key={pkg.id}
+              animate={{ scale: isSelected ? 1.01 : 1 }}
+              className="rounded-3xl border-2 overflow-hidden transition-all cursor-pointer"
+              style={{
+                borderColor: isSelected ? pkg.color : 'var(--card-border)',
+                background: isSelected ? `${pkg.color}10` : 'var(--card-bg)',
+              }}
+              onClick={() => setSelectedPackage(pkg.id)}
             >
-               {isProcessing ? (
-                 <div className="py-12 flex flex-col items-center gap-6 px-4">
-                    <div className="relative">
-                      <Loader2 className="w-16 h-16 text-brand-primary animate-spin" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Zap className="w-6 h-6 text-brand-primary animate-pulse" />
-                      </div>
-                    </div>
-                    <div className="text-center w-full">
-                       <h3 className="text-xl font-display font-black mb-2 italic">Verifying Transaction</h3>
-                       <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] font-bold mb-6">Processing on EJCASHH Network...</p>
-                       
-                       <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-2">
-                          <motion.div 
-                            initial={{ width: "0%" }}
-                            animate={{ width: "100%" }}
-                            transition={{ duration: 3, ease: "linear" }}
-                            className="h-full bg-brand-primary shadow-[0_0_10px_#FACC15]"
-                          />
-                       </div>
-                       <p className="text-[10px] text-brand-primary/60 font-black uppercase tracking-widest">Please do not refresh</p>
-                    </div>
-                 </div>
-               ) : (
-                 <div className="p-8">
-                    <div className="flex justify-between items-start mb-6">
-                       <div>
-                          <h3 className="text-xl font-display font-black tracking-tight mb-1">Confirm Payment</h3>
-                          <p className="text-xs text-white/40 uppercase font-black tracking-widest">Digital Activation Fee</p>
-                       </div>
-                       <button onClick={() => setShowConfirmation(false)} className="text-white/20 hover:text-white transition-colors">
-                          <X className="w-6 h-6" />
-                       </button>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
-                       <div className="flex justify-between items-center mb-4">
-                          <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Amount to Pay</span>
-                          <span className="text-2xl font-display font-black text-brand-primary italic">₱360.00</span>
-                       </div>
-                       <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
-                          <span className="text-white/40">Reference</span>
-                          <span>EJ-ACT-2024</span>
-                       </div>
-                    </div>
-
-                    <button 
-                      onClick={handlePay}
-                      disabled={isProcessing || !hasEnoughBalance}
-                      className={`btn-primary w-full h-16 text-lg tracking-tight mb-4 ${(!hasEnoughBalance || isProcessing) ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+              <div className="p-5">
+                {/* Package Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                      style={{ background: `${pkg.color}20` }}
                     >
-                      {isProcessing ? "Processing..." : !hasEnoughBalance ? "Insufficient Balance" : "Pay Now"}
-                    </button>
-                    {showVerifyButton && (
-  <button
-    onClick={async () => {
-      setIsProcessing(true);
-      try {
-        await processActivation(uid);
-        onActivate();
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsProcessing(false);
-      }
-    }}
-    className="w-full h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-black uppercase tracking-widest mt-3"
-  >
-    I've Paid — Activate Now
-  </button>
-)}
-                    {error && (
-                       <p className="text-[10px] text-center text-red-400 font-bold mb-4 uppercase tracking-widest">{error}</p>
+                      <Icon className="w-6 h-6" style={{ color: pkg.color }} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span
+                          className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                          style={{ background: `${pkg.color}20`, color: pkg.color }}
+                        >
+                          {pkg.badge}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-black text-brand-text leading-tight">
+                        {pkg.name}
+                      </h3>
+                      <p className="text-[10px] text-brand-text/40">{pkg.description}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 ml-2">
+                    <p className="text-xl font-display font-black" style={{ color: pkg.color }}>
+                      ₱{pkg.price.toLocaleString()}
+                    </p>
+                    {pkg.multiplier > 1 && (
+                      <span className="text-[9px] font-black text-brand-text/40">
+                        {pkg.multiplier}x multiplier
+                      </span>
                     )}
-                    <p className="text-[10px] text-center text-white/30 font-bold uppercase tracking-widest">By activating, you agree to our Terms of Earnings.</p>
-                 </div>
-               )}
+                  </div>
+                </div>
+
+                {/* Benefits */}
+                <div className="flex flex-col gap-2 mb-4">
+                  {pkg.benefits.map((b, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <CheckCircle
+                        className="w-3.5 h-3.5 shrink-0"
+                        style={{ color: pkg.color }}
+                      />
+                      <span className="text-[11px] text-brand-text/70">{b}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Commission Toggle */}
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    setExpandedPackage(isExpanded ? null : pkg.id);
+                  }}
+                  className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1"
+                  style={{ color: pkg.color }}
+                >
+                  {isExpanded ? "Hide" : "View"} Commission Structure
+                  <ArrowRight
+                    className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                  />
+                </button>
+
+                {/* Commission Details */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div
+                        className="mt-3 rounded-2xl p-3"
+                        style={{ background: `${pkg.color}10` }}
+                      >
+                        <p
+                          className="text-[9px] font-black uppercase tracking-widest mb-2"
+                          style={{ color: pkg.color }}
+                        >
+                          Commission Per Level
+                        </p>
+                        {pkg.commissions.map((c, i) => (
+                          <div
+                            key={i}
+                            className="flex justify-between py-1 border-b border-brand-border/20 last:border-0"
+                          >
+                            <span className="text-[10px] text-brand-text/40">
+                              Level {c.level}
+                            </span>
+                            <span
+                              className="text-[10px] font-black"
+                              style={{ color: pkg.color }}
+                            >
+                              {c.amount}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Cannot afford warning */}
+                {!canAfford && (
+                  <p className="text-[10px] text-red-500 font-black mt-3">
+                    ⚠️ Need ₱{(pkg.price - balance).toLocaleString()} more
+                  </p>
+                )}
+
+                {/* Selected indicator */}
+                {isSelected && (
+                  <div
+                    className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                    style={{ color: pkg.color }}
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Selected
+                  </div>
+                )}
+              </div>
             </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Bottom CTA */}
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-brand-black/90 backdrop-blur-xl border-t border-brand-border/10">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-[10px] text-brand-text/40 uppercase tracking-widest">
+              Selected Package
+            </p>
+            <p className="text-sm font-black text-brand-text">{selected.name}</p>
           </div>
+          <p className="text-2xl font-display font-black" style={{ color: selected.color }}>
+            ₱{selected.price.toLocaleString()}
+          </p>
+        </div>
+        {!hasEnoughBalance && (
+          <p className="text-[10px] text-red-500 font-black uppercase tracking-widest mb-2 text-center">
+            ⚠️ Insufficient balance — Please cash in first
+          </p>
+        )}
+        <button
+          onClick={() => hasEnoughBalance && setShowConfirm(true)}
+          disabled={!hasEnoughBalance}
+          className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          style={{ background: hasEnoughBalance ? selected.color : '#666' }}
+        >
+          <Gift className="w-4 h-4" />
+          Activate — ₱{selected.price.toLocaleString()}
+        </button>
+      </div>
+
+      {/* Confirm Modal */}
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-brand-black/90 backdrop-blur-md flex items-end"
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              className="w-full bg-brand-navy rounded-t-3xl p-6"
+            >
+              <h3 className="text-lg font-black text-brand-text mb-2">
+                Confirm Activation
+              </h3>
+              <p className="text-sm text-brand-text/40 mb-6">
+                You are about to activate{" "}
+                <span className="font-black text-brand-text">{selected.name}</span> for{" "}
+                <span className="font-black" style={{ color: selected.color }}>
+                  ₱{selected.price.toLocaleString()}
+                </span>
+                . This will be deducted from your wallet balance.
+              </p>
+
+              <GlassCard className="!p-4 mb-6">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-brand-text/60">Package</span>
+                  <span className="font-black text-brand-text text-sm">{selected.name}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-brand-text/60">Amount</span>
+                  <span className="font-black text-sm" style={{ color: selected.color }}>
+                    ₱{selected.price.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-brand-text/60">Earnings Multiplier</span>
+                  <span className="font-black text-sm" style={{ color: selected.color }}>
+                    {selected.multiplier}x
+                  </span>
+                </div>
+                <div className="border-t border-brand-border my-3" />
+                <div className="flex justify-between">
+                  <span className="text-sm text-brand-text/60">Remaining Balance</span>
+                  <span className="font-black text-brand-primary">
+                    ₱{(balance - selected.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </GlassCard>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1 py-4 rounded-2xl border border-brand-border text-brand-text font-black uppercase tracking-widest text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-xs text-white"
+                  style={{ background: selected.color }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

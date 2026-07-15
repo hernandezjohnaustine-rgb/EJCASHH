@@ -1,42 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny
+
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // --- GLOBAL HELPERS ---
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-
-    // --- VALIDATION HELPERS ---
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'isActivated', 'balance', 'earningsWallet', 'referralCode', 'referredBy', 'createdAt', 'stats'])
-        && data.keys().size() >= 9 && data.keys().size() <= 20
-        && data.uid is string && data.uid.size() <= 128
-        && data.email is string && data.email.size() <= 256
-        && data.isActivated is bool
-        && data.balance is number
-        && data.earningsWallet is number
-        && (data.username == null || (data.username is string && data.username.size() <= 32))
-        && (data.phoneNumber == null || (data.phoneNumber is string && data.phoneNumber.size() <= 20))
-        && (data.displayName == null || (data.displayName is string && data.displayName.size() <= 128))
-        && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 512))
-        && (data.referralCode == null || (data.referralCode is string && data.referralCode.size() <= 32))
-        && (data.referredBy == null || (data.referredBy is string && data.referredBy.size() <= 128))
-        && (data.createdAt == null || (data.createdAt is string))
-        && (data.lastClaimDate == null || data.lastClaimDate is string)
-        && (data.tradingInvested == null || data.tradingInvested is number)
-        && (data.tradingEarnings == null || data.tradingEarnings is number)
-        && (data.tradingActive == null || data.tradingActive is bool)
-        && (data.tradingClaimedToday == null || data.tradingClaimedToday is bool)
-        && (data.tradingDaysCompleted == null || data.tradingDaysCompleted is number)
-        && (data.stats == null || data.stats is map);
-    }
+    function isAdmin() {
+     return isSignedIn() &&
+       exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+   }
 
     function isValidTransaction(data) {
       return data.type is string
@@ -44,47 +22,27 @@ service cloud.firestore {
         && data.timestamp != null;
     }
 
-    // --- COLLECTION RULES ---
-
-    // Connection Test
     match /test/connection {
       allow get: if isSignedIn();
     }
 
-    // User Rules
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      
-      allow create: if isOwner(userId) 
-        && isValidUser(incoming())
+
+      allow create: if isOwner(userId)
         && incoming().uid == userId
         && incoming().isActivated == false
         && incoming().balance == 0
         && incoming().earningsWallet == 0;
 
       allow update: if isSignedIn() && (
-        // Action: Self Update (Owner)
-        (isOwner(userId) && isValidUser(incoming()) && (
-          incoming().diff(existing()).affectedKeys().hasOnly([
-            'displayName', 'photoURL', 'isActivated', 'activatedAt', 'balance', 
-            'earningsWallet', 'tradingInvested', 'tradingEarnings', 'tradingActive', 
-            'tradingClaimedToday', 'tradingDaysCompleted', 'lastClaimDate', 'stats',
-            'username', 'phoneNumber'
+        isOwner(userId)
+        || isAdmin()
+        || (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
+            'balance', 'earningsWallet', 'stats',
+            'sponsorId', 'isAutoPlaced', 'originalReferrerId'
           ])
-          // Immortality: Prevent changing core identity
-          && incoming().uid == existing().uid
-          && incoming().email == existing().email
-          && incoming().referralCode == existing().referralCode
-          && incoming().createdAt == existing().createdAt
-        ))
-        ||
-        // Action: Sponsor earning update (Someone else rewarding the referrer)
-        // This usually happens when a referral performs a transaction
-        (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'earningsWallet', 'stats'])
-          && incoming().uid == existing().uid
-          && incoming().email == existing().email
-          && incoming().isActivated == existing().isActivated
         )
       );
     }
@@ -93,25 +51,46 @@ service cloud.firestore {
       allow read: if isSignedIn();
     }
 
-    // Transaction Rules
     match /transactions/{transactionId} {
-      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() 
-        && isValidTransaction(incoming());
+      allow get, list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() && isValidTransaction(incoming());
     }
 
-    // Referral Rules
     match /referrals/{referralId} {
-      allow read: if isSignedIn() && (resource.data.referrerId == request.auth.uid || resource.data.refereeId == request.auth.uid);
+      allow read: if isSignedIn() && (
+        resource.data.referrerId == request.auth.uid ||
+        resource.data.refereeId == request.auth.uid
+      );
       allow create: if isSignedIn() && incoming().refereeId == request.auth.uid;
     }
 
-    // Trading Package Rules
     match /trading_packages/{packageId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid
-        && incoming().diff(existing()).affectedKeys().hasOnly(['daysCompleted', 'lastClaimedAt', 'status']);
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /withdrawalRequests/{id} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow update: if isAdmin();
+    }
+
+    match /products/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{id} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || isAdmin()
+      );
+      allow update: if isAdmin();
     }
   }
 }

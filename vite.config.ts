@@ -12,7 +12,10 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.png'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png'],
+        workbox: {
+          maximumFileSizeToCacheInBytes: 5000000,
+        },
         manifest: {
           name: 'EJCASHH',
           short_name: 'EJCASHH',
@@ -25,13 +28,18 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           icons: [
             {
-              src: 'favicon.png',
+              src: 'android-chrome-192x192.png',
               sizes: '192x192',
               type: 'image/png',
             },
             {
-              src: 'favicon.png',
+              src: 'android-chrome-512x512.png',
               sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'apple-touch-icon.png',
+              sizes: '180x180',
               type: 'image/png',
             },
           ],

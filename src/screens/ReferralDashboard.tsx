@@ -13,7 +13,8 @@ import {
   Copy,
   Gift,
   CheckCircle2,
-  Scan
+  Scan,
+  Lock
 } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 import { UserStats, Wallet as WalletType } from "../types";
@@ -30,11 +31,12 @@ const MLM_LEVELS = [
   { level: "6-10", reward: "1%", income: "₱3.60", label: "Indirect" },
 ];
 
-export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode, onClaimDaily, isDailyClaimed }: { 
+export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode, referralLinkEnabled, onClaimDaily, isDailyClaimed }: { 
   stats: UserStats, 
   onWithdraw: () => void,
   onViewNetwork: () => void,
   referralCode: string,
+  referralLinkEnabled: boolean,
   onClaimDaily?: () => void,
   isDailyClaimed?: boolean
 }) {
@@ -136,33 +138,45 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
       {/* Referral Link */}
       <section className="px-6">
          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30 mb-4 px-2">Invite Link</h3>
-          <GlassCard className="flex items-center justify-between py-4 px-6 border-brand-primary/20 bg-brand-primary/5">
-            <div className="flex items-center gap-4 flex-1 mr-4 overflow-hidden">
-               <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center shrink-0">
-                  <Share2 className="w-5 h-5 text-brand-primary" />
-               </div>
-               <div className="overflow-hidden">
-                  <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
-                  <p className="text-sm font-mono font-bold truncate opacity-80">
-                     {(shortenedLink || shareLink).replace(/^https?:\/\//, '')}
-                  </p>
-               </div>
-            </div>
-               <div className="flex gap-2">
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(shortenedLink || shareLink)}
-                    className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
-                  >
-                     <Copy className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setIsQrModalOpen(true)}
-                    className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
-                  >
-                     <Scan className="w-4 h-4" />
-                  </button>
-               </div>
-          </GlassCard>
+          {referralLinkEnabled ? (
+            <GlassCard className="flex items-center justify-between py-4 px-6 border-brand-primary/20 bg-brand-primary/5">
+              <div className="flex items-center gap-4 flex-1 mr-4 overflow-hidden">
+                 <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center shrink-0">
+                    <Share2 className="w-5 h-5 text-brand-primary" />
+                 </div>
+                 <div className="overflow-hidden">
+                    <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link</p>
+                    <p className="text-sm font-mono font-bold truncate opacity-80">
+                       {(shortenedLink || shareLink).replace(/^https?:\/\//, '')}
+                    </p>
+                 </div>
+              </div>
+                 <div className="flex gap-2">
+                    <button 
+                      onClick={() => navigator.clipboard.writeText(shortenedLink || shareLink)}
+                      className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
+                    >
+                       <Copy className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setIsQrModalOpen(true)}
+                      className="p-3 bg-brand-card/5 border border-brand-border hover:bg-brand-primary/20 rounded-xl transition-all"
+                    >
+                       <Scan className="w-4 h-4" />
+                    </button>
+                 </div>
+            </GlassCard>
+          ) : (
+            <GlassCard className="!p-4 flex items-center gap-4 border-brand-border bg-brand-card/2 opacity-70">
+              <div className="w-10 h-10 rounded-xl bg-brand-text/5 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5 text-brand-text/30" />
+              </div>
+              <div>
+                <p className="text-[10px] text-brand-text/40 font-bold uppercase tracking-widest">Invite Link Locked</p>
+                <p className="text-[10px] text-brand-text/30 font-medium mt-0.5">Contact support to enable referral sharing.</p>
+              </div>
+            </GlassCard>
+          )}
       </section>
 
       {/* Reward Structure */}

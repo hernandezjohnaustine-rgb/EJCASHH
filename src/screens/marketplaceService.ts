@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ShoppingBag, Search, ChevronLeft, Filter, Star, ShoppingCart, Heart, X, MapPin, CheckCircle, Wallet, CreditCard } from "lucide-react";
 import GlassCard from "../components/GlassCard";
-import { collection, addDoc, getDocs, doc, getDoc, Timestamp, setDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, where, Timestamp, setDoc } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
+
+// ─── Marketplace Service (inlined) ───────────────────────────────────────────
 
 const COMMISSION_RATES: Record<number, number> = {
   1: 0.10, 2: 0.05, 3: 0.03, 4: 0.02,
@@ -25,7 +27,10 @@ async function distributeMarketplaceCommission(buyerId: string, productPrice: nu
     await setDoc(doc(db, "users", sponsorId), {
       balance: (sponsorData.balance || 0) + commission,
       earningsWallet: (sponsorData.earningsWallet || 0) + commission,
-      stats: { ...sponsorData.stats, totalEarnings: (sponsorData.stats?.totalEarnings || 0) + commission }
+      stats: {
+        ...sponsorData.stats,
+        totalEarnings: (sponsorData.stats?.totalEarnings || 0) + commission,
+      }
     }, { merge: true });
     await addDoc(collection(db, "transactions"), {
       userId: sponsorId,
@@ -55,6 +60,8 @@ async function createOrder(order: any) {
   });
 }
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 const CATEGORIES = ['All', 'Beauty', 'Merch', 'Electronics', 'Home'];
 
 const FALLBACK_PRODUCTS = [
@@ -80,7 +87,9 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    getProducts().then(p => { if (p.length > 0) setProducts(p); }).catch(() => {});
+    getProducts().then(p => {
+      if (p.length > 0) setProducts(p);
+    }).catch(() => {});
   }, []);
 
   const filtered = products.filter(p => {
@@ -126,7 +135,9 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
           status: "Pending",
         });
         await distributeMarketplaceCommission(user.uid, item.price * item.qty);
-        if (paymentMethod === "wallet") onConfirm(item.price * item.qty, item.title);
+        if (paymentMethod === "wallet") {
+          onConfirm(item.price * item.qty, item.title);
+        }
       }
       setCart([]);
       setShowCart(false);
@@ -149,7 +160,9 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
         <button onClick={() => setShowCart(true)} className="w-10 h-10 rounded-full bg-brand-card/20 border border-brand-border flex items-center justify-center relative">
           <ShoppingCart className="w-5 h-5" />
           {cartCount > 0 && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-brand-primary text-brand-black text-[10px] font-black flex items-center justify-center rounded-full">{cartCount}</div>
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-brand-primary text-brand-black text-[10px] font-black flex items-center justify-center rounded-full">
+              {cartCount}
+            </div>
           )}
         </button>
       </header>
@@ -157,15 +170,23 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
       <div className="px-6 pt-6">
         <div className="relative mb-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text/40" />
-          <input type="text" placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text"
+          />
           <Filter className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-primary" />
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-4 mb-6">
           {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 px-5 py-2 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${activeCategory === cat ? 'bg-brand-primary text-brand-black' : 'bg-brand-card/20 border border-brand-border text-brand-text/60'}`}>
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`shrink-0 px-5 py-2 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${activeCategory === cat ? 'bg-brand-primary text-brand-black' : 'bg-brand-card/20 border border-brand-border text-brand-text/60'}`}
+            >
               {cat}
             </button>
           ))}
@@ -188,8 +209,10 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
             <GlassCard key={prod.id} className="!p-0 overflow-hidden flex flex-col group cursor-pointer">
               <div className="relative aspect-square overflow-hidden bg-brand-card/20" onClick={() => setSelectedProduct(prod)}>
                 <img src={prod.image} alt={prod.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
-                <button onClick={e => { e.stopPropagation(); toggleWishlist(prod.id); }}
-                  className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-brand-black/50 backdrop-blur-md flex items-center justify-center transition-colors ${wishlist.includes(prod.id) ? 'text-red-500' : 'text-brand-text/60'}`}>
+                <button
+                  onClick={e => { e.stopPropagation(); toggleWishlist(prod.id); }}
+                  className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-brand-black/50 backdrop-blur-md flex items-center justify-center transition-colors ${wishlist.includes(prod.id) ? 'text-red-500' : 'text-brand-text/60'}`}
+                >
                   <Heart className={`w-4 h-4 ${wishlist.includes(prod.id) ? 'fill-current' : ''}`} />
                 </button>
               </div>
@@ -203,8 +226,10 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-base font-display font-black text-brand-text">₱{prod.price}</p>
-                  <button onClick={e => { e.stopPropagation(); addToCart(prod); }}
-                    className="w-8 h-8 rounded-lg bg-brand-primary text-brand-black flex items-center justify-center active:scale-95 transition-all">
+                  <button
+                    onClick={e => { e.stopPropagation(); addToCart(prod); }}
+                    className="w-8 h-8 rounded-lg bg-brand-primary text-brand-black flex items-center justify-center active:scale-95 transition-all"
+                  >
                     <ShoppingBag className="w-4 h-4" />
                   </button>
                 </div>
@@ -214,6 +239,7 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
         </div>
       </div>
 
+      {/* Product Detail Modal */}
       <AnimatePresence>
         {selectedProduct && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-brand-black/90 backdrop-blur-md flex items-end">
@@ -233,6 +259,7 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                   <span className="text-brand-text/40">({selectedProduct.reviews} reviews)</span>
                 </div>
                 <p className="text-brand-text/60 text-sm mb-4">{selectedProduct.description || "Quality product from EJCASHH Marketplace."}</p>
+
                 <GlassCard className="!p-4 mb-4 bg-brand-primary/5 border-brand-primary/20">
                   <p className="text-[10px] font-black text-brand-primary uppercase tracking-widest mb-2">MLM Commission Preview</p>
                   <div className="grid grid-cols-2 gap-2">
@@ -244,6 +271,7 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                     ))}
                   </div>
                 </GlassCard>
+
                 <div className="flex items-center gap-4 mb-6">
                   <span className="text-sm font-black text-brand-text/60 uppercase tracking-widest">Qty</span>
                   <div className="flex items-center gap-3">
@@ -253,13 +281,18 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                   </div>
                   <span className="ml-auto text-2xl font-black text-brand-primary">₱{(selectedProduct.price * quantity).toLocaleString()}</span>
                 </div>
+
                 <div className="flex gap-3">
-                  <button onClick={() => { addToCart({ ...selectedProduct, qty: quantity }); setSelectedProduct(null); setQuantity(1); }}
-                    className="flex-1 py-4 rounded-2xl border border-brand-primary text-brand-primary font-black uppercase tracking-widest text-xs active:scale-95 transition-all">
+                  <button
+                    onClick={() => { addToCart({ ...selectedProduct, qty: quantity }); setSelectedProduct(null); setQuantity(1); }}
+                    className="flex-1 py-4 rounded-2xl border border-brand-primary text-brand-primary font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
+                  >
                     Add to Cart
                   </button>
-                  <button onClick={() => { addToCart({ ...selectedProduct, qty: quantity }); setSelectedProduct(null); setQuantity(1); setShowCart(true); }}
-                    className="flex-1 py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-all">
+                  <button
+                    onClick={() => { addToCart({ ...selectedProduct, qty: quantity }); setSelectedProduct(null); setQuantity(1); setShowCart(true); }}
+                    className="flex-1 py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
+                  >
                     Buy Now
                   </button>
                 </div>
@@ -269,6 +302,7 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
         )}
       </AnimatePresence>
 
+      {/* Cart Modal */}
       <AnimatePresence>
         {showCart && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-brand-black/90 backdrop-blur-md flex items-end">
@@ -277,6 +311,7 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                 <h3 className="text-lg font-black text-brand-text">🛒 Cart ({cartCount})</h3>
                 <button onClick={() => setShowCart(false)}><X className="w-6 h-6 text-brand-text/40" /></button>
               </div>
+
               {cart.length === 0 ? (
                 <div className="text-center py-12">
                   <ShoppingCart className="w-12 h-12 text-brand-text/20 mx-auto mb-4" />
@@ -292,26 +327,42 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                         <p className="text-brand-primary font-black">₱{(item.price * item.qty).toLocaleString()}</p>
                         <p className="text-[10px] text-brand-text/40">Qty: {item.qty}</p>
                       </div>
-                      <button onClick={() => removeFromCart(item.id)} className="text-red-500"><X className="w-5 h-5" /></button>
+                      <button onClick={() => removeFromCart(item.id)} className="text-red-500">
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
                   ))}
+
                   <div className="mt-6 mb-4">
                     <p className="text-xs font-black uppercase tracking-widest text-brand-text/40 mb-3">Delivery Information</p>
                     <div className="flex flex-col gap-3">
                       <div className="relative">
                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-primary" />
-                        <input type="text" placeholder="Complete delivery address" value={address} onChange={e => setAddress(e.target.value)}
-                          className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
+                        <input
+                          type="text"
+                          placeholder="Complete delivery address"
+                          value={address}
+                          onChange={e => setAddress(e.target.value)}
+                          className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text"
+                        />
                       </div>
-                      <input type="text" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)}
-                        className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
+                      <input
+                        type="text"
+                        placeholder="Phone number"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-4 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text"
+                      />
                     </div>
                   </div>
+
                   <div className="mb-6">
                     <p className="text-xs font-black uppercase tracking-widest text-brand-text/40 mb-3">Payment Method</p>
                     <div className="flex flex-col gap-3">
-                      <button onClick={() => setPaymentMethod("wallet")}
-                        className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${paymentMethod === "wallet" ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-card/20'}`}>
+                      <button
+                        onClick={() => setPaymentMethod("wallet")}
+                        className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${paymentMethod === "wallet" ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-card/20'}`}
+                      >
                         <Wallet className="w-5 h-5 text-brand-primary" />
                         <div className="text-left">
                           <p className="text-sm font-bold text-brand-text">Main Wallet</p>
@@ -320,8 +371,10 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                           </p>
                         </div>
                       </button>
-                      <button onClick={() => setPaymentMethod("gcash")}
-                        className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${paymentMethod === "gcash" ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-card/20'}`}>
+                      <button
+                        onClick={() => setPaymentMethod("gcash")}
+                        className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${paymentMethod === "gcash" ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-card/20'}`}
+                      >
                         <CreditCard className="w-5 h-5 text-blue-400" />
                         <div className="text-left">
                           <p className="text-sm font-bold text-brand-text">GCash / Maya</p>
@@ -330,6 +383,7 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                       </button>
                     </div>
                   </div>
+
                   <GlassCard className="!p-4 mb-6">
                     <div className="flex justify-between mb-2">
                       <span className="text-sm text-brand-text/60">Subtotal</span>
@@ -345,8 +399,12 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
                       <span className="text-xl font-black text-brand-primary">₱{cartTotal.toLocaleString()}</span>
                     </div>
                   </GlassCard>
-                  <button onClick={handlePlaceOrder} disabled={isProcessing}
-                    className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all disabled:opacity-70">
+
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isProcessing}
+                    className="w-full py-4 bg-brand-primary text-brand-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all disabled:opacity-70"
+                  >
                     {isProcessing ? "Processing..." : `Place Order • ₱${cartTotal.toLocaleString()}`}
                   </button>
                 </>
@@ -356,10 +414,15 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
         )}
       </AnimatePresence>
 
+      {/* Order Success */}
       <AnimatePresence>
         {orderSuccess && (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed inset-0 z-[100] bg-brand-black flex flex-col items-center justify-center p-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-[100] bg-brand-black flex flex-col items-center justify-center p-8 text-center"
+          >
             <div className="w-24 h-24 rounded-full bg-brand-primary/20 flex items-center justify-center mb-6">
               <CheckCircle className="w-12 h-12 text-brand-primary" />
             </div>
