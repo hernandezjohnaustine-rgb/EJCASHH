@@ -663,7 +663,9 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
             tradingDaysCompleted: data.tradingDaysCompleted || 0,
           });
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error("ACTIVATION ERROR:", error);
+        alert("Activation failed: " + (error?.message || String(error)));
         handleFirestoreError(error, OperationType.UPDATE, "users/" + currentUser.uid);
       }
     }
