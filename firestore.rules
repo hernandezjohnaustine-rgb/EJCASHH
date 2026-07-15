@@ -1,4 +1,4 @@
-rules_version = '2';
+﻿rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -41,7 +41,13 @@ service cloud.firestore {
         || isAdmin()
         || (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
             'balance', 'earningsWallet', 'stats',
-            'sponsorId', 'isAutoPlaced', 'originalReferrerId'
+            'sponsorId', 'isAutoPlaced', 'originalReferrerId',
+            'isActivated', 'activatedAt', 'activePackage', 'packageMultiplier',
+            'hasPackage1', 'hasPackage2', 'tradingInvested', 'tradingActive',
+            'tradingClaimedToday', 'tradingDaysCompleted', 'tradingEarnings',
+            'tradingStartDate', 'lastClaimISO', 'lastClaimDate',
+            'avatarSeed', 'avatarStyle', 'referralLinkEnabled',
+            'directsRewardClaimed', 'lastDailyClaimDate', 'dailyClaimedToday'
           ])
         )
       );
@@ -94,3 +100,4 @@ service cloud.firestore {
     }
   }
 }
+
