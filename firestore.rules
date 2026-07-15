@@ -40,7 +40,8 @@ service cloud.firestore {
         isOwner(userId)
         || isAdmin()
         || (!isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
-            'balance', 'earningsWallet', 'stats'
+            'balance', 'earningsWallet', 'stats',
+            'sponsorId', 'isAutoPlaced', 'originalReferrerId'
           ])
         )
       );
