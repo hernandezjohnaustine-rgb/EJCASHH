@@ -29,6 +29,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -84,6 +85,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       const totalBalance = usersData.reduce((sum: number, u: any) => sum + (u.balance || 0), 0);
       const activatedUsers = usersData.filter((u: any) => u.isActivated).length;
       setStats(prev => ({ ...prev, totalUsers: usersData.length, activatedUsers, totalBalance }));
+      try { const depSnap = await getDocs(collection(db, "depositRequests")); setDeposits(depSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))); } catch(e) { console.error(e); }
 
       const tSnap = await getDocs(collection(db, "transactions"));
       const tData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
