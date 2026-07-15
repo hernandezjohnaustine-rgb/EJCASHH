@@ -59,9 +59,9 @@ const earnServices = [
   { id: "assistant", name: "AI AI", icon: Sparkles, color: "#FACC15" },
 ];
 
-const WALLETS = (balance: number, earnings: number): Wallet[] => [
+const WALLETS = (balance: number, credits: number): Wallet[] => [
   { label: "Main Balance", balance: balance, type: "main", color: "text-brand-text" },
-  { label: "Earnings", balance: earnings, type: "earnings", color: "text-brand-primary" },
+  { label: "Credits 🔒", balance: credits, type: "credits", color: "text-yellow-400" },
 ];
 
 import { shortenUrl } from "../lib/shortener";
@@ -84,7 +84,7 @@ export default function HomeScreen({
   const [activeWalletIdx, setActiveWalletIdx] = useState(0);
   const [showClaimSuccess, setShowClaimSuccess] = useState(false);
 
-  const wallets = WALLETS(balance, stats.totalEarnings);
+  const wallets = WALLETS(balance, stats.creditsBalance || 0);
   const activeWallet = wallets[activeWalletIdx];
   
   const [shortenedLink, setShortenedLink] = useState<string | null>(null);

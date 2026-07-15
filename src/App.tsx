@@ -50,6 +50,9 @@ const EMPTY_STATS: UserStats = {
   tradingDaysCompleted: 0,
   tradingActive: false,
   tradingClaimedToday: false,
+  creditsBalance: 0,
+  creditsBalance: 0,
+  creditsBalance: 0,
 };
 
 export default function App() {
@@ -58,6 +61,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("home");
   const [activeView, setActiveView] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
+  const [creditsBalance, setCreditsBalance] = useState(0);
+  const [creditsBalance, setCreditsBalance] = useState(0);
+  const [creditsBalance, setCreditsBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userStats, setUserStats] = useState<UserStats>(EMPTY_STATS);
   const [isLoading, setIsLoading] = useState(true);
@@ -254,6 +260,9 @@ export default function App() {
               const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
               setUserProfile({ ...data, dailyClaimedToday });
               setBalance(data.balance || 0);
+          setCreditsBalance(data.creditsBalance || 0);
+          setCreditsBalance(data.creditsBalance || 0);
+          setCreditsBalance(data.creditsBalance || 0);
               setUserStats({
                 vipLevel: data.stats?.vipLevel || 1,
                 directReferrals: data.stats?.directReferrals || 0,
@@ -266,6 +275,9 @@ export default function App() {
                 tradingActive: data.tradingActive || false,
                 tradingClaimedToday,
                 tradingDaysCompleted: data.tradingDaysCompleted || 0,
+            creditsBalance: data.creditsBalance || 0,
+            creditsBalance: data.creditsBalance || 0,
+            creditsBalance: data.creditsBalance || 0,
               });
               // ✅ Check milestones
 import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
@@ -782,7 +794,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
       case "rider": return <RiderScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, service: string) => addTransaction({ title: `Rider: ${service}`, rawAmount: amt, category: "Services", type: "out" })} />;
       case "market": return <MarketplaceScreen onBack={() => setActiveView(null)} balance={balance} userProfile={userProfile} onConfirm={(amt: number, title: string) => addTransaction({ title: `Market: ${title}`, rawAmount: amt, category: "Shopping", type: "out" })} />;
       case "assistant": return <AssistantScreen onBack={() => setActiveView(null)} />;
-      case "withdraw": return <WithdrawScreen balance={userStats.totalEarnings} onBack={() => setActiveView(null)} onConfirm={(amt: number) => addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" })} />;
+      case "withdraw": return <WithdrawScreen balance={balance} onBack={() => setActiveView(null)} onConfirm={(amt: number) => addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" })} />;
       case "network": return <TeamNetworkScreen onBack={() => setActiveView(null)} referralCode={userProfile?.referralCode || ""} />;
       case "admin": return userProfile?.isAdmin ? <AdminScreen onBack={() => setActiveView(null)} /> : null;
       default: return null;

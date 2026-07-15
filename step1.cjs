@@ -1,4 +1,5 @@
-export interface UserProfile {
+﻿const fs = require("fs");
+const content = `export interface UserProfile {
   uid: string;
   email: string | null;
   displayName: string | null;
@@ -40,3 +41,6 @@ export interface UserStats {
   tradingClaimedToday: boolean;
   creditsBalance: number;
 }
+`;
+fs.writeFileSync("src/types.ts", content, "utf8");
+console.log("Done!");
