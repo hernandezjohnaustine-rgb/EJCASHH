@@ -31,6 +31,15 @@ const MLM_LEVELS = [
   { level: "6-10", reward: "₱3", income: "Indirect", label: "Indirect" },
 ];
 
+const MLM_LEVELS_P2 = [
+  { level: 1, reward: "₱1,000", income: "Direct", label: "Direct" },
+  { level: 2, reward: "₱30", income: "Indirect", label: "Indirect" },
+  { level: 3, reward: "₱30", income: "Indirect", label: "Indirect" },
+  { level: 4, reward: "₱30", income: "Indirect", label: "Indirect" },
+  { level: 5, reward: "₱30", income: "Indirect", label: "Indirect" },
+  { level: "6-10", reward: "₱30", income: "Indirect", label: "Indirect" },
+];
+
 export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode, referralLinkEnabled, onClaimDaily, isDailyClaimed }: { 
   stats: UserStats, 
   onWithdraw: () => void,
@@ -41,6 +50,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
   isDailyClaimed?: boolean
 }) {
   const [shortenedLink, setShortenedLink] = useState<string | null>(null);
+  const [activePackageTab, setActivePackageTab] = useState<"p1" | "p2">("p1");
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   
   const shareLink = `${window.location.origin}${window.location.pathname}?ref=${referralCode}`;
@@ -183,10 +193,14 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
          <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30">MLM Reward Structure</h3>
             <span className="text-[10px] text-brand-primary font-bold underline cursor-pointer">Learn More</span>
+         <div className="flex gap-2 mb-3">
+           <button onClick={() => setActivePackageTab("p1")} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activePackageTab === "p1" ? "bg-brand-primary text-brand-black" : "bg-brand-card/20 border border-brand-border text-brand-text/60"}`}>Package 1</button>
+           <button onClick={() => setActivePackageTab("p2")} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activePackageTab === "p2" ? "bg-yellow-400 text-brand-black" : "bg-brand-card/20 border border-brand-border text-brand-text/60"}`}>Package 2</button>
+         </div>
          </div>
          
          <div className="flex flex-col gap-2">
-            {MLM_LEVELS.map((lvl) => (
+            {(activePackageTab === "p1" ? MLM_LEVELS : MLM_LEVELS_P2).map((lvl) => (
                <div key={lvl.level} className="glass-card !p-4 flex items-center justify-between !rounded-2xl bg-brand-card/5 border-brand-border">
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 rounded-lg bg-brand-card/10 flex items-center justify-center font-bold text-[10px] text-brand-text/40 border border-brand-border/20">
@@ -194,7 +208,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
                     </div>
                     <div>
                        <h4 className="text-xs font-bold">{lvl.label} Level</h4>
-                       <p className="text-[9px] text-brand-text/20 uppercase tracking-widest">From ₱360 • Package 1</p>
+                       <p className="text-[9px] text-brand-text/20 uppercase tracking-widest">{activePackageTab === "p1" ? "From ₱360 • Package 1" : "From ₱3,600 • Package 2"}</p>
                     </div>
                   </div>
                   <div className="text-right">
