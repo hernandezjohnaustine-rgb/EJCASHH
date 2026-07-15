@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Zap, Crown, Package, CheckCircle, ArrowRight, Star, Gift } from "lucide-react";
+import { Zap, Crown, Package, CheckCircle, ArrowRight, Gift } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 
 const PACKAGES = [
@@ -21,11 +21,11 @@ const PACKAGES = [
       "Join VIP Ranking System",
     ],
     commissions: [
-      { level: 1, amount: "₱100 fixed" },
-      { level: 2, amount: "5% of ₱360" },
-      { level: 3, amount: "3% of ₱360" },
-      { level: 4, amount: "2% of ₱360" },
-      { level: "5-10", amount: "1% of ₱360 each" },
+      { level: "1", amount: "₱100 fixed" },
+      { level: "2", amount: "₱3 fixed" },
+      { level: "3", amount: "₱3 fixed" },
+      { level: "4", amount: "₱3 fixed" },
+      { level: "5-10", amount: "₱3 fixed each" },
     ],
   },
   {
@@ -45,11 +45,11 @@ const PACKAGES = [
       "Elite VIP Status",
     ],
     commissions: [
-      { level: 1, amount: "₱1,000 fixed (10x)" },
-      { level: 2, amount: "5% of ₱3,600" },
-      { level: 3, amount: "3% of ₱3,600" },
-      { level: 4, amount: "2% of ₱3,600" },
-      { level: "5-10", amount: "1% of ₱3,600 each" },
+      { level: "1", amount: "₱1,000 fixed (10x)" },
+      { level: "2", amount: "₱30 fixed (10x)" },
+      { level: "3", amount: "₱30 fixed (10x)" },
+      { level: "4", amount: "₱30 fixed (10x)" },
+      { level: "5-10", amount: "₱30 fixed (10x) each" },
     ],
   },
   {
@@ -65,15 +65,15 @@ const PACKAGES = [
       "Everything in Package 1",
       "Everything in Package 2",
       "10x Earnings Multiplier",
-      "Save ₱0 — Full Bundle",
+      "Full Bundle Savings",
       "Instant Elite Status",
     ],
     commissions: [
-      { level: 1, amount: "₱1,000 fixed (10x)" },
-      { level: 2, amount: "5% of ₱3,600" },
-      { level: 3, amount: "3% of ₱3,600" },
-      { level: 4, amount: "2% of ₱3,600" },
-      { level: "5-10", amount: "1% of ₱3,600 each" },
+      { level: "1", amount: "₱1,100 fixed (10x)" },
+      { level: "2", amount: "₱33 fixed (10x)" },
+      { level: "3", amount: "₱33 fixed (10x)" },
+      { level: "4", amount: "₱33 fixed (10x)" },
+      { level: "5-10", amount: "₱33 fixed (10x) each" },
     ],
   },
 ];
@@ -108,22 +108,29 @@ export default function ActivationScreen({
   };
 
   return (
-    <div className="min-h-screen bg-brand-black flex flex-col overflow-y-auto pb-32">
+    <div className="min-h-screen bg-brand-black flex flex-col overflow-y-auto pb-40">
       {/* Header */}
       <div className="px-6 pt-8 pb-6">
-        <button onClick={onBack} className="text-brand-text/40 text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-2">
+        <button
+          onClick={onBack}
+          className="text-brand-text/40 text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-2"
+        >
           ← Back
         </button>
         <h1 className="text-2xl font-display font-black tracking-tight text-brand-text mb-1">
           Choose Your Package
         </h1>
-        <p className="text-sm text-brand-text/40">Select the activation package that fits your goals</p>
+        <p className="text-sm text-brand-text/40">
+          Select the activation package that fits your goals
+        </p>
       </div>
 
       {/* Balance */}
       <div className="px-6 mb-6">
         <GlassCard className="!p-4 flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-widest text-brand-text/40">Available Balance</span>
+          <span className="text-xs font-black uppercase tracking-widest text-brand-text/40">
+            Available Balance
+          </span>
           <span className={`text-lg font-black ${balance > 0 ? 'text-brand-primary' : 'text-red-500'}`}>
             ₱{balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
@@ -142,23 +149,19 @@ export default function ActivationScreen({
             <motion.div
               key={pkg.id}
               animate={{ scale: isSelected ? 1.01 : 1 }}
-              className={`rounded-3xl border-2 overflow-hidden transition-all cursor-pointer ${
-                isSelected
-                  ? 'border-opacity-100'
-                  : 'border-brand-border'
-              }`}
-              style={isSelected ? { borderColor: pkg.color } : {}}
+              className="rounded-3xl border-2 overflow-hidden transition-all cursor-pointer"
+              style={{
+                borderColor: isSelected ? pkg.color : 'var(--card-border)',
+                background: isSelected ? `${pkg.color}10` : 'var(--card-bg)',
+              }}
               onClick={() => setSelectedPackage(pkg.id)}
             >
-              <div
-                className="p-5"
-                style={isSelected ? { background: `${pkg.color}10` } : { background: 'var(--card-bg)' }}
-              >
+              <div className="p-5">
                 {/* Package Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                       style={{ background: `${pkg.color}20` }}
                     >
                       <Icon className="w-6 h-6" style={{ color: pkg.color }} />
@@ -172,16 +175,20 @@ export default function ActivationScreen({
                           {pkg.badge}
                         </span>
                       </div>
-                      <h3 className="text-sm font-black text-brand-text leading-tight">{pkg.name}</h3>
+                      <h3 className="text-sm font-black text-brand-text leading-tight">
+                        {pkg.name}
+                      </h3>
                       <p className="text-[10px] text-brand-text/40">{pkg.description}</p>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 ml-2">
                     <p className="text-xl font-display font-black" style={{ color: pkg.color }}>
                       ₱{pkg.price.toLocaleString()}
                     </p>
                     {pkg.multiplier > 1 && (
-                      <span className="text-[9px] font-black text-brand-text/40">{pkg.multiplier}x multiplier</span>
+                      <span className="text-[9px] font-black text-brand-text/40">
+                        {pkg.multiplier}x multiplier
+                      </span>
                     )}
                   </div>
                 </div>
@@ -190,7 +197,10 @@ export default function ActivationScreen({
                 <div className="flex flex-col gap-2 mb-4">
                   {pkg.benefits.map((b, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: pkg.color }} />
+                      <CheckCircle
+                        className="w-3.5 h-3.5 shrink-0"
+                        style={{ color: pkg.color }}
+                      />
                       <span className="text-[11px] text-brand-text/70">{b}</span>
                     </div>
                   ))}
@@ -198,12 +208,17 @@ export default function ActivationScreen({
 
                 {/* Commission Toggle */}
                 <button
-                  onClick={e => { e.stopPropagation(); setExpandedPackage(isExpanded ? null : pkg.id); }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setExpandedPackage(isExpanded ? null : pkg.id);
+                  }}
                   className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1"
                   style={{ color: pkg.color }}
                 >
                   {isExpanded ? "Hide" : "View"} Commission Structure
-                  <ArrowRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                  <ArrowRight
+                    className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                  />
                 </button>
 
                 {/* Commission Details */}
@@ -215,14 +230,30 @@ export default function ActivationScreen({
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-3 rounded-2xl p-3" style={{ background: `${pkg.color}10` }}>
-                        <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: pkg.color }}>
+                      <div
+                        className="mt-3 rounded-2xl p-3"
+                        style={{ background: `${pkg.color}10` }}
+                      >
+                        <p
+                          className="text-[9px] font-black uppercase tracking-widest mb-2"
+                          style={{ color: pkg.color }}
+                        >
                           Commission Per Level
                         </p>
                         {pkg.commissions.map((c, i) => (
-                          <div key={i} className="flex justify-between py-1 border-b border-brand-border/20 last:border-0">
-                            <span className="text-[10px] text-brand-text/40">Level {c.level}</span>
-                            <span className="text-[10px] font-black" style={{ color: pkg.color }}>{c.amount}</span>
+                          <div
+                            key={i}
+                            className="flex justify-between py-1 border-b border-brand-border/20 last:border-0"
+                          >
+                            <span className="text-[10px] text-brand-text/40">
+                              Level {c.level}
+                            </span>
+                            <span
+                              className="text-[10px] font-black"
+                              style={{ color: pkg.color }}
+                            >
+                              {c.amount}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -230,7 +261,14 @@ export default function ActivationScreen({
                   )}
                 </AnimatePresence>
 
-                {/* Select indicator */}
+                {/* Cannot afford warning */}
+                {!canAfford && (
+                  <p className="text-[10px] text-red-500 font-black mt-3">
+                    ⚠️ Need ₱{(pkg.price - balance).toLocaleString()} more
+                  </p>
+                )}
+
+                {/* Selected indicator */}
                 {isSelected && (
                   <div
                     className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
@@ -250,7 +288,9 @@ export default function ActivationScreen({
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-brand-black/90 backdrop-blur-xl border-t border-brand-border/10">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-[10px] text-brand-text/40 uppercase tracking-widest">Selected Package</p>
+            <p className="text-[10px] text-brand-text/40 uppercase tracking-widest">
+              Selected Package
+            </p>
             <p className="text-sm font-black text-brand-text">{selected.name}</p>
           </div>
           <p className="text-2xl font-display font-black" style={{ color: selected.color }}>
@@ -265,11 +305,11 @@ export default function ActivationScreen({
         <button
           onClick={() => hasEnoughBalance && setShowConfirm(true)}
           disabled={!hasEnoughBalance}
-          className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={{ background: hasEnoughBalance ? selected.color : '#666' }}
         >
-          <Gift className="w-4 h-4 inline mr-2" />
-          Activate {selected.name}
+          <Gift className="w-4 h-4" />
+          Activate — ₱{selected.price.toLocaleString()}
         </button>
       </div>
 
@@ -288,11 +328,16 @@ export default function ActivationScreen({
               exit={{ y: 100 }}
               className="w-full bg-brand-navy rounded-t-3xl p-6"
             >
-              <h3 className="text-lg font-black text-brand-text mb-2">Confirm Activation</h3>
+              <h3 className="text-lg font-black text-brand-text mb-2">
+                Confirm Activation
+              </h3>
               <p className="text-sm text-brand-text/40 mb-6">
-                You are about to activate the <span className="font-black text-brand-text">{selected.name}</span> for{" "}
-                <span className="font-black" style={{ color: selected.color }}>₱{selected.price.toLocaleString()}</span>.
-                This will be deducted from your wallet balance.
+                You are about to activate{" "}
+                <span className="font-black text-brand-text">{selected.name}</span> for{" "}
+                <span className="font-black" style={{ color: selected.color }}>
+                  ₱{selected.price.toLocaleString()}
+                </span>
+                . This will be deducted from your wallet balance.
               </p>
 
               <GlassCard className="!p-4 mb-6">
@@ -302,11 +347,15 @@ export default function ActivationScreen({
                 </div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-brand-text/60">Amount</span>
-                  <span className="font-black text-sm" style={{ color: selected.color }}>₱{selected.price.toLocaleString()}</span>
+                  <span className="font-black text-sm" style={{ color: selected.color }}>
+                    ₱{selected.price.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-brand-text/60">Earnings Multiplier</span>
-                  <span className="font-black text-sm" style={{ color: selected.color }}>{selected.multiplier}x</span>
+                  <span className="font-black text-sm" style={{ color: selected.color }}>
+                    {selected.multiplier}x
+                  </span>
                 </div>
                 <div className="border-t border-brand-border my-3" />
                 <div className="flex justify-between">
