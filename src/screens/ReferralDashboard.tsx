@@ -23,12 +23,12 @@ import QrInviteModal from "../components/QrInviteModal";
 import { shortenUrl } from "../lib/shortener";
 
 const MLM_LEVELS = [
-  { level: 1, reward: "30%", income: "₱108", label: "Direct" },
-  { level: 2, reward: "10%", income: "₱36", label: "Indirect" },
-  { level: 3, reward: "5%", income: "₱18", label: "Indirect" },
-  { level: 4, reward: "3%", income: "₱10.80", label: "Indirect" },
-  { level: 5, reward: "2%", income: "₱7.20", label: "Indirect" },
-  { level: "6-10", reward: "1%", income: "₱3.60", label: "Indirect" },
+  { level: 1, reward: "₱100", income: "Direct", label: "Direct" },
+  { level: 2, reward: "₱3", income: "Indirect", label: "Indirect" },
+  { level: 3, reward: "₱3", income: "Indirect", label: "Indirect" },
+  { level: 4, reward: "₱3", income: "Indirect", label: "Indirect" },
+  { level: 5, reward: "₱3", income: "Indirect", label: "Indirect" },
+  { level: "6-10", reward: "₱3", income: "Indirect", label: "Indirect" },
 ];
 
 export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode, referralLinkEnabled, onClaimDaily, isDailyClaimed }: { 
@@ -194,12 +194,12 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
                     </div>
                     <div>
                        <h4 className="text-xs font-bold">{lvl.label} Level</h4>
-                       <p className="text-[9px] text-brand-text/20 uppercase tracking-widest">From ₱360 Activation</p>
+                       <p className="text-[9px] text-brand-text/20 uppercase tracking-widest">From ₱360 • Package 1</p>
                     </div>
                   </div>
                   <div className="text-right">
                      <p className="text-sm font-display font-bold text-brand-primary">{lvl.reward}</p>
-                     <p className="text-[10px] font-black uppercase text-brand-text/40 tracking-tighter">{lvl.income}</p>
+
                   </div>
                </div>
             ))}
