@@ -303,6 +303,44 @@ export default function HomeScreen({
         </section>
       )}
 
+      
+      {/* Upgrade to Package 2 Banner */}
+      {stats.isActivated && !(userProfile as any)?.hasPackage2 && (
+        <section className="px-6 mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl p-5 border-2 cursor-pointer active:scale-95 transition-all"
+            style={{ background: '#F59E0B10', borderColor: '#F59E0B40' }}
+            onClick={() => onRequestActivation?.()}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: '#F59E0B20' }}>
+                <TrendingUp className="w-6 h-6" style={{ color: '#F59E0B' }} />
+              </div>
+              <div className="flex-1">
+                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-1" style={{ background: '#F59E0B20', color: '#F59E0B' }}>
+                  UPGRADE AVAILABLE
+                </span>
+                <h3 className="text-sm font-black text-brand-text">Activation Livelihood Program</h3>
+                <p className="text-[10px] text-brand-text/40">Upgrade to 10x earnings — ₱3,600</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              {[
+                { label: "L1 Bonus", value: "₱1,000" },
+                { label: "Multiplier", value: "10x" },
+                { label: "Price", value: "₱3,600" },
+              ].map((item, i) => (
+                <div key={i} className="rounded-xl p-2 text-center" style={{ background: '#F59E0B10' }}>
+                  <p className="text-[9px] text-brand-text/40 uppercase tracking-widest">{item.label}</p>
+                  <p className="text-xs font-black" style={{ color: '#F59E0B' }}>{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </section>
+      )}
       {/* Activation Package Card */}
       <section className="px-6">
         <GlassCard className={`!p-0 overflow-hidden relative border-brand-primary/20 bg-brand-navy/60 backdrop-blur-3xl shadow-[0_0_40px_rgba(250,204,21,0.1)]`}>
@@ -570,3 +608,5 @@ export default function HomeScreen({
     </div>
   );
 }
+
+
