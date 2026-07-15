@@ -755,10 +755,10 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
     const currentUid = auth.currentUser?.uid || user.uid;
     const coreFeatures = ["send", "bank", "bills", "load", "trading", "rider", "market"];
     if (coreFeatures.includes(activeView || "") && !userStats.isActivated) {
-      return <ActivationScreen uid={currentUid} onActivate={(packageId: string, amount: number) => handleActivationComplete(packageId, amount)} balance={balance} onBack={() => setActiveView(null)} isActivated={userStats.isActivated} currentPackage={userProfile?.activePackage} />;
+      return <ActivationScreen onActivate={(packageId: string, amount: number) => handleActivationComplete(packageId, amount)} balance={balance} onBack={() => setActiveView(null)} isActivated={userStats.isActivated} currentPackage={userProfile?.activePackage} />;
     }
     switch (activeView) {
-      case "activation": return <ActivationScreen uid={currentUid} onActivate={(packageId: string, amount: number) => handleActivationComplete(packageId, amount)} balance={balance} onBack={() => setActiveView(null)} isActivated={userStats.isActivated} currentPackage={userProfile?.activePackage} />;
+      case "activation": return <ActivationScreen onActivate={(packageId: string, amount: number) => handleActivationComplete(packageId, amount)} balance={balance} onBack={() => setActiveView(null)} isActivated={userStats.isActivated} currentPackage={userProfile?.activePackage} />;
       case "cashin": return <CashInScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, method: string) => addTransaction({ title: `Cash In via ${method}`, rawAmount: amt, category: "Cash In", type: "in" })} />;
       case "send": return <SendMoneyScreen onBack={() => { setActiveView(null); setScannedRecipient(null); }} onConfirm={(amt: number, name: string) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }} balance={balance} initialRecipient={scannedRecipient} onScanClick={() => { setActiveView(null); setActiveTab("scan"); }} />;
       case "load": return <BuyLoadScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, provider: string) => addTransaction({ title: `${provider} Load`, rawAmount: amt, category: "Mobile Load", type: "out" })} balance={balance} />;
