@@ -54,7 +54,7 @@ interface HomeScreenProps {
   claimedMilestones: Record<string, boolean>;
   achievedMilestones: Record<string, boolean>;
   userProfile?: any;
-  onRequestActivation?: () => void;
+  onClick={() => onRequestActivation?.()}
 }
 
 const mainServices = [
