@@ -599,7 +599,15 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         }
 
         // ✅ Save original referrer BEFORE auto-placement
-        const originalReferrerId = freshData.sponsorId || freshData.referredBy;
+        // Get original referrer UID from referredBy code (not sponsorId which may be auto-placed)
+        let originalReferrerId = freshData.originalReferrerId || freshData.sponsorId;
+        if (freshData.referredBy && !freshData.originalReferrerId) {
+          const refQuery = query(collection(db, "users"), where("referralCode", "==", freshData.referredBy), limit(1));
+          const refSnap = await getDocs(refQuery);
+          if (!refSnap.empty) originalReferrerId = refSnap.docs[0].id;
+        }
+        // Save originalReferrerId to Firestore BEFORE auto-placement can overwrite it
+        await setDoc(userDocRef, { originalReferrerId: originalReferrerId }, { merge: true });
         // ✅ Auto-placement
         const sponsorId = originalReferrerId;
         if (sponsorId) {
