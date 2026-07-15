@@ -99,6 +99,13 @@ export default function ActivationScreen({
   const [showConfirm, setShowConfirm] = useState(false);
   const [expandedPackage, setExpandedPackage] = useState<string | null>(null);
 
+  // Filter out already purchased packages
+  const availablePackages = PACKAGES.filter(p => {
+    if (currentPackage === "combined") return false; // Has everything
+    if (currentPackage === "package_1" && p.id === "package_1") return false;
+    if (currentPackage === "package_2" && p.id === "package_2") return false;
+    return true;
+  });
   const selected = PACKAGES.find(p => p.id === selectedPackage)!;
   const hasEnoughBalance = balance >= selected.price;
 
@@ -139,7 +146,7 @@ export default function ActivationScreen({
 
       {/* Package Cards */}
       <div className="px-6 flex flex-col gap-4 mb-8">
-        {PACKAGES.map(pkg => {
+        {availablePackages.map(pkg => {
           const Icon = pkg.icon;
           const isSelected = selectedPackage === pkg.id;
           const isExpanded = expandedPackage === pkg.id;
