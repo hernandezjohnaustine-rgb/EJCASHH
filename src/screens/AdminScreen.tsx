@@ -33,6 +33,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
   const [adminNote, setAdminNote] = useState("");
   const [processingDeposit, setProcessingDeposit] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{type: string, deposit: any} | null>(null);
   const [zoomImage, setZoomImage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -179,7 +180,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       alert("❌ Failed to unlock all referral links");
     }
   const handleApproveDeposit = async (d: any) => {
-    if (!confirm("Approve ₱" + d.amount + " deposit for " + d.userName + "?")) return;
+    setProcessingDeposit(true);
     setProcessingDeposit(true);
     try {
       const fi = await import("firebase/firestore");
@@ -199,7 +200,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     finally { setProcessingDeposit(false); }
   };
   const handleRejectDeposit = async (d: any) => {
-    if (!confirm("Reject this deposit request?")) return;
+    setProcessingDeposit(true);
     setProcessingDeposit(true);
     try {
       const fi = await import("firebase/firestore");
