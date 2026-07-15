@@ -68,17 +68,12 @@ export async function processActivation(
           ...(level === 1 ? {
             directReferrals: (sponsorData.stats?.directReferrals || 0) + 1,
           } : {}),
-        }
-      }, { merge: true });
-
-      // Update team size for all uplines
-      await setDoc(doc(db, "users", currentUid), {
-        stats: {
-          ...sponsorData.stats,
           teamSize: (sponsorData.stats?.teamSize || 0) + 1,
           totalReferrals: (sponsorData.stats?.totalReferrals || 0) + 1,
         }
       }, { merge: true });
+
+
 
       // Record transaction
       await addDoc(collection(db, "transactions"), {
