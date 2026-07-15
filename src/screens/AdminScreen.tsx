@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { collection, getDocs, doc, updateDoc, setDoc, getDoc, onSnapshot, query, orderBy, Timestamp, addDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X, Lock, Unlock } from "lucide-react";
+import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X, Lock, Unlock, ZoomIn } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 type AdminTab = "users" | "withdrawals" | "transactions" | "products" | "orders" | "settings";
@@ -30,6 +30,10 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [deposits, setDeposits] = useState<any[]>([]);
+  const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
+  const [adminNote, setAdminNote] = useState("");
+  const [processingDeposit, setProcessingDeposit] = useState(false);
+  const [zoomImage, setZoomImage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -174,6 +178,40 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     } catch {
       alert("❌ Failed to unlock all referral links");
     }
+  const handleApproveDeposit = async (d: any) => {
+    if (!confirm("Approve ₱" + d.amount + " deposit for " + d.userName + "?")) return;
+    setProcessingDeposit(true);
+    try {
+      const fi = await import("firebase/firestore");
+      const db2 = (await import("../lib/firebase")).db;
+      await fi.updateDoc(fi.doc(db2, "depositRequests", d.id), { status: "approved", approvedAt: fi.Timestamp.now(), adminNote: adminNote || "" });
+      const uRef = fi.doc(db2, "users", d.userId);
+      const uSnap = await fi.getDoc(uRef);
+      if (!uSnap.exists()) throw new Error("User not found");
+      await fi.updateDoc(uRef, { balance: (uSnap.data().balance || 0) + d.amount });
+      await fi.addDoc(fi.collection(db2, "transactions"), { userId: d.userId, type: "in", title: "GCash Deposit", amount: d.amount, category: "Cash In", status: "Completed", referenceNo: d.referenceNo, paymentMethod: "GCash", timestamp: fi.Timestamp.now() });
+      await fi.addDoc(fi.collection(db2, "users", d.userId, "notifications"), { title: "Deposit Approved!", message: "Your GCash deposit of ₱" + d.amount.toLocaleString("en-US", { minimumFractionDigits: 2 }) + " has been credited to your wallet.", type: "deposit", read: false, createdAt: fi.Timestamp.now() });
+      setSelectedDeposit(null);
+      setAdminNote("");
+      fetchData();
+      alert("✅ Approved! ₱" + d.amount + " credited.");
+    } catch(err: any) { alert("❌ Failed: " + err.message); }
+    finally { setProcessingDeposit(false); }
+  };
+  const handleRejectDeposit = async (d: any) => {
+    if (!confirm("Reject this deposit request?")) return;
+    setProcessingDeposit(true);
+    try {
+      const fi = await import("firebase/firestore");
+      const db2 = (await import("../lib/firebase")).db;
+      await fi.updateDoc(fi.doc(db2, "depositRequests", d.id), { status: "rejected", rejectedAt: fi.Timestamp.now(), adminNote: adminNote || "" });
+      await fi.addDoc(fi.collection(db2, "users", d.userId, "notifications"), { title: "Deposit Rejected", message: "Your GCash deposit of ₱" + d.amount.toLocaleString() + " was rejected. Reason: " + (adminNote || "No reason provided"), type: "deposit", read: false, createdAt: fi.Timestamp.now() });
+      setSelectedDeposit(null);
+      setAdminNote("");
+      fetchData();
+    } catch(err: any) { alert("❌ Failed: " + err.message); }
+    finally { setProcessingDeposit(false); }
+  };
   };  const handleToggleTrading = async () => {
     setSavingSettings(true);
     try {
@@ -594,89 +632,122 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             )}
             {activeTab === "deposits" && (
               <div className="flex flex-col gap-3">
-                <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black px-1">{deposits.length} Deposit Requests</p>
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black">{deposits.length} Deposit Requests</p>
+                  <div className="flex gap-2">
+                    <span className="text-[9px] bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-lg font-black">{deposits.filter((d:any) => d.status === "pending").length} Pending</span>
+                    <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-1 rounded-lg font-black">{deposits.filter((d:any) => d.status === "approved").length} Approved</span>
+                  </div>
+                </div>
                 {deposits.length === 0 ? (
-                  <p className="text-center text-brand-text/40 py-8 font-bold">No deposit requests yet</p>
+                  <div className="text-center py-12">
+                    <p className="text-brand-text/40 font-bold">No deposit requests yet</p>
+                  </div>
                 ) : deposits.map((d: any) => (
-                  <div key={d.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="text-sm font-black text-brand-text">{d.userName}</p>
-                        <p className="text-[10px] text-brand-text/40">{d.userEmail}</p>
-                        <p className="text-[9px] text-brand-text/20">Ref: {d.referenceNo}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black text-brand-primary">₱{(d.amount || 0).toLocaleString()}</p>
-                        <span className={"text-[9px] font-black px-2 py-0.5 rounded-full " + (d.status === "approved" ? "bg-green-500/20 text-green-400" : d.status === "rejected" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400")}>
-                          {(d.status || "pending").toUpperCase()}
-                        </span>
+                  <div key={d.id} onClick={() => { setSelectedDeposit(d); setAdminNote(""); }} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4 cursor-pointer hover:border-brand-primary/30 transition-all active:scale-[0.99]">
+                    <div className="flex items-start gap-3">
+                      {d.screenshot && <img src={d.screenshot} alt="Receipt" className="w-16 h-16 rounded-xl object-cover shrink-0 border border-brand-border" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-black text-brand-text">{d.userName}</p>
+                            <p className="text-[10px] text-brand-text/40 truncate">{d.userEmail}</p>
+                          </div>
+                          <span className={"text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 " + (d.status === "approved" ? "bg-green-500/20 text-green-400" : d.status === "rejected" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400")}>
+                            {(d.status || "pending").toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2">
+                          <p className="text-lg font-black text-brand-primary">₱{(d.amount || 0).toLocaleString()}</p>
+                          <span className="text-[9px] text-brand-text/40 font-black uppercase">{d.method || "GCash"}</span>
+                        </div>
+                        <p className="text-[9px] text-brand-text/30 mt-1">
+                          {d.createdAt?.toDate?.()?.toLocaleString() || "Recently"} • Ref: {d.referenceNo}
+                        </p>
                       </div>
                     </div>
-                    {d.screenshot && <img src={d.screenshot} alt="Receipt" className="w-full rounded-xl mb-3 max-h-32 object-cover" />}
-                    {d.status === "pending" && (
-                      <div className="flex gap-2 mt-3">
-                        <button onClick={async () => {
-                        <button onClick={async () => {
-                          if (!confirm("Approve ₱" + d.amount + " deposit for " + d.userName + "?")) return;
-                          try {
-                            const fi = await import("firebase/firestore");
-                            const db2 = (await import("../lib/firebase")).db;
-                            // 1. Update deposit status
-                            await fi.updateDoc(fi.doc(db2, "depositRequests", d.id), { 
-                              status: "approved", 
-                              approvedAt: fi.Timestamp.now() 
-                            });
-                            // 2. Credit user balance
-                            const uRef = fi.doc(db2, "users", d.userId);
-                            const uSnap = await fi.getDoc(uRef);
-                            if (!uSnap.exists()) throw new Error("User not found");
-                            const currentBalance = uSnap.data().balance || 0;
-                            await fi.updateDoc(uRef, { balance: currentBalance + d.amount });
-                            // 3. Record transaction
-                            await fi.addDoc(fi.collection(db2, "transactions"), {
-                              userId: d.userId,
-                              type: "in",
-                              title: "GCash Deposit",
-                              amount: d.amount,
-                              category: "Cash In",
-                              status: "Completed",
-                              referenceNo: d.referenceNo,
-                              paymentMethod: "GCash",
-                              timestamp: fi.Timestamp.now(),
-                            });
-                            // 4. Send notification
-                            await fi.addDoc(fi.collection(db2, "users", d.userId, "notifications"), {
-                              title: "Deposit Approved!",
-                              message: "Your GCash deposit of ₱" + d.amount.toLocaleString("en-US", { minimumFractionDigits: 2 }) + " has been credited to your wallet.",
-                              type: "deposit",
-                              read: false,
-                              createdAt: fi.Timestamp.now(),
-                            });
-                            alert("✅ Deposit approved! ₱" + d.amount + " credited to " + d.userName);
-                            fetchData();
-                          } catch(err: any) {
-                            console.error("Approve error:", err);
-                            alert("❌ Failed to approve: " + err.message);
-                          }
-                        }} className="flex-1 py-2 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase rounded-xl">Approve</button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        }} className="flex-1 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase rounded-xl">Reject</button>
-                      </div>
-                    )}
                   </div>
                 ))}
+              </div>
+            )}
+            {/* Deposit Detail Modal */}
+            {selectedDeposit && (
+              <div className="fixed inset-0 z-[300] bg-brand-black/95 backdrop-blur-xl flex flex-col overflow-y-auto">
+                <div className="flex items-center gap-3 px-4 py-4 border-b border-brand-border sticky top-0 bg-brand-black z-10">
+                  <button onClick={() => { setSelectedDeposit(null); setZoomImage(false); }} className="w-10 h-10 rounded-full bg-brand-card/20 border border-brand-border flex items-center justify-center">
+                    <ChevronUp className="w-5 h-5 rotate-[-90deg]" />
+                  </button>
+                  <div>
+                    <h3 className="text-base font-black text-brand-text">Deposit Request</h3>
+                    <p className="text-[10px] text-brand-text/40">Review and process</p>
+                  </div>
+                </div>
+                <div className="p-4 flex flex-col gap-4">
+                  {/* Status Badge */}
+                  <div className="flex justify-center">
+                    <span className={"text-xs font-black px-4 py-2 rounded-full " + (selectedDeposit.status === "approved" ? "bg-green-500/20 text-green-400 border border-green-500/30" : selectedDeposit.status === "rejected" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30")}>
+                      {(selectedDeposit.status || "PENDING").toUpperCase()}
+                    </span>
+                  </div>
+                  {/* User Info */}
+                  <div className="bg-brand-card/10 border border-brand-border rounded-2xl p-4">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-brand-text/40 mb-3">User Details</p>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between"><span className="text-[10px] text-brand-text/40">Name</span><span className="text-[10px] font-black text-brand-text">{selectedDeposit.userName}</span></div>
+                      <div className="flex justify-between"><span className="text-[10px] text-brand-text/40">Email</span><span className="text-[10px] font-black text-brand-text">{selectedDeposit.userEmail}</span></div>
+                      <div className="flex justify-between"><span className="text-[10px] text-brand-text/40">User ID</span><span className="text-[9px] font-mono text-brand-text/60">{selectedDeposit.userId}</span></div>
+                    </div>
+                  </div>
+                  {/* Deposit Info */}
+                  <div className="bg-brand-card/10 border border-brand-border rounded-2xl p-4">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-brand-text/40 mb-3">Deposit Details</p>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between"><span className="text-[10px] text-brand-text/40">Amount</span><span className="text-base font-black text-brand-primary">₱{(selectedDeposit.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span></div>
+                      <div className="flex justify-between"><span className="text-[10px] text-brand-text/40">Method</span><span className="text-[10px] font-black text-brand-text">{selectedDeposit.method || "GCash"}</span></div>
+                      <div className="flex justify-between"><span className="text-[10px] text-brand-text/40">Reference No</span><span className="text-[10px] font-mono font-black text-brand-text">{selectedDeposit.referenceNo}</span></div>
+                      <div className="flex justify-between"><span className="text-[10px] text-brand-text/40">Date</span><span className="text-[10px] font-black text-brand-text">{selectedDeposit.createdAt?.toDate?.()?.toLocaleString() || "N/A"}</span></div>
+                    </div>
+                  </div>
+                  {/* Proof of Payment */}
+                  {selectedDeposit.screenshot && (
+                    <div className="bg-brand-card/10 border border-brand-border rounded-2xl p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-brand-text/40">Proof of Payment</p>
+                        <button onClick={() => setZoomImage(!zoomImage)} className="text-[9px] font-black text-brand-primary border border-brand-primary/30 px-2 py-1 rounded-lg">
+                          {zoomImage ? "Zoom Out" : "Zoom In"}
+                        </button>
+                      </div>
+                      <img src={selectedDeposit.screenshot} alt="Proof" className={"w-full rounded-xl object-contain transition-all " + (zoomImage ? "max-h-none" : "max-h-64")} />
+                    </div>
+                  )}
+                  {/* Admin Note */}
+                  {selectedDeposit.status === "pending" && (
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-brand-text/40 mb-2 block">Admin Note (Optional)</label>
+                      <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={3}
+                        className="w-full bg-brand-card/20 border border-brand-border rounded-2xl py-3 px-4 text-brand-text text-sm focus:outline-none focus:border-brand-primary/50 resize-none"
+                        placeholder="Add a note for this deposit..." />
+                    </div>
+                  )}
+                  {/* Actions */}
+                  {selectedDeposit.status === "pending" ? (
+                    <div className="flex gap-3 pb-8">
+                      <button onClick={() => handleRejectDeposit(selectedDeposit)} disabled={processingDeposit}
+                        className="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-400 font-black uppercase tracking-widest text-sm rounded-2xl active:scale-95 transition-all disabled:opacity-50">
+                        {processingDeposit ? "Processing..." : "Reject"}
+                      </button>
+                      <button onClick={() => handleApproveDeposit(selectedDeposit)} disabled={processingDeposit}
+                        className="flex-1 py-4 bg-green-500 text-white font-black uppercase tracking-widest text-sm rounded-2xl active:scale-95 transition-all disabled:opacity-50">
+                        {processingDeposit ? "Processing..." : "Approve ₱" + (selectedDeposit.amount || 0).toLocaleString()}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pb-8 text-center">
+                      <p className="text-brand-text/40 text-sm font-bold">This request has been {selectedDeposit.status}.</p>
+                      {selectedDeposit.adminNote && <p className="text-[10px] text-brand-text/30 mt-1">Note: {selectedDeposit.adminNote}</p>}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {activeTab === "gcash" && (
