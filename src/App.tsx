@@ -598,8 +598,10 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
           return;
         }
 
+        // ✅ Save original referrer BEFORE auto-placement
+        const originalReferrerId = freshData.sponsorId || freshData.referredBy;
         // ✅ Auto-placement
-        const sponsorId = freshData.sponsorId || freshData.referredBy;
+        const sponsorId = originalReferrerId;
         if (sponsorId) {
           const { autoPlaceUser } = await import("./services/autoPlacementService");
           await autoPlaceUser(currentUser.uid, sponsorId);
@@ -629,9 +631,8 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         }, { merge: true });
 
         // ✅ Distribute commissions
-        console.log("Sponsor ID:", updatedSponsorId, "Package:", packageId);
-        alert("Debug - SponsorId: " + updatedSponsorId + " Package: " + packageId);
-        await processActivation(currentUser.uid, updatedSponsorId, packageId);
+        // L1 commission goes to originalReferrerId, L2-10 go to updatedSponsorId (placement)
+        await processActivation(currentUser.uid, updatedSponsorId, packageId, originalReferrerId);
 
         // ✅ Record transaction
         await addTransaction({
