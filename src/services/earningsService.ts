@@ -79,6 +79,7 @@ export async function processActivation(
   }
 
   // ✅ Step 2: Credit Levels 2-10 to PLACEMENT UPLINES (matrix chain)
+  console.log("L2-10 start - placementSponsorId:", placementSponsorId, "referrerId:", referrerId, "same?", placementSponsorId === referrerId);
   if (!placementSponsorId) return;
 
   // Start from placement sponsor upline (skip level 1 since already credited)
