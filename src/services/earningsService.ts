@@ -70,6 +70,22 @@ export async function processActivation(
       });
 
       console.log("L1 commission credited to referrer:", referrerId, "amount:", l1Commission);
+      // Create notification
+      await addDoc(collection(db, "users", referrerId, "notifications"), {
+        title: "Direct Referral Commission",
+        message: "You earned ₱" + l1Commission.toLocaleString() + " from a new direct referral!",
+        type: "commission",
+        read: false,
+        createdAt: Timestamp.now(),
+      });
+      // Create notification
+      await addDoc(collection(db, "users", referrerId, "notifications"), {
+        title: "Direct Referral Commission",
+        message: "You earned ₱" + l1Commission.toLocaleString() + " from a new direct referral!",
+        type: "commission",
+        read: false,
+        createdAt: Timestamp.now(),
+      });
     }
   } catch (error) {
     console.error("L1 commission error:", error);
@@ -124,6 +140,22 @@ export async function processActivation(
       });
 
       console.log("L" + level + " commission credited to:", currentUid, "amount:", commission);
+      // Create notification
+      await addDoc(collection(db, "users", currentUid, "notifications"), {
+        title: "Level " + level + " Matrix Commission",
+        message: "₱" + commission.toLocaleString() + " added to your Credits wallet (Level " + level + ")",
+        type: "credits",
+        read: false,
+        createdAt: Timestamp.now(),
+      });
+      // Create notification
+      await addDoc(collection(db, "users", currentUid, "notifications"), {
+        title: "Level " + level + " Matrix Commission",
+        message: "₱" + commission.toLocaleString() + " added to your Credits wallet (Level " + level + ")",
+        type: "credits",
+        read: false,
+        createdAt: Timestamp.now(),
+      });
 
       const nextUid = sponsorData.sponsorId || sponsorData.referredBy;
       if (!nextUid) break;

@@ -1,4 +1,8 @@
-import { Bell, Sun, Moon, X, CheckCheck } from "lucide-react";
+﻿const fs = require("fs");
+let content = fs.readFileSync("src/components/Header.tsx", "utf8");
+
+// Add notifications panel to Header
+const newContent = `import { Bell, Sun, Moon, X, CheckCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -60,7 +64,7 @@ export default function Header({
         >
           <div className="w-full h-full rounded-[14px] bg-brand-navy flex items-center justify-center overflow-hidden">
             <img
-              src={`https://api.dicebear.com/7.x/${userSeed?.includes("http") ? "avataaars" : "avataaars"}/svg?seed=${userSeed}`}
+              src={\`https://api.dicebear.com/7.x/\${userSeed?.includes("http") ? "avataaars" : "avataaars"}/svg?seed=\${userSeed}\`}
               alt="Profile"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -139,3 +143,7 @@ export default function Header({
     </header>
   );
 }
+`;
+
+fs.writeFileSync("src/components/Header.tsx", newContent, "utf8");
+console.log("Done!");
