@@ -53,9 +53,8 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
     if (referralCode) getShort();
   }, [shareLink, referralCode]);
   const wallets: WalletType[] = [
-    { label: "Credits 🔒", balance: stats.creditsBalance || 0, type: "credits", color: "text-yellow-400" },
-    { label: "Withdrawal Wallet", balance: 0, type: "withdraw", color: "text-brand-primary" },
-    { label: "Cashback Wallet", balance: 0, type: "cashback", color: "text-brand-accent" },
+    { label: "Earnings Wallet", balance: stats.totalEarnings || 0, type: "earnings", color: "text-brand-primary" },
+    { label: "Credits (Locked)", balance: stats.creditsBalance || 0, type: "credits", color: "text-yellow-400" },
   ];
 
   return (
@@ -92,7 +91,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
                    <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-bold mb-1">{wallet.label}</p>
                    <AnimatedNumber value={wallet.balance} className={`text-xl font-display font-bold ${wallet.color}`} />
                 </div>
-                {wallet.type === 'credits' && (
+                {wallet.type === 'earnings' && (
                   <button 
                     onClick={onWithdraw}
                     className="w-full py-2 bg-brand-primary/10 border border-brand-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-all"
