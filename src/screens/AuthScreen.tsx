@@ -49,30 +49,46 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
   // isSignedIn(), but this check runs before the account exists, i.e.
   // while unauthenticated, so it must use a publicly-readable doc).
   const validateReferralCode = async (code: string): Promise<boolean> => {
-    const trimmed = code.trim().toUpperCase();
-    if (!trimmed) return false;
-    try {
-      const { doc, getDoc } = await import("firebase/firestore");
-      const { db } = await import("../lib/firebase");
-      // Check if referral code exists
-      const snap = await getDoc(doc(db, "referralCodes", trimmed));
-      if (!snap.exists()) return false;
-      // Check if referral link is enabled for this user
-      const uid = snap.data()?.uid;
-      if (!uid) return false;
-      const userSnap = await getDoc(doc(db, "users", uid));
-      if (!userSnap.exists()) return false;
-      const userData = userSnap.data();
-      if (userData.referralLinkEnabled === false) {
-        setError("This referral link is locked. Contact the referrer to unlock it.");
-        return false;
+  const trimmed = code.trim().toUpperCase();
+  if (!trimmed) return false;
+  try {
+    const { doc, getDoc, collection, query, where, getDocs } = await import("firebase/firestore");
+    const { db } = await import("../lib/firebase");
+
+    let uid: string | null = null;
+
+    // First check referralCodes collection
+    const snap = await getDoc(doc(db, "referralCodes", trimmed));
+    if (snap.exists()) {
+      uid = snap.data()?.uid;
+    } else {
+      // Fallback — search users collection directly
+      const usersQuery = query(collection(db, "users"), where("referralCode", "==", trimmed));
+      const usersSnap = await getDocs(usersQuery);
+      if (!usersSnap.empty) {
+        uid = usersSnap.docs[0].id;
+        // Auto-create the referralCodes doc for future use
+        const { setDoc } = await import("firebase/firestore");
+        await setDoc(doc(db, "referralCodes", trimmed), { uid });
       }
-      return true;
-    } catch (err) {
-      console.error("Referral validation error:", err);
+    }
+
+    if (!uid) return false;
+
+    // Check if referral link is enabled
+    const userSnap = await getDoc(doc(db, "users", uid));
+    if (!userSnap.exists()) return false;
+    const userData = userSnap.data();
+    if (userData.referralLinkEnabled === false) {
+      setError("This referral link is locked. Contact the referrer to unlock it.");
       return false;
     }
-  };
+    return true;
+  } catch (err) {
+    console.error("Referral validation error:", err);
+    return false;
+  }
+};
 
   // Live-validate as the user types (debounced), so they get feedback
   // before hitting submit.
