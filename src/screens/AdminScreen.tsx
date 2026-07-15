@@ -548,7 +548,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     <button
                       onClick={handleToggleTrading}
                       disabled={savingSettings}
-                      className={px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 }
+                      className="px-4 py-2 rounded-xl text-xs font-black uppercase border border-brand-border"
                     >
                       {savingSettings ? "Saving..." : tradingEnabled ? "ENABLED" : "DISABLED"}
                     </button>
