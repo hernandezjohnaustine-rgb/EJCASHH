@@ -95,7 +95,7 @@ export default function ActivationScreen({
   isActivated,
   currentPackage,
 }: ActivationScreenProps) {
-  const [selectedPackage, setSelectedPackage] = useState<string>("package_1");
+  const [selectedPackage, setSelectedPackage] = useState<string>(isActivated && !currentPackage?.includes("package_2") && currentPackage !== "combined" ? "package_2" : "package_1");
   const [showConfirm, setShowConfirm] = useState(false);
   const [expandedPackage, setExpandedPackage] = useState<string | null>(null);
 
