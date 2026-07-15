@@ -191,7 +191,7 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
       {/* Reward Structure */}
       <section className="px-6 flex flex-col gap-4">
          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30">MLM Reward Structure</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-text/30">Reward Structure</h3>
             <span className="text-[10px] text-brand-primary font-bold underline cursor-pointer">Learn More</span>
          <div className="flex gap-2 mb-3">
            <button onClick={() => setActivePackageTab("p1")} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activePackageTab === "p1" ? "bg-brand-primary text-brand-black" : "bg-brand-card/20 border border-brand-border text-brand-text/60"}`}>Package 1</button>
