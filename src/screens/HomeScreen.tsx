@@ -169,9 +169,9 @@ export default function HomeScreen({
             <div className="flex items-end justify-between">
               <div className="flex gap-6">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.1em] font-black mb-1">Total Earnings</span>
+                  <span className="text-[10px] text-brand-text/40 uppercase tracking-[0.1em] font-black mb-1">Credits 🔒</span>
                   <div className="text-sm font-black text-brand-primary italic drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                    <AnimatedNumber value={stats.totalEarnings} className="text-brand-primary font-black italic" />
+                    <AnimatedNumber value={stats.creditsBalance || 0} className="text-yellow-400 font-black italic" />
                   </div>
                 </div>
                 <div className="flex flex-col">
