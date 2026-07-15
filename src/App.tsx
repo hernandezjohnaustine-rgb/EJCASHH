@@ -629,6 +629,8 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         }, { merge: true });
 
         // ✅ Distribute commissions
+        console.log("Sponsor ID:", updatedSponsorId, "Package:", packageId);
+        alert("Debug - SponsorId: " + updatedSponsorId + " Package: " + packageId);
         await processActivation(currentUser.uid, updatedSponsorId, packageId);
 
         // ✅ Record transaction
