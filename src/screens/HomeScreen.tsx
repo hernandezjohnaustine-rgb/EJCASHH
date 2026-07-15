@@ -53,7 +53,7 @@ const mainServices = [
 ];
 
 const earnServices = [
-  { id: "trading", name: "Bot", icon: TrendingUp, color: "#FACC15" },
+  // { id: "trading", name: "Bot", icon: TrendingUp, color: "#FACC15" }, // Hidden - Admin only
   { id: "rider", name: "Rider", icon: Bike, color: "#FACC15" },
   { id: "market", name: "Shop", icon: ShoppingBag, color: "#FACC15" },
   { id: "assistant", name: "AI AI", icon: Sparkles, color: "#FACC15" },
@@ -188,8 +188,8 @@ export default function HomeScreen({
         </motion.div>
       </section>
 
-      {/* Trading ROI Dashboard */}
-      {stats.isActivated && (
+      {/* Trading ROI Dashboard - Hidden until admin enables */}
+      {false && stats.isActivated && (
         <section className="px-6">
           <GlassCard className="!p-0 overflow-hidden relative border-brand-primary/20 bg-brand-navy/40 backdrop-blur-2xl shadow-[0_0_50px_rgba(250,204,21,0.05)]">
              <div className="p-6">
