@@ -259,6 +259,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     { id: "transactions", label: "Txns", icon: TrendingUp },
     { id: "products", label: "Products", icon: ShoppingBag },
     { id: "orders", label: "Orders", icon: Package },
+    { id: "settings", label: "Settings", icon: Shield },
   ];
 
   return (
