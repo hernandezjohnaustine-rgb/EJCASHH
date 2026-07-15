@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Bot, User, ChevronLeft, Sparkles, Loader2 } from "lucide-react";
 import { askAssistant } from "../services/geminiService";
@@ -113,3 +113,4 @@ export default function AssistantScreen({ onBack }: any) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-// src/services/paymongoService.ts
+﻿// src/services/paymongoService.ts
 // Calls the Netlify serverless proxy — no CORS, secret key stays server-side
 
 const FUNCTION_URL = "/.netlify/functions/paymongo";
@@ -32,3 +32,4 @@ export async function getPaymentLinkStatus(linkId: string) {
   if (!res.ok || json.error) throw new Error(json.error || "Failed to fetch payment status.");
   return json;
 }
+

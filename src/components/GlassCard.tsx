@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { ReactNode } from "react";
 
 interface GlassCardProps {
@@ -21,3 +21,4 @@ export default function GlassCard({ children, className = "", delay = 0, onClick
     </motion.div>
   );
 }
+

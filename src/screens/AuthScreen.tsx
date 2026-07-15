@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { ShieldCheck, LogIn, Mail, Lock, User, UserPlus, ArrowRight, Phone, CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { 
@@ -441,3 +441,4 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     </div>
   );
 }
+

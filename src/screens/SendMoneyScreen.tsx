@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Search, User as UserIcon, ChevronRight, Phone, Star, Landmark, ScanLine, PlusCircle, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -341,3 +341,4 @@ export default function SendMoneyScreen({ onBack, onConfirm, balance, initialRec
     </motion.div>
   );
 }
+

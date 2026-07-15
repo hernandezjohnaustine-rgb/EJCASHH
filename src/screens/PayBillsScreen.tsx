@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { useState } from "react";
 import { ArrowLeft, Receipt, CheckCircle2, ChevronRight, Search, Zap, Droplets, Wifi, ShieldCheck, CreditCard, ChevronDown } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -193,3 +193,4 @@ export default function PayBillsScreen({ onBack, onConfirm, balance }: {
     </div>
   );
 }
+

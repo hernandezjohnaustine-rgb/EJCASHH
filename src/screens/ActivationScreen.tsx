@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Zap, Crown, Package, CheckCircle, ArrowRight, Gift } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -388,3 +388,4 @@ export default function ActivationScreen({
     </div>
   );
 }
+

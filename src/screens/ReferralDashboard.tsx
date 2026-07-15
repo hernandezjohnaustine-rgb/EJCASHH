@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { 
   Users, 
@@ -245,3 +245,4 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
     </div>
   );
 }
+

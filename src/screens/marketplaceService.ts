@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ShoppingBag, Search, ChevronLeft, Filter, Star, ShoppingCart, Heart, X, MapPin, CheckCircle, Wallet, CreditCard } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -435,3 +435,4 @@ export default function MarketplaceScreen({ onBack, onConfirm, balance, userProf
     </div>
   );
 }
+

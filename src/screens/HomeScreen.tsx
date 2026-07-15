@@ -139,7 +139,7 @@ export default function HomeScreen({
                     {showBalance ? (
                       <AnimatedNumber value={activeWallet.balance} className={activeWallet.color} />
                     ) : (
-                      "₱ ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
+                      "₱ ••••••••"
                     )}
                   </h1>
                   <button 
@@ -577,7 +577,7 @@ export default function HomeScreen({
                 </div>
                 <div>
                   <h4 className="text-sm font-bold">{tx.title}</h4>
-                  <p className="text-[10px] text-brand-text/40 tracking-wider font-medium">{tx.date} ΓÇó {tx.category}</p>
+                  <p className="text-[10px] text-brand-text/40 tracking-wider font-medium">{tx.date} • {tx.category}</p>
                 </div>
               </div>
               <div className="text-right">
@@ -612,6 +612,7 @@ export default function HomeScreen({
     </div>
   );
 }
+
 
 
 

@@ -1,4 +1,4 @@
-export interface UserProfile {
+﻿export interface UserProfile {
   uid: string;
   email: string | null;
   displayName: string | null;
@@ -42,3 +42,4 @@ export interface UserStats {
   tradingActive: boolean;
   tradingClaimedToday: boolean;
 }
+

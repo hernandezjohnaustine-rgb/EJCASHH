@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, Landmark, Banknote, PlusCircle, CheckCircle2, ShieldCheck, Loader2, QrCode, ExternalLink } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -324,3 +324,4 @@ export default function CashInScreen({ onBack, onConfirm }: any) {
     </div>
   );
 }
+

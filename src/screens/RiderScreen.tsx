@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Bike, Package, MapPin, Search, ChevronLeft, Star, Clock, ShieldCheck } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -121,3 +121,4 @@ export default function RiderScreen({ onBack, onConfirm }: any) {
     </div>
   );
 }
+

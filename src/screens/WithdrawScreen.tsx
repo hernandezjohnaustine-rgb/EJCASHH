@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { ArrowLeft, Landmark, CheckCircle2, User, Hash, Loader2 } from "lucide-react";
 import { db, auth } from "../lib/firebase";
@@ -359,3 +359,4 @@ export default function WithdrawScreen({
     </div>
   );
 }
+

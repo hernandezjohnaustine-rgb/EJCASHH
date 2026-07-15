@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { ArrowLeft, User, Search, Filter, Mail, Phone, ChevronRight, Loader2 } from "lucide-react";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -116,3 +116,4 @@ export default function TeamNetworkScreen({ onBack, referralCode }: { onBack: ()
     </div>
   );
 }
+

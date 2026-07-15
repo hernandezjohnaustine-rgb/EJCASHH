@@ -1,4 +1,4 @@
-import { Bell, Sun, Moon } from "lucide-react";
+﻿import { Bell, Sun, Moon } from "lucide-react";
 
 export default function Header({ 
   userName = "User",
@@ -50,3 +50,4 @@ export default function Header({
     </header>
   );
 }
+

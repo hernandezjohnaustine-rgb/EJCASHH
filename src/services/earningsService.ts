@@ -1,4 +1,4 @@
-import { 
+﻿import { 
   doc, 
   getDoc,
   runTransaction, 
@@ -161,3 +161,4 @@ export async function processTransfer(fromUserId: string, toUserId: string, amou
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
+

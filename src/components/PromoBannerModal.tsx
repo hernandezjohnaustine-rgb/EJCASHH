@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 
 interface PromoBannerModalProps {
@@ -85,3 +85,4 @@ export default function PromoBannerModal({
     </AnimatePresence>
   );
 }
+

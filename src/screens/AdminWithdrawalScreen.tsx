@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft, CheckCircle2, XCircle, Clock, RefreshCw,
@@ -290,3 +290,4 @@ export default function AdminWithdrawalScreen({ onBack }: { onBack: () => void }
     </div>
   );
 }
+

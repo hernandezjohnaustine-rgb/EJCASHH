@@ -1,4 +1,4 @@
-const FUNCTION_URL = "/.netlify/functions/paymongo";
+﻿const FUNCTION_URL = "/.netlify/functions/paymongo";
 
 export async function createPaymentLink(
   amount: number,
@@ -27,3 +27,4 @@ export async function getPaymentLinkStatus(linkId: string) {
   if (!res.ok || json.error) throw new Error(json.error || "Failed to fetch payment status.");
   return json;
 }
+

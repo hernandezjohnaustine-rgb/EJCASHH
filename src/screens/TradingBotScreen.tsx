@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TrendingUp, Shield, Zap, ChevronLeft, ChevronRight, CheckCircle2, Info } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -216,3 +216,4 @@ export default function TradingBotScreen({ onBack, onInvest, balance }: any) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { useState } from "react";
 import { ArrowLeft, Smartphone, CheckCircle2, ChevronRight, Search } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -177,3 +177,4 @@ export default function BuyLoadScreen({ onBack, onConfirm, balance }: {
     </div>
   );
 }
+

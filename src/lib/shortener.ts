@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Simple utility to shorten URLs using the is.gd API.
  * This is a public, no-key-required API.
  */
@@ -15,3 +15,4 @@ export async function shortenUrl(url: string): Promise<string> {
     return url;
   }
 }
+

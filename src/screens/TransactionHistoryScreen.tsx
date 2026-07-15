@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { useState } from "react";
 import { ArrowLeft, Filter, Search, Calendar, Download } from "lucide-react";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
@@ -105,3 +105,4 @@ export default function TransactionHistoryScreen({ onBack, transactions }: { onB
     </div>
   );
 }
+

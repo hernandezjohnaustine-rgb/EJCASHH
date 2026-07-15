@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { Trophy, Star, Award, CheckCircle2, Gift } from "lucide-react";
 
 // ── Milestone Config ──────────────────────────────────────────────
@@ -214,3 +214,4 @@ export function DirectsCertificateModal({
     />
   );
 }
+

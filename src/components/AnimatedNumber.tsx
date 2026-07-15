@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { animate } from "motion/react";
 
 interface AnimatedNumberProps {
@@ -34,3 +34,4 @@ export default function AnimatedNumber({
     </span>
   );
 }
+

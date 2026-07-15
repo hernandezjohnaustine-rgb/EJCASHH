@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useEffect } from "react";
 import {
   User, Shield, CreditCard, Bell, HelpCircle, LogOut,
@@ -599,3 +599,4 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
     </>
   );
 }
+

@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { Home, Send, History, TrendingUp, ScanLine, User } from "lucide-react";
 
 interface BottomNavProps {
@@ -59,3 +59,4 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
     </nav>
   );
 }
+

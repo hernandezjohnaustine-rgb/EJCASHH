@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { X, Download, Share2, Copy } from "lucide-react";
 import GlassCard from "./GlassCard";
 import { shortenUrl } from "../lib/shortener";
@@ -109,3 +109,4 @@ export default function QrInviteModal({ isOpen, onClose, referralCode }: QrInvit
     </AnimatePresence>
   );
 }
+

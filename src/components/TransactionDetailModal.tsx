@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { X, Share2, Download, ShieldCheck, CheckCircle2, ChevronRight, Copy } from "lucide-react";
 import { Transaction } from "../types";
 import GlassCard from "./GlassCard";
@@ -106,3 +106,4 @@ function DetailRow({ label, value, copyable }: { label: string, value: string, c
     </div>
   );
 }
+

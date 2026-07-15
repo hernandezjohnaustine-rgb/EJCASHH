@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, getDoc, updateDoc, query, where } from "firebase/firestore";
+﻿import { collection, getDocs, doc, getDoc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 /**
@@ -82,3 +82,4 @@ export async function autoPlaceUser(
     return { placedUnder: referrerId, isAutoPlaced: false };
   }
 }
+

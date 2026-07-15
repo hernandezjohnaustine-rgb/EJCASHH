@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, addDoc, collection, Timestamp } from "firebase/firestore";
+﻿import { doc, getDoc, setDoc, addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export const PACKAGES = {
@@ -122,3 +122,4 @@ export async function distributePackageCommission(
     }
   }
 }
+

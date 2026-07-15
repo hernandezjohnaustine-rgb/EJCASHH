@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, useRef } from "react";
 import { QrCode, Scan, Smartphone, Copy, X, Share2, Loader2, Zap, ZapOff, RefreshCcw } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -352,4 +352,5 @@ export default function QrPayScreen({ onBack, onResult, referralCode: propReferr
     </div>
   );
 }
+
 

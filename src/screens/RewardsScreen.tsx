@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { Gift, Zap, TrendingUp, Trophy, ArrowRight, Wallet, PartyPopper } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 
@@ -112,3 +112,4 @@ export default function RewardsScreen() {
 }
 
 import { Smartphone } from "lucide-react";
+

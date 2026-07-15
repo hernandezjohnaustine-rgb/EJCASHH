@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { useState } from "react";
 import { ArrowLeft, Landmark, LandmarkIcon, CheckCircle2, ChevronRight, Search, CreditCard, User } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -214,3 +214,4 @@ export default function BankTransferScreen({ onBack, onConfirm, balance }: {
     </div>
   );
 }
+
