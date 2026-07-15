@@ -589,6 +589,89 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
             )}
+            {activeTab === "deposits" && (
+              <div className="flex flex-col gap-3">
+                <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black px-1">{deposits.length} Deposit Requests</p>
+                {deposits.length === 0 ? (
+                  <p className="text-center text-brand-text/40 py-8 font-bold">No deposit requests yet</p>
+                ) : deposits.map((d: any) => (
+                  <div key={d.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="text-sm font-black text-brand-text">{d.userName}</p>
+                        <p className="text-[10px] text-brand-text/40">{d.userEmail}</p>
+                        <p className="text-[9px] text-brand-text/20">Ref: {d.referenceNo}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-brand-primary">₱{(d.amount || 0).toLocaleString()}</p>
+                        <span className={"text-[9px] font-black px-2 py-0.5 rounded-full " + (d.status === "approved" ? "bg-green-500/20 text-green-400" : d.status === "rejected" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400")}>
+                          {(d.status || "pending").toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                    {d.screenshot && <img src={d.screenshot} alt="Receipt" className="w-full rounded-xl mb-3 max-h-32 object-cover" />}
+                    {d.status === "pending" && (
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={async () => {
+                          if (!confirm("Approve ₱" + d.amount + " deposit?")) return;
+                          const fi = await import("firebase/firestore");
+                          await fi.updateDoc(fi.doc(db, "depositRequests", d.id), { status: "approved" });
+                          const uSnap = await fi.getDoc(fi.doc(db, "users", d.userId));
+                          if (uSnap.exists()) await fi.updateDoc(fi.doc(db, "users", d.userId), { balance: (uSnap.data().balance || 0) + d.amount });
+                          await fi.addDoc(fi.collection(db, "transactions"), { userId: d.userId, type: "in", title: "GCash Deposit Approved", amount: d.amount, category: "Cash In", status: "Completed", referenceNo: d.referenceNo, paymentMethod: "GCash", timestamp: fi.Timestamp.now() });
+                          await fi.addDoc(fi.collection(db, "users", d.userId, "notifications"), { title: "Deposit Approved!", message: "Your GCash deposit of ₱" + d.amount.toLocaleString() + " has been credited to your wallet.", type: "deposit", read: false, createdAt: fi.Timestamp.now() });
+                          fetchData();
+                        }} className="flex-1 py-2 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase rounded-xl">Approve</button>
+                        <button onClick={async () => {
+                          if (!confirm("Reject this deposit?")) return;
+                          const fi = await import("firebase/firestore");
+                          await fi.updateDoc(fi.doc(db, "depositRequests", d.id), { status: "rejected" });
+                          fetchData();
+                        }} className="flex-1 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase rounded-xl">Reject</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {activeTab === "gcash" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black">GCash Accounts</p>
+                  <button onClick={() => { loadGcashAccounts(); setShowGcashForm(!showGcashForm); }} className="text-[9px] font-black text-brand-primary border border-brand-primary/30 px-3 py-1.5 rounded-xl">+ Add Account</button>
+                </div>
+                {showGcashForm && (
+                  <div className="bg-brand-card/5 border border-brand-border rounded-2xl p-4 flex flex-col gap-3">
+                    <input type="text" value={gcashForm.accountName} onChange={e => setGcashForm(p => ({ ...p, accountName: e.target.value }))} className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-brand-text text-sm focus:outline-none" placeholder="Account Name" />
+                    <input type="text" value={gcashForm.accountNumber} onChange={e => setGcashForm(p => ({ ...p, accountNumber: e.target.value }))} className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-brand-text text-sm focus:outline-none" placeholder="GCash Number" />
+                    <input type="text" value={gcashForm.qrCode} onChange={e => setGcashForm(p => ({ ...p, qrCode: e.target.value }))} className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-brand-text text-sm focus:outline-none" placeholder="QR Code URL (e.g. /gcash-qr1.png)" />
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowGcashForm(false)} className="flex-1 py-2 border border-brand-border rounded-xl text-brand-text/60 text-xs font-black uppercase">Cancel</button>
+                      <button onClick={handleSaveGcash} disabled={savingGcash} className="flex-1 py-2 bg-brand-primary text-brand-black text-xs font-black uppercase rounded-xl">{savingGcash ? "Saving..." : "Save"}</button>
+                    </div>
+                  </div>
+                )}
+                {gcashAccounts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-brand-text/40 font-bold mb-1">No GCash accounts yet</p>
+                    <p className="text-[10px] text-brand-text/20">Click + Add Account above</p>
+                  </div>
+                ) : gcashAccounts.map(acc => (
+                  <div key={acc.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {acc.qrCode && <img src={acc.qrCode} alt="QR" className="w-12 h-12 rounded-xl bg-white p-1 object-contain" />}
+                        <div>
+                          <p className="text-sm font-black text-brand-text">{acc.accountName}</p>
+                          <p className="text-[10px] text-brand-text/40">{acc.accountNumber}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleDeleteGcash(acc.id)} className="text-red-400 text-[9px] font-black border border-red-400/30 px-2 py-1 rounded-lg">Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {activeTab === "orders" && (
               <div className="flex flex-col gap-3">
                 <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black px-1">{orders.length} Orders</p>
