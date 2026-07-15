@@ -101,9 +101,10 @@ export default function ActivationScreen({
 
   // Filter out already purchased packages
   const availablePackages = PACKAGES.filter(p => {
-    if (currentPackage === "combined") return false; // Has everything
-    if (currentPackage === "package_1" && p.id === "package_1") return false;
-    if (currentPackage === "package_2" && p.id === "package_2") return false;
+    if (currentPackage === "combined") return false;
+    if ((currentPackage === "package_1" || currentPackage === "combined") && p.id === "package_1") return false;
+    if ((currentPackage === "package_2" || currentPackage === "combined") && p.id === "package_2") return false;
+    if (isActivated && !currentPackage && p.id === "package_1") return false; // Old accounts
     return true;
   });
   const selected = PACKAGES.find(p => p.id === selectedPackage)!;
