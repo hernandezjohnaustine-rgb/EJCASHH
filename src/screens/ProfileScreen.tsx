@@ -316,6 +316,7 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
             {menuItems.map((item, i) => (
               <motion.button
                 key={i}
+                onClick={(item as any).onClick}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
