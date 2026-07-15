@@ -40,6 +40,8 @@ interface HomeScreenProps {
   onViewHistory: () => void;
   onClaimTrading?: () => void;
   referralCode: string;
+  userProfile?: any;
+  onRequestActivation?: () => void;
 }
 
 const mainServices = [
@@ -72,7 +74,9 @@ export default function HomeScreen({
   onServiceClick, 
   onViewHistory,
   onClaimTrading,
-  referralCode
+  referralCode,
+  userProfile,
+  onRequestActivation
 }: HomeScreenProps) {
   const [showBalance, setShowBalance] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -608,6 +612,9 @@ export default function HomeScreen({
     </div>
   );
 }
+
+
+
 
 
 
