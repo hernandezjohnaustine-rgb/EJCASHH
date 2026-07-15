@@ -583,34 +583,91 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
   const handleTabChange = (tab: string) => setActiveTab(tab);
 
   // ✅ Always reloads CURRENT user's fresh data after activation
-  const handleActivationComplete = async () => {
+  const handleActivationComplete = async (packageId: string = "package_1", amount: number = 360) => {
     const currentUser = auth.currentUser;
     if (currentUser) {
       const userDocRef = doc(db, "users", currentUser.uid);
-      const freshDoc = await getDoc(userDocRef);
-      if (freshDoc.exists()) {
-        const data = freshDoc.data();
-        const today = new Date().toISOString().split('T')[0];
-        const tradingClaimedToday = data.lastClaimDate !== today ? false : (data.tradingClaimedToday || false);
-        const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
-        setUserProfile({ ...data, dailyClaimedToday });
-        setBalance(data.balance || 0);
-        setUserStats({
-          vipLevel: data.stats?.vipLevel || 1,
-          directReferrals: data.stats?.directReferrals || 0,
-          totalReferrals: data.stats?.totalReferrals || 0,
-          teamSize: data.stats?.teamSize || 0,
-          totalEarnings: data.earningsWallet ?? data.stats?.totalEarnings ?? 0,
-          isActivated: data.isActivated || false,
-          tradingInvested: data.tradingInvested || 0,
-          tradingEarnings: data.tradingEarnings || 0,
-          tradingActive: data.tradingActive || false,
-          tradingClaimedToday,
-          tradingDaysCompleted: data.tradingDaysCompleted || 0,
+      try {
+        const freshDoc = await getDoc(userDocRef);
+        if (!freshDoc.exists()) return;
+        const freshData = freshDoc.data();
+        const freshBalance = freshData.balance || 0;
+
+        if (freshBalance < amount) {
+          alert(`❌ Insufficient balance.\nYou need ₱${amount.toLocaleString()} but have ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+          return;
+        }
+
+        // ✅ Auto-placement
+        const sponsorId = freshData.sponsorId || freshData.referredBy;
+        if (sponsorId) {
+          const { autoPlaceUser } = await import("./services/autoPlacementService");
+          await autoPlaceUser(currentUser.uid, sponsorId);
+        }
+
+        // ✅ Get updated sponsorId after auto-placement
+        const freshDoc2 = await getDoc(userDocRef);
+        const updatedSponsorId = freshDoc2.data()?.sponsorId || freshDoc2.data()?.referredBy;
+
+        // ✅ Package details
+        const packageMultiplier = packageId === "package_1" ? 1 : 10;
+        const packageName = packageId === "package_1"
+          ? "EJCASHH Subscription"
+          : packageId === "package_2"
+          ? "Activation Livelihood Program"
+          : "Complete Activation Bundle";
+
+        // ✅ Deduct balance and activate
+        await setDoc(userDocRef, {
+          balance: freshBalance - amount,
+          isActivated: true,
+          activatedAt: new Date().toISOString(),
+          activePackage: packageId,
+          packageMultiplier,
+          hasPackage1: packageId === "package_1" || packageId === "combined",
+          hasPackage2: packageId === "package_2" || packageId === "combined",
+        }, { merge: true });
+
+        // ✅ Distribute commissions
+        await processActivation(currentUser.uid, updatedSponsorId, packageId);
+
+        // ✅ Record transaction
+        await addTransaction({
+          title: `${packageName} Activation`,
+          rawAmount: amount,
+          category: "Activation",
+          type: "out",
+          recordOnly: true,
         });
+
+        // ✅ Reload user data
+        const freshDoc3 = await getDoc(userDocRef);
+        if (freshDoc3.exists()) {
+          const data = freshDoc3.data();
+          const today = new Date().toISOString().split('T')[0];
+          const tradingClaimedToday = data.lastClaimDate !== today ? false : (data.tradingClaimedToday || false);
+          const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
+          setUserProfile({ ...data, dailyClaimedToday });
+          setBalance(data.balance || 0);
+          setUserStats({
+            vipLevel: data.stats?.vipLevel || 1,
+            directReferrals: data.stats?.directReferrals || 0,
+            totalReferrals: data.stats?.totalReferrals || 0,
+            teamSize: data.stats?.teamSize || 0,
+            totalEarnings: data.earningsWallet ?? data.stats?.totalEarnings ?? 0,
+            isActivated: data.isActivated || false,
+            tradingInvested: data.tradingInvested || 0,
+            tradingEarnings: data.tradingEarnings || 0,
+            tradingActive: data.tradingActive || false,
+            tradingClaimedToday,
+            tradingDaysCompleted: data.tradingDaysCompleted || 0,
+          });
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, "users/" + currentUser.uid);
       }
     }
-    setShowSuccess("Account Activated Successfully!");
+    setShowSuccess("Account Activated Successfully! 🎉");
     setActiveView(null);
     setActiveTab("home");
     setTimeout(() => setShowSuccess(null), 3000);
@@ -698,10 +755,10 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
     const currentUid = auth.currentUser?.uid || user.uid;
     const coreFeatures = ["send", "bank", "bills", "load", "trading", "rider", "market"];
     if (coreFeatures.includes(activeView || "") && !userStats.isActivated) {
-      return <ActivationScreen uid={currentUid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
+      return <ActivationScreen uid={currentUid} onActivate={(packageId: string, amount: number) => handleActivationComplete(packageId, amount)} balance={balance} onBack={() => setActiveView(null)} isActivated={userStats.isActivated} currentPackage={userProfile?.activePackage} />;
     }
     switch (activeView) {
-      case "activation": return <ActivationScreen uid={currentUid} onActivate={handleActivationComplete} balance={balance} onBack={() => setActiveView(null)} />;
+      case "activation": return <ActivationScreen uid={currentUid} onActivate={(packageId: string, amount: number) => handleActivationComplete(packageId, amount)} balance={balance} onBack={() => setActiveView(null)} isActivated={userStats.isActivated} currentPackage={userProfile?.activePackage} />;
       case "cashin": return <CashInScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, method: string) => addTransaction({ title: `Cash In via ${method}`, rawAmount: amt, category: "Cash In", type: "in" })} />;
       case "send": return <SendMoneyScreen onBack={() => { setActiveView(null); setScannedRecipient(null); }} onConfirm={(amt: number, name: string) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }} balance={balance} initialRecipient={scannedRecipient} onScanClick={() => { setActiveView(null); setActiveTab("scan"); }} />;
       case "load": return <BuyLoadScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, provider: string) => addTransaction({ title: `${provider} Load`, rawAmount: amt, category: "Mobile Load", type: "out" })} balance={balance} />;
