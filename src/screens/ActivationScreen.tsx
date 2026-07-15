@@ -82,6 +82,7 @@ interface ActivationScreenProps {
   balance: number;
   onActivate: (packageId: string, amount: number) => void;
   onBack: () => void;
+  uid?: string;
   isActivated?: boolean;
   currentPackage?: string;
 }
@@ -90,6 +91,7 @@ export default function ActivationScreen({
   balance,
   onActivate,
   onBack,
+  uid,
   isActivated,
   currentPackage,
 }: ActivationScreenProps) {
