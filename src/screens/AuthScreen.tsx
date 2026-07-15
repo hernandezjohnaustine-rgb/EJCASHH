@@ -54,8 +54,20 @@ export default function AuthScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const { doc, getDoc } = await import("firebase/firestore");
       const { db } = await import("../lib/firebase");
+      // Check if referral code exists
       const snap = await getDoc(doc(db, "referralCodes", trimmed));
-      return snap.exists();
+      if (!snap.exists()) return false;
+      // Check if referral link is enabled for this user
+      const uid = snap.data()?.uid;
+      if (!uid) return false;
+      const userSnap = await getDoc(doc(db, "users", uid));
+      if (!userSnap.exists()) return false;
+      const userData = userSnap.data();
+      if (userData.referralLinkEnabled === false) {
+        setError("This referral link is locked. Contact the referrer to unlock it.");
+        return false;
+      }
+      return true;
     } catch (err) {
       console.error("Referral validation error:", err);
       return false;
