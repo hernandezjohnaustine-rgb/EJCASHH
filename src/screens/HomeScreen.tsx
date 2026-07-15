@@ -53,6 +53,8 @@ interface HomeScreenProps {
   onOpenMilestone: (level: number) => void;
   claimedMilestones: Record<string, boolean>;
   achievedMilestones: Record<string, boolean>;
+  userProfile?: any;
+  onRequestActivation?: () => void;
 }
 
 const mainServices = [
@@ -90,6 +92,8 @@ export default function HomeScreen({
   showCertificate,
   onOpenCertificate,
   onCloseCertificate,
+  userProfile,
+  onRequestActivation,
   userName,
   onOpenMilestone,
   claimedMilestones,
