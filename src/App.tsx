@@ -133,7 +133,7 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
 
-        // âœ… Different user logged in â€” clear old state first
+        // ✅ Different user logged in â€” clear old state first
         if (currentUserId && currentUserId !== firebaseUser.uid) {
           setUserProfile(null);
           setBalance(0);
@@ -267,7 +267,7 @@ export default function App() {
                 tradingClaimedToday,
                 tradingDaysCompleted: data.tradingDaysCompleted || 0,
               });
-              // âœ… Check milestones
+              // ✅ Check milestones
 import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
   const teamSize = data.stats?.teamSize || 0;
   const directs = data.stats?.directReferrals || 0;
@@ -333,7 +333,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
               id: d.id,
               ...data,
               timestampValue: ts.getTime(),
-              amount: `${data.type === 'in' ? '+' : '-'}â‚±${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+              amount: `${data.type === 'in' ? '+' : '-'}₱${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
               date: ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
             };
           });
@@ -344,7 +344,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
 
         setIsLoading(false);
 
-        // âœ… Auto logout when app goes to background for more than 1 minute
+        // ✅ Auto logout when app goes to background for more than 1 minute
         let inactivityTimer: ReturnType<typeof setTimeout>;
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'hidden') {
@@ -365,7 +365,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         };
 
       } else {
-        // âœ… Clear ALL state on logout
+        // ✅ Clear ALL state on logout
         currentUserId = null;
         setUser(null);
         setUserProfile(null);
@@ -382,7 +382,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
     return () => unsubscribe();
   }, []);
 
-  // âœ… addTransaction â€” checks balance before proceeding, does NOT update balance for "record_only"
+  // ✅ addTransaction â€” checks balance before proceeding, does NOT update balance for "record_only"
   const addTransaction = async (tx: any) => {
     if (!user) return;
     try {
@@ -394,12 +394,12 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
       if (tx.type === "out") {
         if (tx.category === "Withdrawal") {
           if (tx.rawAmount > freshEarnings) {
-            alert(`âŒ Insufficient earnings wallet.\nAvailable: â‚±${freshEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+            alert(`âŒ Insufficient earnings wallet.\nAvailable: ₱${freshEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
             return;
           }
         } else {
           if (tx.rawAmount > freshBalance) {
-            alert(`âŒ Insufficient balance.\nAvailable: â‚±${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+            alert(`âŒ Insufficient balance.\nAvailable: ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
             return;
           }
         }
@@ -451,7 +451,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
     }
   };
 
-  // âœ… FIXED â€” no double balance update
+  // ✅ FIXED â€” no double balance update
   const handleClaimTrading = async () => {
     if (!user || userStats.tradingInvested <= 0) return;
     const userDocRef = doc(db, "users", user.uid);
@@ -513,7 +513,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         recordOnly: true,
       });
 
-      setShowSuccess(`Trading profit of â‚±${profit.toLocaleString('en-US', { minimumFractionDigits: 2 })} claimed!`);
+      setShowSuccess(`Trading profit of ₱${profit.toLocaleString('en-US', { minimumFractionDigits: 2 })} claimed!`);
       setTimeout(() => setShowSuccess(null), 2000);
 
     } catch (error) {
@@ -582,7 +582,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
 
   const handleTabChange = (tab: string) => setActiveTab(tab);
 
-  // âœ… Always reloads CURRENT user's fresh data after activation
+  // ✅ Always reloads CURRENT user's fresh data after activation
   const handleActivationComplete = async (packageId: string = "package_1", amount: number = 360) => {
     const currentUser = auth.currentUser;
     if (currentUser) {
@@ -594,22 +594,22 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         const freshBalance = freshData.balance || 0;
 
         if (freshBalance < amount) {
-          alert(`âŒ Insufficient balance.\nYou need â‚±${amount.toLocaleString()} but have â‚±${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+          alert(`âŒ Insufficient balance.\nYou need ₱${amount.toLocaleString()} but have ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
           return;
         }
 
-        // âœ… Auto-placement
+        // ✅ Auto-placement
         const sponsorId = freshData.sponsorId || freshData.referredBy;
         if (sponsorId) {
           const { autoPlaceUser } = await import("./services/autoPlacementService");
           await autoPlaceUser(currentUser.uid, sponsorId);
         }
 
-        // âœ… Get updated sponsorId after auto-placement
+        // ✅ Get updated sponsorId after auto-placement
         const freshDoc2 = await getDoc(userDocRef);
         const updatedSponsorId = freshDoc2.data()?.sponsorId || freshDoc2.data()?.referredBy;
 
-        // âœ… Package details
+        // ✅ Package details
         const packageMultiplier = packageId === "package_1" ? 1 : 10;
         const packageName = packageId === "package_1"
           ? "EJCASHH Subscription"
@@ -617,7 +617,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
           ? "Activation Livelihood Program"
           : "Complete Activation Bundle";
 
-        // âœ… Deduct balance and activate
+        // ✅ Deduct balance and activate
         await setDoc(userDocRef, {
           balance: freshBalance - amount,
           isActivated: true,
@@ -628,10 +628,10 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
           hasPackage2: packageId === "package_2" || packageId === "combined",
         }, { merge: true });
 
-        // âœ… Distribute commissions
+        // ✅ Distribute commissions
         await processActivation(currentUser.uid, updatedSponsorId, packageId);
 
-        // âœ… Record transaction
+        // ✅ Record transaction
         await addTransaction({
           title: `${packageName} Activation`,
           rawAmount: amount,
@@ -640,7 +640,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
           recordOnly: true,
         });
 
-        // âœ… Reload user data
+        // ✅ Reload user data
         const freshDoc3 = await getDoc(userDocRef);
         if (freshDoc3.exists()) {
           const data = freshDoc3.data();
