@@ -323,12 +323,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{scrollbarWidth: "none"}}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as AdminTab)}
-              className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${
+              className={`shrink-0 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${
                 activeTab === tab.id ? "bg-brand-primary text-brand-black" : "bg-brand-card/5 border border-brand-border text-brand-text/60"
               }`}
             >
