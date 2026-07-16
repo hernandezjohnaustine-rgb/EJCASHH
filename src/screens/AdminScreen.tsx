@@ -324,7 +324,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as AdminTab)}
+              onClick={() => { setActiveTab(tab.id as AdminTab); fetchData(tab.id); }}
               className={`shrink-0 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${
                 activeTab === tab.id ? "bg-brand-primary text-brand-black" : "bg-brand-card/5 border border-brand-border text-brand-text/60"
               }`}
