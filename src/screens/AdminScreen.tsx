@@ -29,6 +29,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<any[]>([]);
+  const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
+  const [adminNote, setAdminNote] = useState("");
+  const [processingDeposit, setProcessingDeposit] = useState(false);
+  const [zoomImage, setZoomImage] = useState(false);
+  const [gcashAccounts, setGcashAccounts] = useState<any[]>([]);
+  const [showGcashForm, setShowGcashForm] = useState(false);
+  const [gcashForm, setGcashForm] = useState({ accountName: "", accountNumber: "", qrCode: "", order: 1 });
+  const [savingGcash, setSavingGcash] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -51,6 +60,14 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       const totalBalance = usersData.reduce((sum: number, u: any) => sum + (u.balance || 0), 0);
       const activatedUsers = usersData.filter((u: any) => u.isActivated).length;
       setStats(prev => ({ ...prev, totalUsers: usersData.length, activatedUsers, totalBalance }));
+      try {
+        const depSnap = await getDocs(collection(db, "depositRequests"));
+        setDeposits(depSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+      } catch(e) { console.error(e); }
+      try {
+        const gcSnap = await getDocs(collection(db, "gcashSettings"));
+        setGcashAccounts(gcSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => a.order - b.order));
+      } catch(e) { console.error(e); }
 
       const tSnap = await getDocs(collection(db, "transactions"));
       const tData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -116,6 +133,51 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     } catch { alert("❌ Failed to update balance"); }
   };
 
+  const handleApproveDeposit = async (d: any) => {
+    setProcessingDeposit(true);
+    try {
+      await updateDoc(doc(db, "depositRequests", d.id), { status: "approved", approvedAt: Timestamp.now(), adminNote: adminNote || "" });
+      const uRef = doc(db, "users", d.userId);
+      const uSnap = await getDoc(uRef);
+      if (!uSnap.exists()) throw new Error("User not found");
+      await updateDoc(uRef, { balance: (uSnap.data().balance || 0) + d.amount });
+      await addDoc(collection(db, "transactions"), { userId: d.userId, type: "in", title: "GCash Deposit", amount: d.amount, category: "Cash In", status: "Completed", referenceNo: d.referenceNo || "", paymentMethod: "GCash", timestamp: Timestamp.now() });
+      await addDoc(collection(db, "users", d.userId, "notifications"), { title: "Deposit Approved!", message: "Your GCash deposit of ₱" + (d.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 }) + " has been credited to your wallet.", type: "deposit", read: false, createdAt: Timestamp.now() });
+      setSelectedDeposit(null);
+      setAdminNote("");
+      await fetchData();
+      alert("Approved! ₱" + d.amount + " credited to " + d.userName);
+    } catch(err: any) { alert("Failed: " + (err.message || String(err))); }
+    finally { setProcessingDeposit(false); }
+  };
+  const handleRejectDeposit = async (d: any) => {
+    setProcessingDeposit(true);
+    try {
+      await updateDoc(doc(db, "depositRequests", d.id), { status: "rejected", rejectedAt: Timestamp.now(), adminNote: adminNote || "" });
+      await addDoc(collection(db, "users", d.userId, "notifications"), { title: "Deposit Rejected", message: "Your GCash deposit of ₱" + (d.amount || 0).toLocaleString() + " was rejected. " + (adminNote ? "Reason: " + adminNote : ""), type: "deposit", read: false, createdAt: Timestamp.now() });
+      setSelectedDeposit(null);
+      setAdminNote("");
+      await fetchData();
+    } catch(err: any) { alert("Failed: " + (err.message || String(err))); }
+    finally { setProcessingDeposit(false); }
+  };
+  const handleSaveGcash = async () => {
+    setSavingGcash(true);
+    try {
+      await addDoc(collection(db, "gcashSettings"), { ...gcashForm, createdAt: Timestamp.now() });
+      setGcashForm({ accountName: "", accountNumber: "", qrCode: "", order: 1 });
+      setShowGcashForm(false);
+      await fetchData();
+    } catch { alert("Failed to save GCash account."); }
+    finally { setSavingGcash(false); }
+  };
+  const handleDeleteGcash = async (id: string) => {
+    if (!window.confirm("Remove this GCash account?")) return;
+    try {
+      await deleteDoc(doc(db, "gcashSettings", id));
+      await fetchData();
+    } catch { alert("Failed to delete."); }
+  };
   const handleApprove = async (w: any) => {
     setProcessingId(w.id);
     try {
