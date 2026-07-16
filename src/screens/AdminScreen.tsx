@@ -55,6 +55,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState(EMPTY_PRODUCT);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [tradingEnabled, setTradingEnabled] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -253,6 +255,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     finally { setSavingProduct(false); }
   };
 
+  const handleToggleTrading = async () => {
+  setSavingSettings(true);
+  try {
+    await setDoc(doc(db, "settings", "app"), {
+      tradingEnabled: !tradingEnabled
+    }, { merge: true });
+    setTradingEnabled(!tradingEnabled);
+  } catch {
+    alert("❌ Failed to update setting");
+  } finally {
+    setSavingSettings(false);
+  }
+};
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Delete this product?")) return;
     try {
@@ -330,7 +345,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id as AdminTab); fetchData(tab.id); }}
+              onClick={() => { setActiveTab(tab.id as AdminTab); fetchData(); }}
               className={"shrink-0 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 " + (activeTab === tab.id ? "bg-brand-primary text-brand-black" : "bg-brand-card/5 border border-brand-border text-brand-text/60")}
             >
               <tab.icon className="w-3 h-3" />
@@ -346,7 +361,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id as AdminTab); fetchData(tab.id); }}
+              onClick={() => { setActiveTab(tab.id as AdminTab); fetchData(); }}
               className={"w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-black transition-all text-left " + (activeTab === tab.id ? "bg-brand-primary text-brand-black" : "text-brand-text/60 hover:bg-brand-card/10 hover:text-brand-text")}
             >
               <tab.icon className="w-4 h-4 shrink-0" />
@@ -916,7 +931,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         )}
       </AnimatePresence>
             </div>
-      </div>
     </div>
   );
 }
