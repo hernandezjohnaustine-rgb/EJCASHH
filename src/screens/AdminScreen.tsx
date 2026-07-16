@@ -340,7 +340,22 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div className="px-4 py-4">
+      <div className="flex min-h-screen">
+        {/* Desktop Sidebar */}
+        <div className="hidden md:flex flex-col w-56 shrink-0 border-r border-brand-border bg-brand-black sticky top-[120px] self-start h-[calc(100vh-120px)] overflow-y-auto py-4 px-3 gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id as AdminTab); fetchData(tab.id); }}
+              className={"w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-black transition-all text-left " + (activeTab === tab.id ? "bg-brand-primary text-brand-black" : "text-brand-text/60 hover:bg-brand-card/10 hover:text-brand-text")}
+            >
+              <tab.icon className="w-4 h-4 shrink-0" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {/* Main Content */}
+        <div className="flex-1 px-4 py-4 overflow-x-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-brand-text/40 text-sm">Loading...</div>
@@ -900,6 +915,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
-        </div>
+            </div>
+      </div>
+    </div>
   );
 }
