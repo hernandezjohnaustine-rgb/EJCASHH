@@ -181,37 +181,60 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     }
   const handleApproveDeposit = async (d: any) => {
     setProcessingDeposit(true);
-    setProcessingDeposit(true);
     try {
-      const fi = await import("firebase/firestore");
-      const db2 = (await import("../lib/firebase")).db;
-      await fi.updateDoc(fi.doc(db2, "depositRequests", d.id), { status: "approved", approvedAt: fi.Timestamp.now(), adminNote: adminNote || "" });
-      const uRef = fi.doc(db2, "users", d.userId);
-      const uSnap = await fi.getDoc(uRef);
-      if (!uSnap.exists()) throw new Error("User not found");
-      await fi.updateDoc(uRef, { balance: (uSnap.data().balance || 0) + d.amount });
-      await fi.addDoc(fi.collection(db2, "transactions"), { userId: d.userId, type: "in", title: "GCash Deposit", amount: d.amount, category: "Cash In", status: "Completed", referenceNo: d.referenceNo, paymentMethod: "GCash", timestamp: fi.Timestamp.now() });
-      await fi.addDoc(fi.collection(db2, "users", d.userId, "notifications"), { title: "Deposit Approved!", message: "Your GCash deposit of ₱" + d.amount.toLocaleString("en-US", { minimumFractionDigits: 2 }) + " has been credited to your wallet.", type: "deposit", read: false, createdAt: fi.Timestamp.now() });
+      await updateDoc(doc(db, "depositRequests", d.id), {
+        status: "approved",
+        approvedAt: Timestamp.now(),
+        adminNote: adminNote || ""
+      });
+      const uRef = doc(db, "users", d.userId);
+      const uSnap = await getDoc(uRef);
+      if (!uSnap.exists()) throw new Error("User not found: " + d.userId);
+      await updateDoc(uRef, { balance: (uSnap.data().balance || 0) + d.amount });
+      await addDoc(collection(db, "transactions"), {
+        userId: d.userId, type: "in", title: "GCash Deposit",
+        amount: d.amount, category: "Cash In", status: "Completed",
+        referenceNo: d.referenceNo || "", paymentMethod: "GCash",
+        timestamp: Timestamp.now()
+      });
+      await addDoc(collection(db, "users", d.userId, "notifications"), {
+        title: "Deposit Approved!",
+        message: "Your GCash deposit of \u20B1" + (d.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 }) + " has been credited to your wallet.",
+        type: "deposit", read: false, createdAt: Timestamp.now()
+      });
       setSelectedDeposit(null);
       setAdminNote("");
-      fetchData();
-      alert("✅ Approved! ₱" + d.amount + " credited.");
-    } catch(err: any) { alert("❌ Failed: " + err.message); }
-    finally { setProcessingDeposit(false); }
+      await fetchData();
+      alert("Approved! \u20B1" + d.amount + " credited to " + d.userName);
+    } catch(err) {
+      console.error("Approve error:", err);
+      alert("Failed: " + String(err));
+    } finally {
+      setProcessingDeposit(false);
+    }
   };
   const handleRejectDeposit = async (d: any) => {
     setProcessingDeposit(true);
-    setProcessingDeposit(true);
     try {
-      const fi = await import("firebase/firestore");
-      const db2 = (await import("../lib/firebase")).db;
-      await fi.updateDoc(fi.doc(db2, "depositRequests", d.id), { status: "rejected", rejectedAt: fi.Timestamp.now(), adminNote: adminNote || "" });
-      await fi.addDoc(fi.collection(db2, "users", d.userId, "notifications"), { title: "Deposit Rejected", message: "Your GCash deposit of ₱" + d.amount.toLocaleString() + " was rejected. Reason: " + (adminNote || "No reason provided"), type: "deposit", read: false, createdAt: fi.Timestamp.now() });
+      await updateDoc(doc(db, "depositRequests", d.id), {
+        status: "rejected",
+        rejectedAt: Timestamp.now(),
+        adminNote: adminNote || ""
+      });
+      await addDoc(collection(db, "users", d.userId, "notifications"), {
+        title: "Deposit Rejected",
+        message: "Your GCash deposit of \u20B1" + (d.amount || 0).toLocaleString() + " was rejected. " + (adminNote ? "Reason: " + adminNote : "Please contact support."),
+        type: "deposit", read: false, createdAt: Timestamp.now()
+      });
       setSelectedDeposit(null);
       setAdminNote("");
-      fetchData();
-    } catch(err: any) { alert("❌ Failed: " + err.message); }
-    finally { setProcessingDeposit(false); }
+      await fetchData();
+    } catch(err) {
+      console.error("Reject error:", err);
+      alert("Failed: " + String(err));
+    } finally {
+      setProcessingDeposit(false);
+    }
   };
   };  const handleToggleTrading = async () => {
     setSavingSettings(true);
