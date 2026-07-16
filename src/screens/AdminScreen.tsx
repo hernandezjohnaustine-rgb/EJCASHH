@@ -971,6 +971,3 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
-
-
-
