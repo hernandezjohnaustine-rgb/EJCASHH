@@ -287,9 +287,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     { id: "deposits", label: "Deposits", icon: Wallet },
     { id: "gcash", label: "GCash", icon: Wallet },
     { id: "settings", label: "Settings", icon: Shield },
-    { id: "deposits", label: "Deposits", icon: Wallet },
-    { id: "gcash", label: "GCash", icon: Wallet },
-    { id: "settings", label: "Settings", icon: Shield },
   ];
 
   return (
