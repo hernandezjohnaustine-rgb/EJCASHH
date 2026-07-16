@@ -819,7 +819,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         )}
       </AnimatePresence>
         </div>
-      </div>
     </div>
   );
 }
