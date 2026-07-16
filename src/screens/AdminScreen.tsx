@@ -320,14 +320,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{scrollbarWidth: "none"}}>
+        {/* Mobile: horizontal scrollable tabs */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 md:hidden" style={{scrollbarWidth: "none", msOverflowStyle: "none"}}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id as AdminTab); fetchData(tab.id); }}
-              className={`shrink-0 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${
-                activeTab === tab.id ? "bg-brand-primary text-brand-black" : "bg-brand-card/5 border border-brand-border text-brand-text/60"
-              }`}
+              className={"shrink-0 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 " + (activeTab === tab.id ? "bg-brand-primary text-brand-black" : "bg-brand-card/5 border border-brand-border text-brand-text/60")}
             >
               <tab.icon className="w-3 h-3" />
               {tab.label}
@@ -814,6 +813,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }
