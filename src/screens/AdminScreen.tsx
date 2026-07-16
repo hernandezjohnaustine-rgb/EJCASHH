@@ -178,8 +178,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       fetchData();
     } catch {
       alert("❌ Failed to unlock all referral links");
-  };
     }
+  };
   const handleApproveDeposit = async (d: any) => {
     setProcessingDeposit(true);
     try {
