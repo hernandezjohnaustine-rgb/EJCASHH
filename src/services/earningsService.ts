@@ -45,6 +45,15 @@ export async function processActivation(
     if (referrerDoc.exists()) {
       const referrerData = referrerDoc.data();
       const l1Commission = getCommission(1, packageId);
+      let l1Title: string;
+      if (packageId === "package_1") {
+        l1Title = "Level 1 Commission - Subscription";
+      } else if (packageId === "package_2") {
+        l1Title = "Level 1 Commission (10x) - Activation";
+      } else {
+        // combined / "Complete Activation Bundle" — naming confirmed correct as-is
+        l1Title = "Level 1 Commission (10x) — New Activation";
+      }
       await setDoc(doc(db, "users", referrerId), {
         balance: (referrerData.balance || 0) + l1Commission,
         earningsWallet: (referrerData.earningsWallet || 0) + l1Commission,
@@ -60,7 +69,7 @@ export async function processActivation(
       await addDoc(collection(db, "transactions"), {
         userId: referrerId,
         type: "in",
-        title: "Level 1 Direct Referral Commission",
+        title: l1Title,
         amount: l1Commission,
         isCredits: false,
         category: "Commission",
