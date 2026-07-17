@@ -137,6 +137,7 @@ async function main() {
   let noTransactionTrailCount = 0;
   const events = [];
   for (const [uid, data] of usersById.entries()) {
+    if (uid === masterUid) continue; // the master account is the ROOT — never placed under anyone, including itself
     if (!data.isActivated) continue;
     const real = txEventsByUser.get(uid);
     if (real && real.length > 0) {
