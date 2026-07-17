@@ -101,14 +101,18 @@ async function main() {
   log(`Master account resolved: ${masterUid} (${MASTER_EMAIL})`);
 
   // ---------------------------------------------------------------------
-  // Reconstruct chronological activation events from Activation category
-  // transactions — NOT from L1 commission transactions. L1 commission
-  // transactions only exist for users who HAD a referrer, so relying on
-  // them silently drops every referrer-less activation from the replay,
-  // producing badly incomplete (and wrong) results. The "Activation"
-  // transaction is created unconditionally for every single activation,
-  // so it's the complete and authoritative event source. packageId isn't
-  // stored directly on it, so it's inferred from the charged amount.
+  // Reconstruct activation events. Transaction logs ALONE are not a
+  // complete source — some accounts were manually activated via the Admin
+  // Panel's "Activate" button, which sets isActivated:true directly and
+  // creates NO transaction record at all (no Activation tx, no Commission
+  // tx). Relying only on transactions silently drops those accounts.
+  //
+  // Ground truth instead: every truly activated user has isActivated,
+  // activatedAt, and activePackage on their own doc, regardless of how
+  // they got activated. We use that as a guaranteed-complete base event
+  // per user, then OVERRIDE it with real Activation transactions where
+  // they exist — those capture the full upgrade sequence (e.g. package_1
+  // then later package_2) that a single "current state" snapshot can't.
   // ---------------------------------------------------------------------
   function inferPackageId(amount) {
     if (amount === 360) return "package_1";
@@ -117,12 +121,8 @@ async function main() {
     return null;
   }
 
-  const activationTxSnap = await db
-    .collection("transactions")
-    .where("category", "==", "Activation")
-    .get();
-
-  const events = [];
+  const activationTxSnap = await db.collection("transactions").where("category", "==", "Activation").get();
+  const txEventsByUser = new Map();
   let skippedUnknownAmount = 0;
   activationTxSnap.forEach((txSnap) => {
     const tx = txSnap.data();
@@ -130,10 +130,30 @@ async function main() {
     const packageId = inferPackageId(tx.amount);
     if (!packageId) { skippedUnknownAmount++; return; }
     const ts = tx.timestamp?.toDate ? tx.timestamp.toDate() : new Date(tx.timestamp);
-    events.push({ userId: tx.userId, packageId, timestamp: ts });
+    if (!txEventsByUser.has(tx.userId)) txEventsByUser.set(tx.userId, []);
+    txEventsByUser.get(tx.userId).push({ userId: tx.userId, packageId, timestamp: ts });
   });
+
+  let noTransactionTrailCount = 0;
+  const events = [];
+  for (const [uid, data] of usersById.entries()) {
+    if (!data.isActivated) continue;
+    const real = txEventsByUser.get(uid);
+    if (real && real.length > 0) {
+      events.push(...real);
+    } else {
+      // No transaction trail at all (e.g. manually activated by admin) —
+      // fall back to their current recorded state as a single event.
+      noTransactionTrailCount++;
+      events.push({
+        userId: uid,
+        packageId: data.activePackage || "package_1",
+        timestamp: data.activatedAt ? new Date(data.activatedAt) : new Date(0),
+      });
+    }
+  }
   events.sort((a, b) => a.timestamp - b.timestamp);
-  log(`Reconstructed ${events.length} activation events from Activation transaction history.`);
+  log(`Reconstructed ${events.length} activation events (${noTransactionTrailCount} user(s) had no transaction trail — likely manually activated — and were included using their current activation state instead).`);
   if (skippedUnknownAmount > 0) {
     log(`WARNING: ${skippedUnknownAmount} Activation transaction(s) had an amount that didn't match any known package (360/3600/3960) and were skipped. Investigate these manually.`);
   }
