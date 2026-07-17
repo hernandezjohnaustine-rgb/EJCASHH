@@ -32,6 +32,17 @@ jobs:
         working-directory: scripts
         run: echo "${{ secrets.FIRESTORE_ADMIN_KEY_B64 }}" | base64 -d > serviceAccountKey.json
 
+      - name: Verify service account key was written correctly
+        working-directory: scripts
+        run: |
+          if [ ! -s serviceAccountKey.json ]; then
+            echo "ERROR: serviceAccountKey.json is empty. The FIRESTORE_ADMIN_KEY_B64 secret may be missing, misnamed, or empty."
+            exit 1
+          fi
+          echo "Key file size: $(wc -c < serviceAccountKey.json) bytes"
+          # Confirm it's valid JSON without printing the sensitive content
+          node -e "JSON.parse(require('fs').readFileSync('serviceAccountKey.json')); console.log('Key file is valid JSON.')"
+
       - name: Backup users + transactions before any changes
         working-directory: scripts
         run: node backup-firestore.mjs
