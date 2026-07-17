@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -135,10 +135,11 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
 
-        // ✅ Different user logged in â€” clear old state first
+        // ✅ Different user logged in — clear old state first
         if (currentUserId && currentUserId !== firebaseUser.uid) {
           setUserProfile(null);
           setBalance(0);
+          setCreditsBalance(0);
           setTransactions([]);
           setUserStats(EMPTY_STATS);
           setActiveTab("home");
@@ -186,6 +187,7 @@ export default function App() {
                 referralLinkEnabled: false,
                 balance: 0,
                 earningsWallet: 0,
+                creditsBalance: 0,
                 tradingInvested: 0,
                 tradingEarnings: 0,
                 tradingActive: false,
@@ -204,7 +206,7 @@ export default function App() {
               // retried (e.g. after a permission error elsewhere) and this
               // account was already created by an earlier attempt, the
               // transaction sees the doc already exists and skips both the
-              // creation AND the sponsor increment â€” instead of
+              // creation AND the sponsor increment — instead of
               // incrementing the sponsor's totalReferrals/teamSize again
               // for an account that already counted.
               const { runTransaction, increment } = await import("firebase/firestore");
@@ -212,7 +214,7 @@ export default function App() {
                 await runTransaction(db, async (transaction) => {
                   const freshSnap = await transaction.get(userDocRef);
                   if (freshSnap.exists()) {
-                    // Already created by a previous attempt â€” do nothing,
+                    // Already created by a previous attempt — do nothing,
                     // to avoid double-counting the sponsor's stats.
                     return;
                   }
@@ -256,9 +258,7 @@ export default function App() {
               const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
               setUserProfile({ ...data, dailyClaimedToday });
               setBalance(data.balance || 0);
-          setCreditsBalance(data.creditsBalance || 0);
-          setCreditsBalance(data.creditsBalance || 0);
-          setCreditsBalance(data.creditsBalance || 0);
+              setCreditsBalance(data.creditsBalance || 0);
               setUserStats({
                 vipLevel: data.stats?.vipLevel || 1,
                 directReferrals: data.stats?.directReferrals || 0,
@@ -271,24 +271,24 @@ export default function App() {
                 tradingActive: data.tradingActive || false,
                 tradingClaimedToday,
                 tradingDaysCompleted: data.tradingDaysCompleted || 0,
-            creditsBalance: data.creditsBalance || 0,
+                creditsBalance: data.creditsBalance || 0,
               });
               // ✅ Check milestones
-import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
-  const teamSize = data.stats?.teamSize || 0;
-  const directs = data.stats?.directReferrals || 0;
-  for (const m of MILESTONES) {
-    const achievedKey = `milestoneAchieved_L${m.level}`;
-    const size = m.level === 1 ? directs : teamSize;
-    if (size >= m.teamSize && !data[achievedKey]) {
-      setDoc(doc(db, "users", firebaseUser.uid), {
-        [achievedKey]: true,
-      }, { merge: true });
-      setActiveMilestone(m);
-      setShowMilestoneCertificate(true);
-    }
-  }
-});
+              import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
+                const teamSize = data.stats?.teamSize || 0;
+                const directs = data.stats?.directReferrals || 0;
+                for (const m of MILESTONES) {
+                  const achievedKey = `milestoneAchieved_L${m.level}`;
+                  const size = m.level === 1 ? directs : teamSize;
+                  if (size >= m.teamSize && !data[achievedKey]) {
+                    setDoc(doc(db, "users", firebaseUser.uid), {
+                      [achievedKey]: true,
+                    }, { merge: true });
+                    setActiveMilestone(m);
+                    setShowMilestoneCertificate(true);
+                  }
+                }
+              });
             }
           } catch (error: any) {
             if ((retryCount < 2 && (error.code === 'permission-denied' || error.message?.includes('permissions'))) ||
@@ -311,6 +311,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
             const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
             setUserProfile({ ...data, dailyClaimedToday });
             setBalance(data.balance || 0);
+            setCreditsBalance(data.creditsBalance || 0);
             setUserStats({
               vipLevel: data.stats?.vipLevel || 1,
               directReferrals: data.stats?.directReferrals || 0,
@@ -323,6 +324,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
               tradingActive: data.tradingActive || false,
               tradingClaimedToday,
               tradingDaysCompleted: data.tradingDaysCompleted || 0,
+              creditsBalance: data.creditsBalance || 0,
             });
           }
         }, (error) => {
@@ -335,11 +337,18 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
           const txs: any[] = snapshot.docs.map(d => {
             const data = d.data();
             const ts = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+            const sign = data.type === 'in' ? '+' : '-';
+            // Credits-denominated transactions (commissions) are shown as
+            // "Credits" rather than cash (₱) so they're never confused with
+            // spendable/withdrawable pesos.
+            const formattedAmount = data.isCredits
+              ? `${sign}${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} Credits`
+              : `${sign}₱${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
             return {
               id: d.id,
               ...data,
               timestampValue: ts.getTime(),
-              amount: `${data.type === 'in' ? '+' : '-'}₱${(data.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+              amount: formattedAmount,
               date: ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
             };
           });
@@ -376,6 +385,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         setUser(null);
         setUserProfile(null);
         setBalance(0);
+        setCreditsBalance(0);
         setTransactions([]);
         setUserStats(EMPTY_STATS);
         setActiveTab("home");
@@ -388,7 +398,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
     return () => unsubscribe();
   }, []);
 
-  // ✅ addTransaction â€” checks balance before proceeding, does NOT update balance for "record_only"
+  // ✅ addTransaction — checks balance before proceeding, does NOT update balance for "record_only"
   const addTransaction = async (tx: any) => {
     if (!user) return;
     try {
@@ -400,12 +410,12 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
       if (tx.type === "out") {
         if (tx.category === "Withdrawal") {
           if (tx.rawAmount > freshEarnings) {
-            alert(`âŒ Insufficient earnings wallet.\nAvailable: ₱${freshEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+            alert(`❌ Insufficient earnings wallet.\nAvailable: ₱${freshEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
             return;
           }
         } else {
           if (tx.rawAmount > freshBalance) {
-            alert(`âŒ Insufficient balance.\nAvailable: ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+            alert(`❌ Insufficient balance.\nAvailable: ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
             return;
           }
         }
@@ -416,6 +426,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         type: tx.type || "out",
         title: tx.title || "Transaction",
         amount: tx.rawAmount,
+        isCredits: tx.isCredits || false,
         category: tx.category || "General",
         status: "Completed",
         referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
@@ -457,7 +468,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
     }
   };
 
-  // ✅ FIXED â€” no double balance update
+  // ✅ FIXED — no double balance update
   const handleClaimTrading = async () => {
     if (!user || userStats.tradingInvested <= 0) return;
     const userDocRef = doc(db, "users", user.uid);
@@ -475,7 +486,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         const hoursSinceStart = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
         if (hoursSinceStart < 24) {
           const hoursLeft = Math.ceil(24 - hoursSinceStart);
-          alert(`â³ Profit claimable in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} after investment.`);
+          alert(`⏳ Profit claimable in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} after investment.`);
           return;
         }
       }
@@ -486,7 +497,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         const hoursSinceLastClaim = (now.getTime() - lastClaimTime.getTime()) / (1000 * 60 * 60);
         if (hoursSinceLastClaim < 24) {
           const hoursLeft = Math.ceil(24 - hoursSinceLastClaim);
-          alert(`â³ Next claim available in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}.`);
+          alert(`⏳ Next claim available in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}.`);
           return;
         }
       }
@@ -526,36 +537,98 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
       handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
     }
   };
-      
+
 
   const handleClaimDirectsReward = async () => {
-  if (!user || directsRewardClaimed) return;
-  const reward = 300;
-  const userDocRef = doc(db, "users", user.uid);
-  try {
-    const freshDoc = await getDoc(userDocRef);
-    const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
-    await setDoc(userDocRef, {
-      earningsWallet: currentEarnings + reward,
-      directsRewardClaimed: true,
-      stats: {
-        ...userProfile.stats,
-        totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
+    if (!user || directsRewardClaimed) return;
+    const reward = 300;
+    const userDocRef = doc(db, "users", user.uid);
+    try {
+      const freshDoc = await getDoc(userDocRef);
+      const currentEarnings = freshDoc.exists() ? (freshDoc.data().earningsWallet || 0) : 0;
+      await setDoc(userDocRef, {
+        earningsWallet: currentEarnings + reward,
+        directsRewardClaimed: true,
+        stats: {
+          ...userProfile.stats,
+          totalEarnings: (userProfile.stats?.totalEarnings || 0) + reward
+        }
+      }, { merge: true });
+      await addTransaction({
+        title: "10 Directs Milestone Reward",
+        rawAmount: reward,
+        category: "Bonus",
+        type: "in",
+        recordOnly: true,
+      });
+      setDirectsRewardClaimed(true);
+      setShowCertificate(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+    }
+  };
+
+  // ✅ NEW — Certificate Rewards are paid for by spending Credits (earned from
+  // commissions), not cash. Requires the milestone to be achieved, requires
+  // Level 3 to be reached to unlock claiming at all (matches the "🔒 Complete
+  // Level 3 to unlock cash rewards" gate in the certificate UI), and requires
+  // enough Credits to cover the milestone's reward cost.
+  const handleClaimMilestoneReward = async (level: number) => {
+    if (!user || !userProfile) return;
+
+    const claimedKey = `milestoneRewardClaimed_L${level}`;
+    const achievedKey = `milestoneAchieved_L${level}`;
+    if (userProfile[claimedKey]) return;
+    if (!userProfile[achievedKey]) {
+      alert("❌ You haven't reached this milestone yet.");
+      return;
+    }
+
+    const userDocRef = doc(db, "users", user.uid);
+    try {
+      const { MILESTONES } = await import("./screens/DirectsCertificate");
+      const milestone = MILESTONES.find((m: any) => m.level === level);
+      if (!milestone) return;
+
+      // Certificate Rewards unlock once the user has reached Level 3.
+      const canClaim = userProfile.milestoneAchieved_L3 === true || level >= 3;
+      if (!canClaim) {
+        alert("🔒 Complete Level 3 to unlock Certificate Rewards.");
+        return;
       }
-    }, { merge: true });
-    await addTransaction({
-      title: "10 Directs Milestone Reward",
-      rawAmount: reward,
-      category: "Bonus",
-      type: "in",
-      recordOnly: true,
-    });
-    setDirectsRewardClaimed(true);
-    setShowCertificate(false);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
-  }
-};
+
+      const freshDoc = await getDoc(userDocRef);
+      if (!freshDoc.exists()) return;
+      const freshData = freshDoc.data();
+      const currentCredits = freshData.creditsBalance || 0;
+      const cost = milestone.reward;
+
+      if (currentCredits < cost) {
+        alert(`❌ Not enough Credits.\nNeeded: ${cost.toLocaleString()} Credits\nAvailable: ${currentCredits.toLocaleString()} Credits`);
+        return;
+      }
+
+      await setDoc(userDocRef, {
+        creditsBalance: currentCredits - cost,
+        [claimedKey]: true,
+      }, { merge: true });
+
+      await addTransaction({
+        title: `Level ${level} Certificate Reward — ${milestone.label}`,
+        rawAmount: cost,
+        isCredits: true,
+        category: "Certificate Reward",
+        type: "out",
+        recordOnly: true,
+      });
+
+      setShowMilestoneCertificate(false);
+      setShowSuccess(`Certificate claimed — ${cost.toLocaleString()} Credits redeemed!`);
+      setTimeout(() => setShowSuccess(null), 2500);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, "users/" + user.uid);
+    }
+  };
 
   const handleClaimDaily = async () => {
     if (!user || userProfile.dailyClaimedToday) return;
@@ -600,7 +673,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         const freshBalance = freshData.balance || 0;
 
         if (freshBalance < amount) {
-          alert(`âŒ Insufficient balance.\nYou need ₱${amount.toLocaleString()} but have ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+          alert(`❌ Insufficient balance.\nYou need ₱${amount.toLocaleString()} but have ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
           return;
         }
 
@@ -645,7 +718,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
           hasPackage2: packageId === "package_2" || packageId === "combined",
         }, { merge: true });
 
-        // ✅ Distribute commissions
+        // ✅ Distribute commissions — credited to Credits balance, not cash
         // L1 commission goes to originalReferrerId, L2-10 go to updatedSponsorId (placement)
         await processActivation(currentUser.uid, updatedSponsorId, packageId, actualReferrerId);
 
@@ -667,6 +740,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
           const dailyClaimedToday = data.lastDailyClaimDate !== today ? false : (data.dailyClaimedToday || false);
           setUserProfile({ ...data, dailyClaimedToday });
           setBalance(data.balance || 0);
+          setCreditsBalance(data.creditsBalance || 0);
           setUserStats({
             vipLevel: data.stats?.vipLevel || 1,
             directReferrals: data.stats?.directReferrals || 0,
@@ -679,6 +753,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
             tradingActive: data.tradingActive || false,
             tradingClaimedToday,
             tradingDaysCompleted: data.tradingDaysCompleted || 0,
+            creditsBalance: data.creditsBalance || 0,
           });
         }
       } catch (error: any) {
@@ -687,7 +762,7 @@ import("./screens/DirectsCertificate").then(({ MILESTONES }) => {
         handleFirestoreError(error, OperationType.UPDATE, "users/" + currentUser.uid);
       }
     }
-    setShowSuccess("Account Activated Successfully! ðŸŽ‰");
+    setShowSuccess("Account Activated Successfully! 🎉");
     setActiveView(null);
     setActiveTab("home");
     setTimeout(() => setShowSuccess(null), 3000);
@@ -966,5 +1041,3 @@ achievedMilestones={Object.fromEntries(
     </div>
   );
 }
-
-
