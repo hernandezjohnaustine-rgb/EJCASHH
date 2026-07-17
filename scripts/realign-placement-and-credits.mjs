@@ -197,6 +197,22 @@ async function main() {
     return slot;
   }
 
+  // ---------------------------------------------------------------------
+  // ONE-TIME MANUAL PLACEMENT PRIORITY (explicit, one-off request — not a
+  // general rule). Listed users are placed into the matrix FIRST, ahead
+  // of everyone else, regardless of their actual activation timestamp.
+  // If this need comes up again for other people in the future, revisit
+  // whether it should become a proper rule instead of a hardcoded list.
+  // ---------------------------------------------------------------------
+  const PRIORITY_PLACEMENT_ORDER = [
+    "YjLbzGNYJZaZNRkeFkzczngmSjk1", // Jerry Gomez — placed first per explicit request
+  ];
+  for (const uid of PRIORITY_PLACEMENT_ORDER) {
+    if (uid === masterUid) continue;
+    if (!usersById.has(uid)) { console.warn(`Priority user ${uid} not found in users collection — skipped.`); continue; }
+    if (!sponsorId.has(uid)) placeUser(uid);
+  }
+
   function getChainUpward(startId) {
     const chain = [];
     let walker = startId;
@@ -225,7 +241,7 @@ async function main() {
 
     if (isFirstActivation) {
       if (referrerId) bump(directReferrals, referrerId);
-      placeUser(userId);
+      if (!sponsorId.has(userId)) placeUser(userId); // skip if already placed via PRIORITY_PLACEMENT_ORDER above
     }
 
     const placement = sponsorId.get(userId);
