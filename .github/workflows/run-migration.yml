@@ -1,0 +1,48 @@
+name: Commission Data Migration (Manual)
+
+# This workflow NEVER runs automatically — it only runs when you manually
+# click "Run workflow" from the Actions tab and choose dry-run or apply.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run = report only (no changes). apply = write corrections for real."
+        required: true
+        default: "dry-run"
+        type: choice
+        options:
+          - dry-run
+          - apply
+
+jobs:
+  run_migration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm install firebase-admin
+
+      - name: Write service account key from secret
+        working-directory: scripts
+        run: echo "${{ secrets.FIRESTORE_ADMIN_KEY_B64 }}" | base64 -d > serviceAccountKey.json
+
+      - name: Run migration (dry-run)
+        if: ${{ github.event.inputs.mode == 'dry-run' }}
+        working-directory: scripts
+        run: node fix-commission-data.mjs
+
+      - name: Run migration (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'apply' }}
+        working-directory: scripts
+        run: node fix-commission-data.mjs --apply
+
+      - name: Clean up service account key
+        if: always()
+        working-directory: scripts
+        run: rm -f serviceAccountKey.json
