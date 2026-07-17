@@ -37,14 +37,15 @@ export async function processActivation(
   console.log("Commission start - Referrer:", referrerId, "Placement:", placementSponsorId, "Package:", packageId);
 
   // STEP 1: Level 1 commission always goes to REFERRER (owner of referral link)
+  // NOTE: commissions are credited to creditsBalance, not cash balance/earningsWallet.
+  // Credits are spent later on Certificate Rewards at milestone claim time.
   try {
     const referrerDoc = await getDoc(doc(db, "users", referrerId));
     if (referrerDoc.exists()) {
       const referrerData = referrerDoc.data();
       const l1Commission = getCommission(1, packageId);
       await setDoc(doc(db, "users", referrerId), {
-        balance: (referrerData.balance || 0) + l1Commission,
-        earningsWallet: (referrerData.earningsWallet || 0) + l1Commission,
+        creditsBalance: (referrerData.creditsBalance || 0) + l1Commission,
         stats: {
           ...referrerData.stats,
           totalEarnings: (referrerData.stats?.totalEarnings || 0) + l1Commission,
@@ -59,6 +60,7 @@ export async function processActivation(
         type: "in",
         title: "Level 1 Direct Referral Commission",
         amount: l1Commission,
+        isCredits: true,
         category: "Commission",
         status: "Completed",
         referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
@@ -69,20 +71,12 @@ export async function processActivation(
         commissionLevel: 1,
       });
 
-      console.log("L1 commission credited to referrer:", referrerId, "amount:", l1Commission);
-      // Create notification
+      console.log("L1 commission credited (Credits) to referrer:", referrerId, "amount:", l1Commission);
+
       await addDoc(collection(db, "users", referrerId, "notifications"), {
         title: "Direct Referral Commission",
-        message: "You earned ₱" + l1Commission.toLocaleString() + " from a new direct referral!",
-        type: "commission",
-        read: false,
-        createdAt: Timestamp.now(),
-      });
-      // Create notification
-      await addDoc(collection(db, "users", referrerId, "notifications"), {
-        title: "Direct Referral Commission",
-        message: "You earned ₱" + l1Commission.toLocaleString() + " from a new direct referral!",
-        type: "commission",
+        message: "You earned " + l1Commission.toLocaleString() + " Credits from a new direct referral!",
+        type: "credits",
         read: false,
         createdAt: Timestamp.now(),
       });
@@ -114,8 +108,7 @@ export async function processActivation(
       const commission = getCommission(level, packageId);
 
       await setDoc(doc(db, "users", currentUid), {
-        balance: (sponsorData.balance || 0) + commission,
-        earningsWallet: (sponsorData.earningsWallet || 0) + commission,
+        creditsBalance: (sponsorData.creditsBalance || 0) + commission,
         stats: {
           ...sponsorData.stats,
           totalEarnings: (sponsorData.stats?.totalEarnings || 0) + commission,
@@ -129,6 +122,7 @@ export async function processActivation(
         type: "in",
         title: "Level " + level + " Indirect Commission",
         amount: commission,
+        isCredits: true,
         category: "Commission",
         status: "Completed",
         referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
@@ -139,19 +133,11 @@ export async function processActivation(
         commissionLevel: level,
       });
 
-      console.log("L" + level + " commission credited to:", currentUid, "amount:", commission);
-      // Create notification
+      console.log("L" + level + " commission credited (Credits) to:", currentUid, "amount:", commission);
+
       await addDoc(collection(db, "users", currentUid, "notifications"), {
         title: "Level " + level + " Matrix Commission",
-        message: "₱" + commission.toLocaleString() + " added to your Credits wallet (Level " + level + ")",
-        type: "credits",
-        read: false,
-        createdAt: Timestamp.now(),
-      });
-      // Create notification
-      await addDoc(collection(db, "users", currentUid, "notifications"), {
-        title: "Level " + level + " Matrix Commission",
-        message: "₱" + commission.toLocaleString() + " added to your Credits wallet (Level " + level + ")",
+        message: commission.toLocaleString() + " Credits added to your Credits balance (Level " + level + ")",
         type: "credits",
         read: false,
         createdAt: Timestamp.now(),
@@ -206,6 +192,8 @@ export async function processTransfer(fromUserId: string, toUserId: string, amou
     throw error;
   }
 }
+
+// Retained for reference; not used by the Credits-based commission flow.
 export const REWARD_STRUCTURE = [
   { level: 1, percent: 0.2778, amount: 100.00 },
 ];
