@@ -101,23 +101,42 @@ async function main() {
   log(`Master account resolved: ${masterUid} (${MASTER_EMAIL})`);
 
   // ---------------------------------------------------------------------
-  // Reconstruct chronological activation events from L1 commission txs
+  // Reconstruct chronological activation events from Activation category
+  // transactions — NOT from L1 commission transactions. L1 commission
+  // transactions only exist for users who HAD a referrer, so relying on
+  // them silently drops every referrer-less activation from the replay,
+  // producing badly incomplete (and wrong) results. The "Activation"
+  // transaction is created unconditionally for every single activation,
+  // so it's the complete and authoritative event source. packageId isn't
+  // stored directly on it, so it's inferred from the charged amount.
   // ---------------------------------------------------------------------
-  const l1TxSnap = await db
+  function inferPackageId(amount) {
+    if (amount === 360) return "package_1";
+    if (amount === 3600) return "package_2";
+    if (amount === 3960) return "combined";
+    return null;
+  }
+
+  const activationTxSnap = await db
     .collection("transactions")
-    .where("category", "==", "Commission")
-    .where("commissionLevel", "==", 1)
+    .where("category", "==", "Activation")
     .get();
 
   const events = [];
-  l1TxSnap.forEach((txSnap) => {
+  let skippedUnknownAmount = 0;
+  activationTxSnap.forEach((txSnap) => {
     const tx = txSnap.data();
-    if (!tx.fromUserId || !tx.packageId) return;
+    if (!tx.userId) return;
+    const packageId = inferPackageId(tx.amount);
+    if (!packageId) { skippedUnknownAmount++; return; }
     const ts = tx.timestamp?.toDate ? tx.timestamp.toDate() : new Date(tx.timestamp);
-    events.push({ userId: tx.fromUserId, packageId: tx.packageId, timestamp: ts });
+    events.push({ userId: tx.userId, packageId, timestamp: ts });
   });
   events.sort((a, b) => a.timestamp - b.timestamp);
-  log(`Reconstructed ${events.length} activation events from L1 commission history.`);
+  log(`Reconstructed ${events.length} activation events from Activation transaction history.`);
+  if (skippedUnknownAmount > 0) {
+    log(`WARNING: ${skippedUnknownAmount} Activation transaction(s) had an amount that didn't match any known package (360/3600/3960) and were skipped. Investigate these manually.`);
+  }
 
   const seenActivation = new Set();
 
