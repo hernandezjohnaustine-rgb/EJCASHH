@@ -10,10 +10,11 @@
  *   2. Level 1 (cash) is UNCHANGED by this script — it already goes to the
  *      true direct referrer and isn't affected by placement. This script
  *      does NOT touch `balance` or `earningsWallet`.
- *   3. Level 2-10 (Credits) requires the recipient to have already reached
- *      that level's team-size threshold (10, 100, 1,000 ... 10B). If the
- *      person at that position isn't qualified, the Credits roll up to the
- *      next qualified person further up the SAME chain.
+ *   3. Level 2-10 (Credits) go unconditionally to whoever occupies each
+ *      position in the placement chain — no team-size gate, no roll-up.
+ *      The global placement structure itself already prevents anyone from
+ *      occupying a deep level without the whole network actually being
+ *      large enough to have filled every shallower level first.
  *
  * HOW IT WORKS:
  *   - Reconstructs every activation event (chronological order) from the
@@ -54,13 +55,6 @@ import { readFileSync } from "fs";
 
 const APPLY = process.argv.includes("--apply");
 const MASTER_EMAIL = "austinejohnter17@gmail.com";
-
-// Same team-size thresholds as screens/DirectsCertificate.tsx MILESTONES.
-// Kept in sync manually here since this script runs outside the app bundle.
-const LEVEL_TEAM_SIZE_REQUIREMENT = {
-  1: 10, 2: 100, 3: 1000, 4: 10000, 5: 100000,
-  6: 1000000, 7: 10000000, 8: 100000000, 9: 1000000000, 10: 10000000000,
-};
 
 function getCommission(level, packageId) {
   if (packageId === "package_1") return level === 1 ? 100 : 3;
@@ -257,13 +251,10 @@ async function main() {
     }
 
     for (let level = 2; level <= 10; level++) {
-      const commission = getCommission(level, packageId);
-      const required = LEVEL_TEAM_SIZE_REQUIREMENT[level] ?? Infinity;
-      let recipient = null;
-      for (let idx = level - 1; idx < chain.length; idx++) {
-        if ((teamSize.get(chain[idx]) || 0) >= required) { recipient = chain[idx]; break; }
+      const idx = level - 2;
+      if (idx < chain.length) {
+        bump(creditsBalance, chain[idx], getCommission(level, packageId));
       }
-      if (recipient) bump(creditsBalance, recipient, commission);
     }
   }
 
