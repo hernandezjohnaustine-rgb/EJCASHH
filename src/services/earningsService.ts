@@ -37,15 +37,17 @@ export async function processActivation(
   console.log("Commission start - Referrer:", referrerId, "Placement:", placementSponsorId, "Package:", packageId);
 
   // STEP 1: Level 1 commission always goes to REFERRER (owner of referral link)
-  // NOTE: commissions are credited to creditsBalance, not cash balance/earningsWallet.
-  // Credits are spent later on Certificate Rewards at milestone claim time.
+  // NOTE: L1 is cash — credited to the Main Wallet (balance) and the
+  // withdrawable earningsWallet, same as before Credits existed.
+  // Only L2-10 (below) are credited to creditsBalance.
   try {
     const referrerDoc = await getDoc(doc(db, "users", referrerId));
     if (referrerDoc.exists()) {
       const referrerData = referrerDoc.data();
       const l1Commission = getCommission(1, packageId);
       await setDoc(doc(db, "users", referrerId), {
-        creditsBalance: (referrerData.creditsBalance || 0) + l1Commission,
+        balance: (referrerData.balance || 0) + l1Commission,
+        earningsWallet: (referrerData.earningsWallet || 0) + l1Commission,
         stats: {
           ...referrerData.stats,
           totalEarnings: (referrerData.stats?.totalEarnings || 0) + l1Commission,
@@ -60,7 +62,7 @@ export async function processActivation(
         type: "in",
         title: "Level 1 Direct Referral Commission",
         amount: l1Commission,
-        isCredits: true,
+        isCredits: false,
         category: "Commission",
         status: "Completed",
         referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
@@ -71,12 +73,12 @@ export async function processActivation(
         commissionLevel: 1,
       });
 
-      console.log("L1 commission credited (Credits) to referrer:", referrerId, "amount:", l1Commission);
+      console.log("L1 commission credited (cash) to referrer:", referrerId, "amount:", l1Commission);
 
       await addDoc(collection(db, "users", referrerId, "notifications"), {
         title: "Direct Referral Commission",
-        message: "You earned " + l1Commission.toLocaleString() + " Credits from a new direct referral!",
-        type: "credits",
+        message: "You earned \u20B1" + l1Commission.toLocaleString() + " from a new direct referral!",
+        type: "commission",
         read: false,
         createdAt: Timestamp.now(),
       });
