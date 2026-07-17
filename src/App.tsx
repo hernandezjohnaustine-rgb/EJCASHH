@@ -671,33 +671,46 @@ export default function App() {
         if (!freshDoc.exists()) return;
         const freshData = freshDoc.data();
         const freshBalance = freshData.balance || 0;
+        const wasAlreadyActivated = freshData.isActivated === true;
 
         if (freshBalance < amount) {
           alert(`❌ Insufficient balance.\nYou need ₱${amount.toLocaleString()} but have ₱${freshBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
           return;
         }
 
-        // ✅ Save original referrer BEFORE auto-placement
-        // Get original referrer UID from referredBy code (not sponsorId which may be auto-placed)
-        let originalReferrerId = freshData.sponsorId; // default
-        if (freshData.referredBy) {
-          const refQuery = query(collection(db, "users"), where("referralCode", "==", freshData.referredBy), limit(1));
-          const refSnap = await getDocs(refQuery);
-          if (!refSnap.empty) originalReferrerId = refSnap.docs[0].id;
+        // ✅ Resolve the TRUE direct referrer ONCE and persist it. On any
+        // later activation (e.g. a Package 2 upgrade) we reuse this stored
+        // value instead of recomputing — recomputing was the source of the
+        // "L1 credited to wrong upline" bug, because the fallback path used
+        // sponsorId, which autoPlaceUser can rewrite between activations.
+        let originalReferrerId: string | null = freshData.originalReferrerId || null;
+        if (!originalReferrerId) {
+          originalReferrerId = freshData.sponsorId || null; // default
+          if (freshData.referredBy) {
+            const refQuery = query(collection(db, "users"), where("referralCode", "==", freshData.referredBy), limit(1));
+            const refSnap = await getDocs(refQuery);
+            if (!refSnap.empty) originalReferrerId = refSnap.docs[0].id;
+          }
+          // Save original referrer BEFORE auto-placement can overwrite anything,
+          // and so every future activation on this account reuses this exact value.
+          await setDoc(userDocRef, { originalReferrerId: originalReferrerId }, { merge: true });
         }
-        // Save originalReferrerId to Firestore BEFORE auto-placement can overwrite it
-        await setDoc(userDocRef, { originalReferrerId: originalReferrerId }, { merge: true });
-        // ✅ Auto-placement
+
+        // ✅ Auto-placement decides unilevel TREE POSITION. This is a
+        // one-time decision made when the account first activates — running
+        // it again on a Package 2 upgrade could silently move the user to a
+        // different slot (since the referrer's downline may have filled up
+        // in the meantime), which would also shift who L2-10 credits.
         const sponsorId = originalReferrerId;
-        if (sponsorId) {
+        if (!wasAlreadyActivated && sponsorId) {
           const { autoPlaceUser } = await import("./services/autoPlacementService");
           await autoPlaceUser(currentUser.uid, sponsorId);
         }
 
-        // ✅ Get updated sponsorId after auto-placement
+        // ✅ Get updated sponsorId after auto-placement (unchanged on upgrades)
         const freshDoc2 = await getDoc(userDocRef);
         const updatedSponsorId = freshDoc2.data()?.sponsorId || freshDoc2.data()?.referredBy;
-        const actualReferrerId = originalReferrerId; // Always use original referrer for L1
+        const actualReferrerId = originalReferrerId; // Always the true, stable direct referrer — same person on every package purchase
 
         // ✅ Package details
         const packageMultiplier = packageId === "package_1" ? 1 : 10;
