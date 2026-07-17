@@ -32,6 +32,19 @@ jobs:
         working-directory: scripts
         run: echo "${{ secrets.FIRESTORE_ADMIN_KEY_B64 }}" | base64 -d > serviceAccountKey.json
 
+      - name: Backup users + transactions before any changes
+        working-directory: scripts
+        run: node backup-firestore.mjs
+
+      - name: Upload backup as downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firestore-backup-${{ github.run_id }}
+          path: |
+            scripts/backup-users.json
+            scripts/backup-transactions.json
+          retention-days: 30
+
       - name: Run migration (dry-run)
         if: ${{ github.event.inputs.mode == 'dry-run' }}
         working-directory: scripts
