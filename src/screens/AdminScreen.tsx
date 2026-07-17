@@ -33,6 +33,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
   const [txSearch, setTxSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
   const [txTypeFilter, setTxTypeFilter] = useState("all");
   const [txStatusFilter, setTxStatusFilter] = useState("all");
   const [adminNote, setAdminNote] = useState("");
@@ -412,10 +413,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         ) : (
           <>
             {/* ── USERS TAB ── */}
-            {activeTab === "users" && (
+            {activeTab === "users" && (() => {
+              const q = userSearch.trim().toLowerCase();
+              const filteredUsers = !q ? users : users.filter((u: any) =>
+                (u.displayName || "").toLowerCase().includes(q) ||
+                (u.username || "").toLowerCase().includes(q) ||
+                (u.email || "").toLowerCase().includes(q) ||
+                (u.referralCode || "").toLowerCase().includes(q)
+              );
+              return (
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between px-1 mb-2">
-                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black">{users.length} Total Users</p>
+                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black">{q ? `${filteredUsers.length} of ${users.length}` : users.length} Total Users</p>
                   <button
                     onClick={handleUnlockAllReferralLinks}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
@@ -424,7 +433,17 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     Unlock All Links
                   </button>
                 </div>
-                {users.map((u) => (
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={e => setUserSearch(e.target.value)}
+                  className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-2.5 px-4 text-sm text-brand-text focus:outline-none focus:border-brand-primary/50 placeholder:text-brand-text/20"
+                  placeholder="Search by name, email, or username..."
+                />
+                {filteredUsers.length === 0 && (
+                  <p className="text-center text-brand-text/40 py-8 font-bold">No users match "{userSearch}"</p>
+                )}
+                {filteredUsers.map((u) => (
                   <div key={u.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -484,7 +503,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   </div>
                 ))}
               </div>
-            )}
+              );
+            })()}
 
             {/* ── WITHDRAWALS TAB ── */}
             {activeTab === "withdrawals" && (
