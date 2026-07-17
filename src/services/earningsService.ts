@@ -7,6 +7,15 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { MILESTONES } from "../screens/DirectsCertificate";
+
+// Team-size requirement per commission level, sourced from the same
+// MILESTONES table used for Certificate Rewards — kept as a single source
+// of truth so the two systems can never drift out of sync.
+const LEVEL_TEAM_SIZE_REQUIREMENT: Record<number, number> = MILESTONES.reduce(
+  (acc, m) => { acc[m.level] = m.teamSize; return acc; },
+  {} as Record<number, number>
+);
 
 function getCommission(level: number, packageId: string): number {
   if (packageId === "package_1") {
@@ -25,7 +34,8 @@ export async function processActivation(
   userId: string,
   placementSponsorId: string | null,
   packageId: string = "package_1",
-  originalReferrerId?: string | null
+  originalReferrerId?: string | null,
+  isFirstActivation: boolean = true
 ): Promise<void> {
   const referrerId = originalReferrerId || placementSponsorId;
 
@@ -36,33 +46,30 @@ export async function processActivation(
 
   console.log("Commission start - Referrer:", referrerId, "Placement:", placementSponsorId, "Package:", packageId);
 
-  // STEP 1: Level 1 commission always goes to REFERRER (owner of referral link)
-  // NOTE: L1 is cash — credited to the Main Wallet (balance) and the
-  // withdrawable earningsWallet, same as before Credits existed.
-  // Only L2-10 (below) are credited to creditsBalance.
+  // STEP 1: Level 1 commission — ALWAYS goes to the true direct referrer,
+  // in cash, with NO team-size gate. Unaffected by everything below; does
+  // not depend on placement position at all.
+  let l1Title: string;
+  if (packageId === "package_1") {
+    l1Title = "Level 1 Commission - Subscription";
+  } else if (packageId === "package_2") {
+    l1Title = "Level 1 Commission (10x) - Activation";
+  } else {
+    l1Title = "Level 1 Commission (10x) — New Activation";
+  }
   try {
     const referrerDoc = await getDoc(doc(db, "users", referrerId));
     if (referrerDoc.exists()) {
       const referrerData = referrerDoc.data();
       const l1Commission = getCommission(1, packageId);
-      let l1Title: string;
-      if (packageId === "package_1") {
-        l1Title = "Level 1 Commission - Subscription";
-      } else if (packageId === "package_2") {
-        l1Title = "Level 1 Commission (10x) - Activation";
-      } else {
-        // combined / "Complete Activation Bundle" — naming confirmed correct as-is
-        l1Title = "Level 1 Commission (10x) — New Activation";
-      }
+
       await setDoc(doc(db, "users", referrerId), {
         balance: (referrerData.balance || 0) + l1Commission,
         earningsWallet: (referrerData.earningsWallet || 0) + l1Commission,
         stats: {
           ...referrerData.stats,
           totalEarnings: (referrerData.stats?.totalEarnings || 0) + l1Commission,
-          directReferrals: (referrerData.stats?.directReferrals || 0) + 1,
-          teamSize: (referrerData.stats?.teamSize || 0) + 1,
-          totalReferrals: (referrerData.stats?.totalReferrals || 0) + 1,
+          directReferrals: (referrerData.stats?.directReferrals || 0) + (isFirstActivation ? 1 : 0),
         }
       }, { merge: true });
 
@@ -96,40 +103,99 @@ export async function processActivation(
     console.error("L1 commission error:", error);
   }
 
-  // STEP 2: Levels 2-10 follow PLACEMENT SPONSOR upline chain
+  // STEP 2: Levels 2-10 follow the GLOBAL PLACEMENT chain (not the literal
+  // referral chain). Two sub-steps:
+  //   2a. Team size grows structurally for everyone in the placement chain
+  //       (this is a fact about the matrix, independent of qualification).
+  //   2b. Credits are paid out per level, but ONLY to someone who has
+  //       already reached that level's required team size. If the person
+  //       at that exact position isn't qualified yet, the Credits roll up
+  //       to the next qualified person further up the SAME chain.
   if (!placementSponsorId) return;
 
-  // Start from placement sponsor for L2
-  // If placement is same as referrer, start from their upline
-  let currentUid = placementSponsorId;
-  if (currentUid === referrerId) {
-    const doc1 = await getDoc(doc(db, "users", currentUid));
-    if (doc1.exists()) {
-      currentUid = doc1.data().sponsorId || doc1.data().referredBy || "";
+  // Walk the placement chain upward, far enough that we can always find a
+  // qualified recipient to roll up to (the master account's team size
+  // covers the whole network, so the chain will always terminate
+  // successfully there at the latest).
+  const chain: string[] = [];
+  {
+    let walker: string | null = placementSponsorId;
+    const seen = new Set<string>();
+    while (walker && chain.length < 30) {
+      if (seen.has(walker)) break;
+      seen.add(walker);
+      chain.push(walker);
+      const wDoc = await getDoc(doc(db, "users", walker));
+      if (!wDoc.exists()) break;
+      walker = wDoc.data().sponsorId || wDoc.data().referredBy || null;
     }
   }
 
+  // Snapshot each chain member's CURRENT team size once, up front. Used
+  // both for qualification checks below and for the increments in step
+  // 2a — one consistent snapshot avoids re-reading (and double-counting)
+  // mid-loop.
+  const chainSnapshot: { id: string; teamSize: number }[] = [];
+  for (const id of chain) {
+    const d = await getDoc(doc(db, "users", id));
+    chainSnapshot.push({ id, teamSize: d.exists() ? (d.data().stats?.teamSize || 0) : 0 });
+  }
+
+  // STEP 2a: structural team-size growth for levels 2-10 (first 9 chain
+  // positions), regardless of who ends up qualified to be PAID.
+  if (isFirstActivation) {
+    for (let i = 0; i < Math.min(chain.length, 9); i++) {
+      const id = chain[i];
+      try {
+        const d = await getDoc(doc(db, "users", id));
+        if (!d.exists()) continue;
+        const data = d.data();
+        await setDoc(doc(db, "users", id), {
+          stats: {
+            ...data.stats,
+            teamSize: (data.stats?.teamSize || 0) + 1,
+            totalReferrals: (data.stats?.totalReferrals || 0) + 1,
+          }
+        }, { merge: true });
+      } catch (error) {
+        console.error("Team size increment error at", id, error);
+      }
+    }
+  }
+
+  // STEP 2b: gated Credits payout per level, with roll-up.
   for (let level = 2; level <= 10; level++) {
-    if (!currentUid) break;
+    const commission = getCommission(level, packageId);
+    const requiredTeamSize = LEVEL_TEAM_SIZE_REQUIREMENT[level] ?? Infinity;
+
+    let recipientId: string | null = null;
+    for (let idx = level - 1; idx < chainSnapshot.length; idx++) {
+      if (chainSnapshot[idx].teamSize >= requiredTeamSize) {
+        recipientId = chainSnapshot[idx].id;
+        break;
+      }
+    }
+
+    if (!recipientId) {
+      console.log("L" + level + ": no qualified recipient found (required team size " + requiredTeamSize + ") — skipped.");
+      continue;
+    }
+
     try {
-      const sponsorDoc = await getDoc(doc(db, "users", currentUid));
-      if (!sponsorDoc.exists()) break;
+      const recipientDoc = await getDoc(doc(db, "users", recipientId));
+      if (!recipientDoc.exists()) continue;
+      const recipientData = recipientDoc.data();
 
-      const sponsorData = sponsorDoc.data();
-      const commission = getCommission(level, packageId);
-
-      await setDoc(doc(db, "users", currentUid), {
-        creditsBalance: (sponsorData.creditsBalance || 0) + commission,
+      await setDoc(doc(db, "users", recipientId), {
+        creditsBalance: (recipientData.creditsBalance || 0) + commission,
         stats: {
-          ...sponsorData.stats,
-          totalEarnings: (sponsorData.stats?.totalEarnings || 0) + commission,
-          teamSize: (sponsorData.stats?.teamSize || 0) + 1,
-          totalReferrals: (sponsorData.stats?.totalReferrals || 0) + 1,
+          ...recipientData.stats,
+          totalEarnings: (recipientData.stats?.totalEarnings || 0) + commission,
         }
       }, { merge: true });
 
       await addDoc(collection(db, "transactions"), {
-        userId: currentUid,
+        userId: recipientId,
         type: "in",
         title: "Level " + level + " Indirect Commission",
         amount: commission,
@@ -144,23 +210,17 @@ export async function processActivation(
         commissionLevel: level,
       });
 
-      console.log("L" + level + " commission credited (Credits) to:", currentUid, "amount:", commission);
+      console.log("L" + level + " commission credited (Credits) to:", recipientId, "amount:", commission);
 
-      await addDoc(collection(db, "users", currentUid, "notifications"), {
+      await addDoc(collection(db, "users", recipientId, "notifications"), {
         title: "Level " + level + " Matrix Commission",
         message: commission.toLocaleString() + " Credits added to your Credits balance (Level " + level + ")",
         type: "credits",
         read: false,
         createdAt: Timestamp.now(),
       });
-
-      const nextUid = sponsorData.sponsorId || sponsorData.referredBy;
-      if (!nextUid) break;
-      currentUid = nextUid;
-
     } catch (error) {
       console.error("L" + level + " commission error:", error);
-      break;
     }
   }
 
