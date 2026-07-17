@@ -1,18 +1,20 @@
 name: Commission Data Migration (Manual)
 
 # This workflow NEVER runs automatically — it only runs when you manually
-# click "Run workflow" from the Actions tab and choose dry-run or apply.
+# click "Run workflow" from the Actions tab and choose a mode.
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "dry-run = report only (no changes). apply = write corrections for real."
+        description: "Choose which script to run and whether to write changes."
         required: true
         default: "dry-run"
         type: choice
         options:
           - dry-run
           - apply
+          - realign-dry-run
+          - realign-apply
 
 jobs:
   run_migration:
@@ -56,17 +58,28 @@ jobs:
             scripts/backup-transactions.json
           retention-days: 30
 
-      - name: Run migration (dry-run)
+      - name: Run commission migration (dry-run)
         if: ${{ github.event.inputs.mode == 'dry-run' }}
         working-directory: scripts
         run: node fix-commission-data.mjs
 
-      - name: Run migration (APPLY — writes real changes)
+      - name: Run commission migration (APPLY — writes real changes)
         if: ${{ github.event.inputs.mode == 'apply' }}
         working-directory: scripts
         run: node fix-commission-data.mjs --apply
+
+      - name: Run placement + Credits realignment (dry-run)
+        if: ${{ github.event.inputs.mode == 'realign-dry-run' }}
+        working-directory: scripts
+        run: node realign-placement-and-credits.mjs
+
+      - name: Run placement + Credits realignment (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'realign-apply' }}
+        working-directory: scripts
+        run: node realign-placement-and-credits.mjs --apply
 
       - name: Clean up service account key
         if: always()
         working-directory: scripts
         run: rm -f serviceAccountKey.json
+
