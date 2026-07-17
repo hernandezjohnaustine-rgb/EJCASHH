@@ -184,7 +184,7 @@ export default function App() {
                 username: username || null,
                 phoneNumber: phoneNumber || null,
                 isActivated: false,
-                referralLinkEnabled: false,
+                referralLinkEnabled: true, // New registrations get their referral link enabled by default — no manual admin unlock needed
                 balance: 0,
                 earningsWallet: 0,
                 creditsBalance: 0,
@@ -707,9 +707,15 @@ export default function App() {
           await autoPlaceUser(currentUser.uid, sponsorId);
         }
 
-        // ✅ Get updated sponsorId after auto-placement (unchanged on upgrades)
+        // ✅ Get updated sponsorId after auto-placement (unchanged on upgrades).
+        // IMPORTANT: never fall back to `referredBy` here — that field holds a
+        // referral CODE (e.g. "JPOWER03"), not a user ID. Passing a code where
+        // processActivation expects a UID makes the L2-10 lookup fail
+        // immediately, silently skipping all Credits distribution while L1
+        // (which doesn't use this variable) keeps working fine. Fall back to
+        // originalReferrerId instead, which is always a real, resolved UID.
         const freshDoc2 = await getDoc(userDocRef);
-        const updatedSponsorId = freshDoc2.data()?.sponsorId || freshDoc2.data()?.referredBy;
+        const updatedSponsorId = freshDoc2.data()?.sponsorId || originalReferrerId;
         const actualReferrerId = originalReferrerId; // Always the true, stable direct referrer — same person on every package purchase
 
         // ✅ Package details
@@ -733,7 +739,9 @@ export default function App() {
 
         // ✅ Distribute commissions — credited to Credits balance, not cash
         // L1 commission goes to originalReferrerId, L2-10 go to updatedSponsorId (placement)
-        await processActivation(currentUser.uid, updatedSponsorId, packageId, actualReferrerId);
+        // isFirstActivation (!wasAlreadyActivated) ensures directReferrals/teamSize
+        // only increment once per person, not once per package they buy.
+        await processActivation(currentUser.uid, updatedSponsorId, packageId, actualReferrerId, !wasAlreadyActivated);
 
         // ✅ Record transaction
         await addTransaction({
