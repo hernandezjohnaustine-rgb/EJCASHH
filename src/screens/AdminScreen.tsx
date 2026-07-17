@@ -430,7 +430,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
                   >
                     <Unlock className="w-3 h-3" />
-                    Unlock All Links
+                    Enable
                   </button>
                 </div>
                 <input
