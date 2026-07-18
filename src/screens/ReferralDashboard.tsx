@@ -1,4 +1,4 @@
-﻿import { motion } from "motion/react";
+import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { 
   Users, 
@@ -124,10 +124,13 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
             <Users className="w-5 h-5 text-brand-primary" />
             <span className="text-[10px] font-black uppercase tracking-widest text-brand-text/40">Directs</span>
           </div>
-          <p className="text-2xl font-display font-bold group-hover:text-brand-primary transition-colors">{stats.totalReferrals || 0}</p>
+          {/* Shows the TRUE direct referral count (people who actually used
+              your referral code), not totalReferrals — which now tracks
+              placement-based team growth and duplicated Team Size. */}
+          <p className="text-2xl font-display font-bold group-hover:text-brand-primary transition-colors">{stats.directReferrals || 0}</p>
           <div className="flex items-center gap-1 text-[10px] text-brand-primary font-bold">
             <CheckCircle2 className="w-3 h-3" />
-            <span>{stats.directReferrals || 0} Activated</span>
+            <span>Real referrals</span>
           </div>
         </GlassCard>
 
@@ -258,4 +261,3 @@ export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, re
     </div>
   );
 }
-
