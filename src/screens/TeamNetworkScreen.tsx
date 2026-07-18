@@ -1,21 +1,25 @@
-﻿import { motion } from "motion/react";
+import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { ArrowLeft, User, Search, Filter, Mail, Phone, ChevronRight, Loader2 } from "lucide-react";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import GlassCard from "../components/GlassCard";
 
-export default function TeamNetworkScreen({ onBack, referralCode }: { onBack: () => void, referralCode: string }) {
+// NOTE: this now shows PLACEMENT team members (people whose sponsorId
+// points to you in the global matrix — up to 10 slots), not literal direct
+// referrals. Literal referral relationships still exist (referredBy field)
+// but are separate from where someone landed in the placement tree.
+export default function TeamNetworkScreen({ onBack, userId }: { onBack: () => void, userId: string }) {
   const [members, setMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchTeam() {
-      if (!referralCode) return;
+      if (!userId) return;
       try {
         const q = query(
           collection(db, "users"),
-          where("referredBy", "==", referralCode),
+          where("sponsorId", "==", userId),
           limit(50)
         );
         const snap = await getDocs(q);
@@ -31,7 +35,7 @@ export default function TeamNetworkScreen({ onBack, referralCode }: { onBack: ()
       }
     }
     fetchTeam();
-  }, [referralCode]);
+  }, [userId]);
 
   return (
     <div className="min-h-screen bg-brand-black text-brand-text flex flex-col p-6 pt-12 overflow-y-auto pb-32">
@@ -39,7 +43,7 @@ export default function TeamNetworkScreen({ onBack, referralCode }: { onBack: ()
         <button onClick={onBack} className="p-2 hover:bg-brand-card/10 rounded-2xl transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h2 className="text-lg font-display font-bold tracking-tight uppercase">Direct Referrals</h2>
+        <h2 className="text-lg font-display font-bold tracking-tight uppercase">Placement Team</h2>
         <div className="w-10"></div>
       </header>
 
@@ -56,7 +60,7 @@ export default function TeamNetworkScreen({ onBack, referralCode }: { onBack: ()
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-2">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/30">L1 Directs ({members.length})</h3>
+           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/30">Level 1 Slots ({members.length}/10)</h3>
            <button className="p-2 bg-brand-card/5 rounded-xl">
              <Filter className="w-4 h-4 text-brand-text/40" />
            </button>
@@ -72,7 +76,7 @@ export default function TeamNetworkScreen({ onBack, referralCode }: { onBack: ()
              <>
                {members.length === 0 ? (
                  <div className="py-20 text-center">
-                    <p className="text-sm font-medium text-brand-text/40">No referrals found yet.</p>
+                    <p className="text-sm font-medium text-brand-text/40">No team members placed here yet.</p>
                     <p className="text-[10px] text-brand-primary font-bold uppercase tracking-widest mt-2 cursor-pointer" onClick={onBack}>Share your code now</p>
                  </div>
                ) : (
@@ -116,4 +120,3 @@ export default function TeamNetworkScreen({ onBack, referralCode }: { onBack: ()
     </div>
   );
 }
-
