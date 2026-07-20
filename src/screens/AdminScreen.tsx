@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, doc, updateDoc, setDoc, getDoc, onSnapshot, query, orderBy, Timestamp, addDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X, Lock, Unlock } from "lucide-react";
+import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X, Lock, Unlock, Store } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-type AdminTab = "users" | "withdrawals" | "transactions" | "products" | "orders";
+type AdminTab = "users" | "withdrawals" | "transactions" | "products" | "orders" | "merchants";
 
 const STATUS_COLORS: Record<string, string> = {
   pending:   "bg-yellow-500/20 text-yellow-400 border-yellow-500/20",
@@ -21,6 +21,7 @@ const ORDER_STATUSES = ["Pending", "Processing", "Shipped", "Delivered", "Cancel
 const CATEGORIES = ["Beauty", "Merch", "Electronics", "Home", "Other"];
 
 const EMPTY_PRODUCT = { title: "", price: "", category: "Beauty", description: "", image: "", stock: "" };
+const EMPTY_MERCHANT = { name: "", iconUrl: "", link: "" };
 
 export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
@@ -28,6 +29,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [merchants, setMerchants] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
@@ -53,8 +55,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   // Settings state
   const [tradingEnabled, setTradingEnabled] = useState(true);
-  const [merchantLink, setMerchantLink] = useState("");
-  const [savingMerchantLink, setSavingMerchantLink] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Product form state
@@ -62,6 +62,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState(EMPTY_PRODUCT);
   const [savingProduct, setSavingProduct] = useState(false);
+
+  // Merchant form state
+  const [showMerchantForm, setShowMerchantForm] = useState(false);
+  const [editingMerchant, setEditingMerchant] = useState<any>(null);
+  const [merchantForm, setMerchantForm] = useState(EMPTY_MERCHANT);
+  const [savingMerchant, setSavingMerchant] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -92,6 +98,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       const pSnap = await getDocs(collection(db, "products"));
       setProducts(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
+      try {
+        const mSnap = await getDocs(collection(db, "merchants"));
+        setMerchants(mSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => (a.order || 0) - (b.order || 0)));
+      } catch(e) { console.error(e); }
+
       const oSnap = await getDocs(collection(db, "orders"));
       const oData = oSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setOrders(oData.sort((a: any, b: any) => {
@@ -111,12 +122,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     getDoc(doc(db, "settings", "trading"))
       .then(snap => { if (snap.exists()) setTradingEnabled(snap.data().enabled !== false); })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    getDoc(doc(db, "settings", "merchant"))
-      .then(snap => { if (snap.exists()) setMerchantLink(snap.data().url || ""); })
       .catch(() => {});
   }, []);
 
@@ -180,18 +185,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       alert("Failed to update trading status");
     } finally {
       setSavingSettings(false);
-    }
-  };
-
-  const handleSaveMerchantLink = async () => {
-    setSavingMerchantLink(true);
-    try {
-      await setDoc(doc(db, "settings", "merchant"), { url: merchantLink.trim() }, { merge: true });
-      alert("Merchant link saved!");
-    } catch {
-      alert("Failed to save merchant link");
-    } finally {
-      setSavingMerchantLink(false);
     }
   };
 
@@ -331,6 +324,48 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     } catch { alert("❌ Failed to delete"); }
   };
 
+  // ── Merchant actions ───────────────────────────────────────────────────────
+  const openAddMerchant = () => {
+    setEditingMerchant(null);
+    setMerchantForm(EMPTY_MERCHANT);
+    setShowMerchantForm(true);
+  };
+
+  const openEditMerchant = (m: any) => {
+    setEditingMerchant(m);
+    setMerchantForm({ name: m.name || "", iconUrl: m.iconUrl || "", link: m.link || "" });
+    setShowMerchantForm(true);
+  };
+
+  const handleSaveMerchant = async () => {
+    if (!merchantForm.name || !merchantForm.link) { alert("Name and link are required."); return; }
+    setSavingMerchant(true);
+    try {
+      const data = {
+        name: merchantForm.name,
+        iconUrl: merchantForm.iconUrl,
+        link: merchantForm.link,
+        order: editingMerchant?.order ?? merchants.length,
+      };
+      if (editingMerchant) {
+        await updateDoc(doc(db, "merchants", editingMerchant.id), data);
+      } else {
+        await addDoc(collection(db, "merchants"), { ...data, createdAt: Timestamp.now() });
+      }
+      setShowMerchantForm(false);
+      fetchData();
+    } catch { alert("❌ Failed to save merchant"); }
+    finally { setSavingMerchant(false); }
+  };
+
+  const handleDeleteMerchant = async (id: string) => {
+    if (!confirm("Delete this merchant?")) return;
+    try {
+      await deleteDoc(doc(db, "merchants", id));
+      fetchData();
+    } catch { alert("❌ Failed to delete"); }
+  };
+
   // ── Order actions ──────────────────────────────────────────────────────────
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -358,6 +393,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     { id: "withdrawals", label: "Withdraw", icon: Wallet },
     { id: "transactions", label: "Txns", icon: TrendingUp },
     { id: "products", label: "Products", icon: ShoppingBag },
+    { id: "merchants", label: "Merchants", icon: Store },
     { id: "orders", label: "Orders", icon: Package },
     { id: "deposits", label: "Deposits", icon: Wallet },
     { id: "gcash", label: "GCash", icon: Wallet },
@@ -753,6 +789,46 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
               </div>
             )}
 
+            {/* ── MERCHANTS TAB ── */}
+            {activeTab === "merchants" && (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] text-brand-text/40 uppercase tracking-widest font-black">{merchants.length} Merchants</p>
+                  <button onClick={openAddMerchant} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-primary text-brand-black text-[10px] font-black uppercase tracking-widest">
+                    <Plus className="w-3.5 h-3.5" /> Add Merchant
+                  </button>
+                </div>
+
+                {merchants.length === 0 && (
+                  <div className="text-center py-16">
+                    <Store className="w-10 h-10 text-brand-text/20 mx-auto mb-3" />
+                    <p className="text-brand-text/40 text-sm font-bold">No merchants yet</p>
+                    <p className="text-brand-text/20 text-xs mt-1">Tap "Add Merchant" to get started</p>
+                  </div>
+                )}
+
+                {merchants.map((m) => (
+                  <div key={m.id} className="bg-brand-card/5 border border-brand-border rounded-2xl p-4 flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-brand-card/20 flex items-center justify-center shrink-0">
+                      {m.iconUrl ? <img src={m.iconUrl} alt={m.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <Store className="w-6 h-6 text-brand-text/20" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">{m.name}</p>
+                      <p className="text-[10px] text-brand-text/40 truncate">{m.link}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <button onClick={() => openEditMerchant(m)} className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteMerchant(m.id)} className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* ── ORDERS TAB ── */}
             {activeTab === "orders" && (
               <div className="flex flex-col gap-3">
@@ -957,26 +1033,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     {savingSettings ? "Saving..." : tradingEnabled ? "ENABLED" : "DISABLED"}
                   </button>
                 </div>
-                <div className="bg-brand-card/5 border border-brand-border rounded-2xl p-5 flex flex-col gap-3">
-                  <div>
-                    <p className="text-sm font-black text-brand-text">Merchant Link</p>
-                    <p className="text-[10px] text-brand-text/40">URL shown inside the Merchant screen on Home</p>
-                  </div>
-                  <input
-                    type="text"
-                    value={merchantLink}
-                    onChange={e => setMerchantLink(e.target.value)}
-                    placeholder="https://example.com"
-                    className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text focus:outline-none focus:border-brand-primary/50"
-                  />
-                  <button
-                    onClick={handleSaveMerchantLink}
-                    disabled={savingMerchantLink}
-                    className="w-full py-3 bg-brand-primary text-brand-black text-xs font-black uppercase tracking-widest rounded-xl active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {savingMerchantLink ? "Saving..." : "Save Merchant Link"}
-                  </button>
-                </div>
               </div>
             )}
           </>
@@ -1046,6 +1102,51 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 <button onClick={handleSaveProduct} disabled={savingProduct}
                   className="w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-all disabled:opacity-70">
                   {savingProduct ? "Saving..." : editingProduct ? "Save Changes" : "Add Product"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Add/Edit Merchant Modal ── */}
+      <AnimatePresence>
+        {showMerchantForm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end">
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="w-full bg-brand-black border-t border-brand-border rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-base font-black">{editingMerchant ? "Edit Merchant" : "Add Merchant"}</h3>
+                <button onClick={() => setShowMerchantForm(false)} className="w-9 h-9 rounded-2xl bg-brand-card/20 flex items-center justify-center">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div>
+                  <p className="text-[10px] text-brand-text/40 font-black uppercase tracking-widest mb-1.5">Merchant Name *</p>
+                  <input type="text" placeholder="e.g. Shopee" value={merchantForm.name} onChange={e => setMerchantForm(p => ({ ...p, name: e.target.value }))}
+                    className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-brand-text/40 font-black uppercase tracking-widest mb-1.5">Icon / Logo URL</p>
+                  <input type="text" placeholder="https://..." value={merchantForm.iconUrl} onChange={e => setMerchantForm(p => ({ ...p, iconUrl: e.target.value }))}
+                    className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
+                  {merchantForm.iconUrl ? (
+                    <img src={merchantForm.iconUrl} alt="preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-brand-border" referrerPolicy="no-referrer" />
+                  ) : null}
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-brand-text/40 font-black uppercase tracking-widest mb-1.5">Link *</p>
+                  <input type="text" placeholder="https://..." value={merchantForm.link} onChange={e => setMerchantForm(p => ({ ...p, link: e.target.value }))}
+                    className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
+                </div>
+
+                <button onClick={handleSaveMerchant} disabled={savingMerchant}
+                  className="w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-all disabled:opacity-70">
+                  {savingMerchant ? "Saving..." : editingMerchant ? "Save Changes" : "Add Merchant"}
                 </button>
               </div>
             </motion.div>
