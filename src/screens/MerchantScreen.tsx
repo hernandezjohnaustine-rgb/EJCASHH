@@ -84,6 +84,7 @@ export default function MerchantScreen({ onBack, userId, balance }: { onBack: ()
         title: `${pendingMerchant.name} Unlock Fee`,
         amount: price,
         category: "Merchant Access",
+        merchantId: pendingMerchant.id,
         status: "Completed",
         referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
         paymentMethod: "EJCASHH Wallet",
