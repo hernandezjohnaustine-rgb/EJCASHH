@@ -37,6 +37,7 @@ import RiderScreen from "./screens/RiderScreen";
 import MarketplaceScreen from "./screens/MarketplaceScreen";
 import AssistantScreen from "./screens/AssistantScreen";
 import MerchantScreen from "./screens/MerchantScreen";
+import MerchantAdminScreen from "./screens/MerchantAdminScreen";
 import { MilestoneCertificateModal } from "./screens/DirectsCertificate";
 
 const EMPTY_STATS: UserStats = {
@@ -148,7 +149,7 @@ export default function App() {
     let ref = params.get("ref") || params.get("r");
     const path = window.location.pathname.substring(1).toUpperCase();
     if (!ref && path && (path.startsWith('EJ-') || (path.length >= 3 && path.length <= 15))) {
-      const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE'];
+      const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE', 'MERCHANT-ADMIN'];
       if (!internalPaths.includes(path)) ref = path;
     }
     if (ref) {
@@ -925,6 +926,15 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  // ✅ Standalone Merchant Dashboard — a separate, website-styled admin page
+  // at its own URL, with its OWN login form (independent of the main app's
+  // AuthScreen/session). Checked before the main `if (!user)` gate below,
+  // since this route must be reachable even if nobody is logged into the
+  // main app in this browser session yet.
+  if (window.location.pathname.substring(1).toUpperCase() === "MERCHANT-ADMIN") {
+    return <MerchantAdminScreen />;
   }
 
   if (!user) return <AuthScreen onLogin={() => {}} />;
