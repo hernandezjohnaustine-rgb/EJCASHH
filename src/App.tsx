@@ -36,6 +36,7 @@ import TradingBotScreen from "./screens/TradingBotScreen";
 import RiderScreen from "./screens/RiderScreen";
 import MarketplaceScreen from "./screens/MarketplaceScreen";
 import AssistantScreen from "./screens/AssistantScreen";
+import MerchantScreen from "./screens/MerchantScreen";
 import { MilestoneCertificateModal } from "./screens/DirectsCertificate";
 
 const EMPTY_STATS: UserStats = {
@@ -884,6 +885,7 @@ export default function App() {
       case "rider": return <RiderScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, service: string) => addTransaction({ title: `Rider: ${service}`, rawAmount: amt, category: "Services", type: "out" })} />;
       case "market": return <MarketplaceScreen onBack={() => setActiveView(null)} balance={balance} userProfile={userProfile} onConfirm={(amt: number, title: string) => addTransaction({ title: `Market: ${title}`, rawAmount: amt, category: "Shopping", type: "out" })} />;
       case "assistant": return <AssistantScreen onBack={() => setActiveView(null)} />;
+      case "merchant": return <MerchantScreen onBack={() => setActiveView(null)} />;
       case "withdraw": return <WithdrawScreen balance={balance} onBack={() => setActiveView(null)} onConfirm={(amt: number) => addTransaction({ title: "Withdrawal", rawAmount: amt, category: "Withdrawal", type: "out", paymentMethod: "Earnings Wallet" })} />;
       case "network": return <TeamNetworkScreen onBack={() => setActiveView(null)} userId={user?.uid || ""} displayName={userProfile?.displayName || user?.displayName || "You"} />;
       case "admin": return userProfile?.isAdmin ? <AdminScreen onBack={() => setActiveView(null)} /> : null;
