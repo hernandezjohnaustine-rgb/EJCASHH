@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, query, where, Timestamp } from "firebase/firestore";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile, User as FirebaseUser } from "firebase/auth";
 import { initializeApp, deleteApp } from "firebase/app";
@@ -8,6 +9,25 @@ import firebaseConfig from "../../firebase-applet-config.json";
 import { Store, Plus, Edit3, Trash2, X, Upload, Loader2, ExternalLink, Lock, LogOut, ShieldAlert, Users, UserPlus, CheckCircle2 } from "lucide-react";
 
 const EMPTY_MERCHANT = { name: "", iconUrl: "", link: "", requiresPayment: false, price: "", ownerId: "" };
+
+function TableSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-slate-900/60 px-5 py-3">
+        <div className="w-24 h-3 rounded-full bg-slate-800 animate-pulse" />
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="border-t border-slate-800 px-5 py-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-slate-800 animate-pulse shrink-0" />
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="w-1/3 h-3 rounded-full bg-slate-800 animate-pulse" />
+            <div className="w-1/2 h-2.5 rounded-full bg-slate-800/60 animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function compressIcon(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -97,14 +117,24 @@ function MerchantAdminLogin({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center gap-3 mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="w-full max-w-sm"
+      >
+        <motion.div
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1, type: "spring", damping: 15 }}
+          className="flex flex-col items-center gap-3 mb-8"
+        >
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
             <Store className="w-6 h-6 text-emerald-400" />
           </div>
           <h1 className="text-lg font-bold">Merchant Dashboard</h1>
           <p className="text-xs text-slate-500">Admin sign-in required</p>
-        </div>
+        </motion.div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
@@ -130,15 +160,16 @@ function MerchantAdminLogin({ onSuccess }: { onSuccess: () => void }) {
             />
           </div>
           {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.97 }}
             type="submit"
             disabled={isLoading}
             className="w-full py-3 rounded-lg bg-emerald-500 text-slate-950 font-bold text-sm hover:bg-emerald-400 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</> : "Sign In"}
-          </button>
+          </motion.button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -414,9 +445,7 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
       <main className="max-w-5xl mx-auto px-6 py-8">
         {activeSection === "merchants" ? (
           isLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-            </div>
+            <TableSkeleton rows={4} />
           ) : merchants.length === 0 ? (
             <div className="text-center py-24 border border-dashed border-slate-800 rounded-2xl">
               <Store className="w-10 h-10 text-slate-700 mx-auto mb-3" />
@@ -507,9 +536,7 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
               </p>
             </div>
             {loadingAccounts ? (
-              <div className="flex items-center justify-center py-24">
-                <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-              </div>
+              <TableSkeleton rows={3} />
             ) : merchantAccounts.length === 0 ? (
               <div className="text-center py-24 border border-dashed border-slate-800 rounded-2xl">
                 <Users className="w-10 h-10 text-slate-700 mx-auto mb-3" />
@@ -546,9 +573,22 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
         )}
       </main>
 
-      {viewingBuyersFor && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 max-h-[80vh] flex flex-col">
+      <AnimatePresence>
+        {viewingBuyersFor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setViewingBuyersFor(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 max-h-[80vh] flex flex-col"
+            >
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h3 className="text-base font-bold">{viewingBuyersFor.name}</h3>
@@ -610,13 +650,27 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
                 </span>
               </div>
             )}
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {showAccountForm && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      <AnimatePresence>
+        {showAccountForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setShowAccountForm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6"
+            >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-base font-bold">New Merchant Admin Account</h3>
               <button onClick={() => setShowAccountForm(false)} className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200">
@@ -666,13 +720,27 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
                 {creatingAccount ? "Creating..." : "Create Account"}
               </button>
             </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setShowForm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6"
+            >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-base font-bold">{editing ? "Edit Merchant" : "Add Merchant"}</h3>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200">
@@ -779,9 +847,10 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
                 {saving ? "Saving..." : editing ? "Save Changes" : "Add Merchant"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
