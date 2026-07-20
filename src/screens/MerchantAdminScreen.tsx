@@ -5,7 +5,7 @@ import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import firebaseConfig from "../../firebase-applet-config.json";
-import { Store, Plus, Edit3, Trash2, X, Upload, Loader2, ExternalLink, Lock, LogOut, ShieldAlert, Users, UserPlus } from "lucide-react";
+import { Store, Plus, Edit3, Trash2, X, Upload, Loader2, ExternalLink, Lock, LogOut, ShieldAlert, Users, UserPlus, CheckCircle2 } from "lucide-react";
 
 const EMPTY_MERCHANT = { name: "", iconUrl: "", link: "", requiresPayment: false, price: "", ownerId: "" };
 
@@ -165,6 +165,11 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
 
+  // Buyer list viewer (who unlocked/purchased a given merchant)
+  const [viewingBuyersFor, setViewingBuyersFor] = useState<any | null>(null);
+  const [buyers, setBuyers] = useState<any[]>([]);
+  const [loadingBuyers, setLoadingBuyers] = useState(false);
+
   const fetchMerchants = async () => {
     setIsLoading(true);
     try {
@@ -242,6 +247,57 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
     setShowForm(true);
   };
 
+  const handleToggleApproved = async (tx: any) => {
+    try {
+      await updateDoc(doc(db, "transactions", tx.id), {
+        approved: !tx.approved,
+        approvedAt: !tx.approved ? Timestamp.now() : null,
+      });
+      setBuyers(prev => prev.map(b => b.id === tx.id ? { ...b, approved: !tx.approved } : b));
+    } catch {
+      alert("Failed to update status.");
+    }
+  };
+
+  const openViewBuyers = async (merchant: any) => {
+    setViewingBuyersFor(merchant);
+    setLoadingBuyers(true);
+    setBuyers([]);
+    try {
+      const q = query(
+        collection(db, "transactions"),
+        where("category", "==", "Merchant Access"),
+        where("merchantId", "==", merchant.id)
+      );
+      const snap = await getDocs(q);
+      const txs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Resolve each buyer's display name / email for a readable list.
+      const withNames = await Promise.all(
+        txs.map(async (tx: any) => {
+          try {
+            const userSnap = await getDoc(doc(db, "users", tx.userId));
+            const userData = userSnap.exists() ? userSnap.data() : null;
+            return { ...tx, buyerName: userData?.displayName || "Unknown", buyerEmail: userData?.email || "" };
+          } catch {
+            return { ...tx, buyerName: "Unknown", buyerEmail: "" };
+          }
+        })
+      );
+
+      withNames.sort((a: any, b: any) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return bTime - aTime;
+      });
+      setBuyers(withNames);
+    } catch (err) {
+      console.error("Failed to load buyers:", err);
+    } finally {
+      setLoadingBuyers(false);
+    }
+  };
+
   const handleIconUpload = async (file: File | null) => {
     if (!file || !file.type.startsWith("image/")) return;
     setUploadingIcon(true);
@@ -313,14 +369,14 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {activeSection === "merchants" ? (
+            {activeSection === "merchants" && canManageAccounts ? (
               <button
                 onClick={openAdd}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 text-slate-950 text-sm font-bold hover:bg-emerald-400 transition-colors"
               >
                 <Plus className="w-4 h-4" /> Add Merchant
               </button>
-            ) : canManageAccounts ? (
+            ) : activeSection === "accounts" && canManageAccounts ? (
               <button
                 onClick={() => { setAccountError(null); setShowAccountForm(true); }}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 text-slate-950 text-sm font-bold hover:bg-emerald-400 transition-colors"
@@ -416,12 +472,22 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
                       )}
                       <td className="px-5 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => openEdit(m)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-blue-400 transition-colors">
-                            <Edit3 className="w-3.5 h-3.5" />
+                          <button
+                            onClick={() => openViewBuyers(m)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold transition-colors"
+                          >
+                            <Users className="w-3.5 h-3.5" /> View Buyers
                           </button>
-                          <button onClick={() => handleDelete(m.id)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-red-400 transition-colors">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {canManageAccounts && (
+                            <>
+                              <button onClick={() => openEdit(m)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-blue-400 transition-colors">
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => handleDelete(m.id)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-red-400 transition-colors">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -479,6 +545,73 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
           </div>
         )}
       </main>
+
+      {viewingBuyersFor && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-base font-bold">{viewingBuyersFor.name}</h3>
+                <p className="text-xs text-slate-500">Users who unlocked this merchant</p>
+              </div>
+              <button onClick={() => setViewingBuyersFor(null)} className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto mt-4">
+              {loadingBuyers ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
+                </div>
+              ) : buyers.length === 0 ? (
+                <div className="text-center py-16">
+                  <Users className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+                  <p className="text-slate-500 text-sm font-medium">No one has unlocked this yet</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {buyers.map((b) => (
+                    <div key={b.id} className="flex items-center justify-between bg-slate-800/60 border border-slate-800 rounded-lg px-4 py-3 gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{b.buyerName}</p>
+                        <p className="text-xs text-slate-500 truncate">{b.buyerEmail}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-emerald-400">₱{(b.amount || 0).toLocaleString()}</p>
+                        <p className="text-[10px] text-slate-500">
+                          {b.timestamp?.toDate ? b.timestamp.toDate().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleToggleApproved(b)}
+                        className={
+                          "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shrink-0 transition-colors " +
+                          (b.approved
+                            ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                            : "bg-slate-700 text-slate-300 hover:bg-slate-600")
+                        }
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {b.approved ? "Approved" : "Approve"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {buyers.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-semibold">Total collected</span>
+                <span className="text-sm font-bold text-emerald-400">
+                  ₱{buyers.reduce((sum, b) => sum + (b.amount || 0), 0).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showAccountForm && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
