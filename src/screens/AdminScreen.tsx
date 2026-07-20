@@ -21,7 +21,7 @@ const ORDER_STATUSES = ["Pending", "Processing", "Shipped", "Delivered", "Cancel
 const CATEGORIES = ["Beauty", "Merch", "Electronics", "Home", "Other"];
 
 const EMPTY_PRODUCT = { title: "", price: "", category: "Beauty", description: "", image: "", stock: "" };
-const EMPTY_MERCHANT = { name: "", iconUrl: "", link: "" };
+const EMPTY_MERCHANT = { name: "", iconUrl: "", link: "", requiresPayment: false, price: "" };
 
 // Compress an uploaded image to a small base64 JPEG, small enough to store
 // directly on the merchant document (well under Firestore's 1MB doc limit).
@@ -365,18 +365,24 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   const openEditMerchant = (m: any) => {
     setEditingMerchant(m);
-    setMerchantForm({ name: m.name || "", iconUrl: m.iconUrl || "", link: m.link || "" });
+    setMerchantForm({ name: m.name || "", iconUrl: m.iconUrl || "", link: m.link || "", requiresPayment: m.requiresPayment || false, price: m.price ? String(m.price) : "" });
     setShowMerchantForm(true);
   };
 
   const handleSaveMerchant = async () => {
     if (!merchantForm.name || !merchantForm.link) { alert("Name and link are required."); return; }
+    if (merchantForm.requiresPayment && (!merchantForm.price || parseFloat(merchantForm.price) <= 0)) {
+      alert("Please set a valid price for this paid merchant.");
+      return;
+    }
     setSavingMerchant(true);
     try {
       const data = {
         name: merchantForm.name,
         iconUrl: merchantForm.iconUrl,
         link: merchantForm.link,
+        requiresPayment: merchantForm.requiresPayment,
+        price: merchantForm.requiresPayment ? parseFloat(merchantForm.price) : 0,
         order: editingMerchant?.order ?? merchants.length,
       };
       if (editingMerchant) {
@@ -858,7 +864,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       {m.iconUrl ? <img src={m.iconUrl} alt={m.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <Store className="w-6 h-6 text-brand-text/20" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate">{m.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold truncate">{m.name}</p>
+                        {m.requiresPayment && (
+                          <span className="text-[8px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded-md font-black uppercase shrink-0">₱{m.price}</span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-brand-text/40 truncate">{m.link}</p>
                     </div>
                     <div className="flex flex-col gap-2 shrink-0">
@@ -1213,6 +1224,28 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   <input type="text" placeholder="https://..." value={merchantForm.link} onChange={e => setMerchantForm(p => ({ ...p, link: e.target.value }))}
                     className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
                 </div>
+
+                <div className="flex items-center justify-between bg-brand-card/10 border border-brand-border rounded-2xl p-4">
+                  <div>
+                    <p className="text-sm font-black text-brand-text">Requires Payment</p>
+                    <p className="text-[10px] text-brand-text/40">Deduct from Main Balance before opening link</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMerchantForm(p => ({ ...p, requiresPayment: !p.requiresPayment }))}
+                    className={"w-12 h-6 rounded-full relative flex items-center px-1 transition-colors " + (merchantForm.requiresPayment ? "bg-brand-primary" : "bg-brand-text/20")}
+                  >
+                    <div className={"w-4 h-4 bg-white rounded-full shadow-sm transition-transform " + (merchantForm.requiresPayment ? "translate-x-6" : "translate-x-0")} />
+                  </button>
+                </div>
+
+                {merchantForm.requiresPayment && (
+                  <div>
+                    <p className="text-[10px] text-brand-text/40 font-black uppercase tracking-widest mb-1.5">Price (₱) *</p>
+                    <input type="number" placeholder="300" value={merchantForm.price} onChange={e => setMerchantForm(p => ({ ...p, price: e.target.value }))}
+                      className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
+                  </div>
+                )}
 
                 <button onClick={handleSaveMerchant} disabled={savingMerchant}
                   className="w-full py-4 rounded-2xl bg-brand-primary text-brand-black font-black uppercase tracking-widest text-xs active:scale-95 transition-all disabled:opacity-70">
