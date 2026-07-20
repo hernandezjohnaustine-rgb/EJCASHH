@@ -73,6 +73,67 @@ export default function App() {
   const [activeMilestone, setActiveMilestone] = useState<any>(null);
   const [showMilestoneCertificate, setShowMilestoneCertificate] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
+  const [newVersionAvailable, setNewVersionAvailable] = useState(false);
+
+  // ✅ Auto-recover from stale-build errors. When a new deploy replaces the
+  // hashed JS chunk filenames, a browser tab that's still running the OLD
+  // bundle will fail on its next dynamic import (e.g. "Failed to fetch
+  // dynamically imported module"). Instead of leaving the user stuck with a
+  // broken action (like we hit earlier with autoPlacementService), detect
+  // that specific failure anywhere in the app and force a clean reload.
+  useEffect(() => {
+    const isChunkLoadError = (message: string) =>
+      /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(message);
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const message = event.reason?.message || String(event.reason || "");
+      if (isChunkLoadError(message)) {
+        console.warn("Stale build detected — reloading to fetch the latest version.");
+        window.location.reload();
+      }
+    };
+    const handleError = (event: ErrorEvent) => {
+      if (isChunkLoadError(event.message || "")) {
+        console.warn("Stale build detected — reloading to fetch the latest version.");
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("unhandledrejection", handleRejection);
+    window.addEventListener("error", handleError);
+    return () => {
+      window.removeEventListener("unhandledrejection", handleRejection);
+      window.removeEventListener("error", handleError);
+    };
+  }, []);
+
+  // ✅ Periodically check whether a new deploy is live (compares against
+  // public/version.json, written fresh on every build by the GitHub Actions
+  // workflow). Shows a small "Update available" banner instead of forcing a
+  // reload mid-session — the user chooses when to refresh, so nothing gets
+  // interrupted mid-transaction.
+  useEffect(() => {
+    let knownVersion: string | null = null;
+
+    const checkVersion = async () => {
+      try {
+        const res = await fetch("/version.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (knownVersion === null) {
+          knownVersion = data.version;
+        } else if (data.version && data.version !== knownVersion) {
+          setNewVersionAvailable(true);
+        }
+      } catch {
+        // Network hiccup or version.json not deployed yet — ignore, try again next interval.
+      }
+    };
+
+    checkVersion();
+    const interval = setInterval(checkVersion, 60000); // check every 60s
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     document.documentElement.className = theme;
@@ -915,6 +976,27 @@ export default function App() {
         </div>
 
         <div className="relative z-10">
+          <AnimatePresence>
+            {newVersionAvailable && (
+              <motion.div
+                initial={{ y: -60, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -60, opacity: 0 }}
+                className="fixed top-0 left-0 right-0 z-[200] flex justify-center px-4 pt-4"
+              >
+                <div className="w-full max-w-md bg-brand-primary text-brand-black rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">
+                  <span className="text-xs font-black uppercase tracking-widest">New update available</span>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-brand-black text-brand-primary rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    Refresh
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {showSuccess && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
