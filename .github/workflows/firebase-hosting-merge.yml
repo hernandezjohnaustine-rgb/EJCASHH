@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Write version marker
+        run: mkdir -p public && echo "{\"version\": \"${{ github.sha }}\"}" > public/version.json
       - name: Build
         run: npm ci && npm run build
         env:
