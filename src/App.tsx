@@ -971,7 +971,18 @@ export default function App() {
           <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
             <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-brand-primary/10 rounded-full blur-[80px]"></div>
           </div>
-          <div className="relative z-10">{renderActiveView()}</div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeView}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative z-10"
+            >
+              {renderActiveView()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     );
@@ -1033,7 +1044,7 @@ export default function App() {
 
           <AnimatePresence mode="wait">
             {activeTab === "home" && (
-              <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div key="home" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
                 <Header
                   userName={user?.displayName || "User"}
                   userSeed={userProfile?.username || user?.displayName || "John"}
@@ -1082,26 +1093,26 @@ achievedMilestones={Object.fromEntries(
               </motion.div>
             )}
             {activeTab === "send" && (
-              <motion.div key="send" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div key="send" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
                 <SendMoneyScreen onBack={() => { setActiveTab("home"); setScannedRecipient(null); }} balance={balance}
                   onConfirm={(amt, name) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }}
                   initialRecipient={scannedRecipient} onScanClick={() => setActiveTab("scan")} />
               </motion.div>
             )}
             {activeTab === "scan" && (
-              <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div key="scan" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
                 <QrPayScreen onBack={() => setActiveTab("home")}
                   onResult={(recipient) => { setScannedRecipient(recipient); setActiveTab("send"); }}
                   referralCode={userProfile?.referralCode || ""} />
               </motion.div>
             )}
             {activeTab === "history" && (
-              <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
                 <TransactionHistoryScreen onBack={() => setActiveTab("home")} transactions={transactions} />
               </motion.div>
             )}
             {activeTab === "rewards" && (
-              <motion.div key="rewards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div key="rewards" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
                 <ReferralDashboard stats={userStats} onWithdraw={() => setActiveView("withdraw")}
                   onViewNetwork={() => setActiveView("network")} referralCode={userProfile?.referralCode || ""}
                   referralLinkEnabled={userProfile?.referralLinkEnabled === true}
@@ -1109,7 +1120,7 @@ achievedMilestones={Object.fromEntries(
               </motion.div>
             )}
             {activeTab === "profile" && (
-              <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div key="profile" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
                 <ProfileScreen
                   onLogout={() => {
                     localStorage.removeItem("referredBy");
