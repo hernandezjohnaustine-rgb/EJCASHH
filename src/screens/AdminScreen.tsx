@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, doc, updateDoc, setDoc, getDoc, onSnapshot, query, orderBy, Timestamp, addDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X, Lock, Unlock, Store } from "lucide-react";
+import { Users, Wallet, CheckCircle2, XCircle, TrendingUp, ArrowLeft, RefreshCw, Shield, Ban, User, Hash, ChevronDown, ChevronUp, ShoppingBag, Package, Plus, Trash2, Edit3, X, Lock, Unlock, Store, Upload, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 type AdminTab = "users" | "withdrawals" | "transactions" | "products" | "orders" | "merchants";
@@ -22,6 +22,36 @@ const CATEGORIES = ["Beauty", "Merch", "Electronics", "Home", "Other"];
 
 const EMPTY_PRODUCT = { title: "", price: "", category: "Beauty", description: "", image: "", stock: "" };
 const EMPTY_MERCHANT = { name: "", iconUrl: "", link: "" };
+
+// Compress an uploaded image to a small base64 JPEG, small enough to store
+// directly on the merchant document (well under Firestore's 1MB doc limit).
+function compressMerchantIcon(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 200;
+      let { width, height } = img;
+      if (width > height) {
+        if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
+      } else {
+        if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.7));
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(e);
+    };
+    img.src = url;
+  });
+}
 
 export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
@@ -68,6 +98,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [editingMerchant, setEditingMerchant] = useState<any>(null);
   const [merchantForm, setMerchantForm] = useState(EMPTY_MERCHANT);
   const [savingMerchant, setSavingMerchant] = useState(false);
+  const [uploadingMerchantIcon, setUploadingMerchantIcon] = useState(false);
+  const merchantIconInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -364,6 +396,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       await deleteDoc(doc(db, "merchants", id));
       fetchData();
     } catch { alert("❌ Failed to delete"); }
+  };
+
+  const handleMerchantIconUpload = async (file: File | null) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    setUploadingMerchantIcon(true);
+    try {
+      const compressed = await compressMerchantIcon(file);
+      setMerchantForm(p => ({ ...p, iconUrl: compressed }));
+    } catch {
+      alert("Failed to process image. Try a different photo.");
+    } finally {
+      setUploadingMerchantIcon(false);
+    }
   };
 
   // ── Order actions ──────────────────────────────────────────────────────────
@@ -1130,12 +1175,37 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-brand-text/40 font-black uppercase tracking-widest mb-1.5">Icon / Logo URL</p>
+                  <p className="text-[10px] text-brand-text/40 font-black uppercase tracking-widest mb-1.5">Icon / Logo</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-brand-card/20 border border-brand-border flex items-center justify-center shrink-0">
+                      {uploadingMerchantIcon ? (
+                        <Loader2 className="w-5 h-5 text-brand-primary animate-spin" />
+                      ) : merchantForm.iconUrl ? (
+                        <img src={merchantForm.iconUrl} alt="preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <Store className="w-6 h-6 text-brand-text/20" />
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => merchantIconInputRef.current?.click()}
+                      disabled={uploadingMerchantIcon}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border text-brand-text/70 text-[10px] font-black uppercase tracking-widest hover:border-brand-primary/40 transition-all disabled:opacity-50"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {merchantForm.iconUrl ? "Change Photo" : "Upload Photo"}
+                    </button>
+                  </div>
+                  <input
+                    ref={merchantIconInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleMerchantIconUpload(e.target.files?.[0] ?? null)}
+                  />
+                  <p className="text-[9px] text-brand-text/20 mb-1.5">Or paste an image URL instead:</p>
                   <input type="text" placeholder="https://..." value={merchantForm.iconUrl} onChange={e => setMerchantForm(p => ({ ...p, iconUrl: e.target.value }))}
                     className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-brand-primary/50 text-brand-text" />
-                  {merchantForm.iconUrl ? (
-                    <img src={merchantForm.iconUrl} alt="preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-brand-border" referrerPolicy="no-referrer" />
-                  ) : null}
                 </div>
 
                 <div>
