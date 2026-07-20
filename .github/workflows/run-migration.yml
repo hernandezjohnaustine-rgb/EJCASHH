@@ -15,6 +15,8 @@ on:
           - apply
           - realign-dry-run
           - realign-apply
+          - backfill-referrals-dry-run
+          - backfill-referrals-apply
 
 jobs:
   run_migration:
@@ -77,6 +79,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'realign-apply' }}
         working-directory: scripts
         run: node realign-placement-and-credits.mjs --apply
+
+      - name: Backfill missing referralCodes lookup docs (dry-run)
+        if: ${{ github.event.inputs.mode == 'backfill-referrals-dry-run' }}
+        working-directory: scripts
+        run: node backfill-referral-codes.mjs
+
+      - name: Backfill missing referralCodes lookup docs (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'backfill-referrals-apply' }}
+        working-directory: scripts
+        run: node backfill-referral-codes.mjs --apply
 
       - name: Clean up service account key
         if: always()
