@@ -1,4 +1,4 @@
-﻿import { motion, AnimatePresence, useSpring, useTransform, animate } from "motion/react";
+import { motion, AnimatePresence, useSpring, useTransform, animate } from "motion/react";
 import { useState, useEffect } from "react";
 import { 
   Eye, 
@@ -23,7 +23,8 @@ import {
   ShoppingBag,
   Sparkles,
   Wallet as WalletIcon,
-  Network
+  Network,
+  Store
 } from "lucide-react";
 import { Wallet, UserStats, Transaction } from "../types";
 import GlassCard from "../components/GlassCard";
@@ -57,6 +58,7 @@ const earnServices = [
   { id: "rider", name: "Rider", icon: Bike, color: "#FACC15" },
   { id: "market", name: "Shop", icon: ShoppingBag, color: "#FACC15" },
   { id: "assistant", name: "AI AI", icon: Sparkles, color: "#FACC15" },
+  { id: "merchant", name: "Merchant", icon: Store, color: "#FACC15" },
 ];
 
 const WALLETS = (balance: number, credits: number): Wallet[] => [
@@ -282,32 +284,31 @@ export default function HomeScreen({
                    )}
                 </div>
              </div>
-
-             <AnimatePresence>
-               {showClaimSuccess && (
-                 <motion.div 
-                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                   className="absolute inset-0 bg-brand-black/90 backdrop-blur-md flex flex-col items-center justify-center z-20 text-center px-6"
-                 >
-                    <motion.div 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1.2 }}
-                      className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mb-4"
-                    >
-                       <CheckCircle2 className="w-10 h-10 text-brand-black" />
-                    </motion.div>
-                    <h4 className="text-xl font-display font-black text-brand-primary uppercase italic mb-1">Profit Claimed!</h4>
-                    <p className="text-xs text-brand-text/60 font-bold uppercase tracking-widest">+₱{(stats.tradingInvested * 0.05).toLocaleString()} added to balance</p>
-                 </motion.div>
-               )}
-             </AnimatePresence>
           </GlassCard>
+
+          <AnimatePresence>
+            {showClaimSuccess && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="absolute inset-0 bg-brand-black/90 backdrop-blur-md flex flex-col items-center justify-center z-20 text-center px-6"
+              >
+                 <motion.div 
+                   initial={{ scale: 0 }}
+                   animate={{ scale: 1.2 }}
+                   className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mb-4"
+                 >
+                    <CheckCircle2 className="w-10 h-10 text-brand-black" />
+                 </motion.div>
+                 <h4 className="text-xl font-display font-black text-brand-primary uppercase italic mb-1">Profit Claimed!</h4>
+                 <p className="text-xs text-brand-text/60 font-bold uppercase tracking-widest">+₱{(stats.tradingInvested * 0.05).toLocaleString()} added to balance</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
       )}
 
-      
       {/* Upgrade to Package 2 Banner */}
       {stats.isActivated && !(userProfile as any)?.hasPackage2 && (
         <section className="px-6 mb-4">
@@ -612,12 +613,3 @@ export default function HomeScreen({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
