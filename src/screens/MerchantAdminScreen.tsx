@@ -278,7 +278,7 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
           try {
             const userSnap = await getDoc(doc(db, "users", tx.userId));
             const userData = userSnap.exists() ? userSnap.data() : null;
-            return { ...tx, buyerName: userData?.displayName || "Unknown", buyerEmail: userData?.email || "" };
+            return { ...tx, buyerName: userData?.displayName || "Unknown", buyerEmail: userData?.email || "", buyerPhone: userData?.phoneNumber || "" };
           } catch {
             return { ...tx, buyerName: "Unknown", buyerEmail: "" };
           }
@@ -576,6 +576,7 @@ function MerchantDashboard({ onSignOut, canManageAccounts, currentUid }: { onSig
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">{b.buyerName}</p>
                         <p className="text-xs text-slate-500 truncate">{b.buyerEmail}</p>
+                        {b.buyerPhone && <p className="text-xs text-slate-400 truncate">+63 {b.buyerPhone}</p>}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-bold text-emerald-400">₱{(b.amount || 0).toLocaleString()}</p>
