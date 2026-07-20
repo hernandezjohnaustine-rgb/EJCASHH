@@ -53,6 +53,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   // Settings state
   const [tradingEnabled, setTradingEnabled] = useState(true);
+  const [merchantLink, setMerchantLink] = useState("");
+  const [savingMerchantLink, setSavingMerchantLink] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Product form state
@@ -109,6 +111,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     getDoc(doc(db, "settings", "trading"))
       .then(snap => { if (snap.exists()) setTradingEnabled(snap.data().enabled !== false); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getDoc(doc(db, "settings", "merchant"))
+      .then(snap => { if (snap.exists()) setMerchantLink(snap.data().url || ""); })
       .catch(() => {});
   }, []);
 
@@ -172,6 +180,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       alert("Failed to update trading status");
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleSaveMerchantLink = async () => {
+    setSavingMerchantLink(true);
+    try {
+      await setDoc(doc(db, "settings", "merchant"), { url: merchantLink.trim() }, { merge: true });
+      alert("Merchant link saved!");
+    } catch {
+      alert("Failed to save merchant link");
+    } finally {
+      setSavingMerchantLink(false);
     }
   };
 
@@ -935,6 +955,26 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   </div>
                   <button onClick={handleToggleTrading} disabled={savingSettings} className={tradingEnabled ? "bg-brand-primary text-brand-black px-4 py-2 rounded-xl text-xs font-black uppercase" : "bg-brand-card/20 border border-brand-border text-brand-text/60 px-4 py-2 rounded-xl text-xs font-black uppercase"}>
                     {savingSettings ? "Saving..." : tradingEnabled ? "ENABLED" : "DISABLED"}
+                  </button>
+                </div>
+                <div className="bg-brand-card/5 border border-brand-border rounded-2xl p-5 flex flex-col gap-3">
+                  <div>
+                    <p className="text-sm font-black text-brand-text">Merchant Link</p>
+                    <p className="text-[10px] text-brand-text/40">URL shown inside the Merchant screen on Home</p>
+                  </div>
+                  <input
+                    type="text"
+                    value={merchantLink}
+                    onChange={e => setMerchantLink(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full bg-brand-card/20 border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text focus:outline-none focus:border-brand-primary/50"
+                  />
+                  <button
+                    onClick={handleSaveMerchantLink}
+                    disabled={savingMerchantLink}
+                    className="w-full py-3 bg-brand-primary text-brand-black text-xs font-black uppercase tracking-widest rounded-xl active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {savingMerchantLink ? "Saving..." : "Save Merchant Link"}
                   </button>
                 </div>
               </div>
