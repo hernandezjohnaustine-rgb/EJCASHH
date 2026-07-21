@@ -38,6 +38,7 @@ import MarketplaceScreen from "./screens/MarketplaceScreen";
 import AssistantScreen from "./screens/AssistantScreen";
 import MerchantScreen from "./screens/MerchantScreen";
 import MerchantAdminScreen from "./screens/MerchantAdminScreen";
+import DepositAdminScreen from "./screens/DepositAdminScreen";
 import { MilestoneCertificateModal } from "./screens/DirectsCertificate";
 
 const EMPTY_STATS: UserStats = {
@@ -149,7 +150,7 @@ export default function App() {
     let ref = params.get("ref") || params.get("r");
     const path = window.location.pathname.substring(1).toUpperCase();
     if (!ref && path && (path.startsWith('EJ-') || (path.length >= 3 && path.length <= 15))) {
-      const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE', 'MERCHANT-ADMIN'];
+      const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE', 'MERCHANT-ADMIN', 'DEPOSIT-ADMIN'];
       if (!internalPaths.includes(path)) ref = path;
     }
     if (ref) {
@@ -935,6 +936,12 @@ export default function App() {
   // main app in this browser session yet.
   if (window.location.pathname.substring(1).toUpperCase() === "MERCHANT-ADMIN") {
     return <MerchantAdminScreen />;
+  }
+
+  // ✅ Standalone Deposit Dashboard — same self-contained pattern as the
+  // Merchant Dashboard above, for reviewing/approving GCash deposits.
+  if (window.location.pathname.substring(1).toUpperCase() === "DEPOSIT-ADMIN") {
+    return <DepositAdminScreen />;
   }
 
   if (!user) return <AuthScreen onLogin={() => {}} />;
