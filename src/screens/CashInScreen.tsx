@@ -13,6 +13,7 @@ export default function CashInScreen({ onBack }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [gcashAccounts, setGcashAccounts] = useState<any[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const presetAmounts = ["100", "500", "1000", "5000"];
   const userId = auth.currentUser?.uid;
@@ -24,13 +25,13 @@ export default function CashInScreen({ onBack }: any) {
         const accounts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
           .sort((a: any, b: any) => a.order - b.order);
         setGcashAccounts(accounts.length > 0 ? accounts : [
-          { accountName: "J***y P.", accountNumber: "0915 520 9950", qrCode: "/gcash-qr1.png" },
-          { accountName: "J***y P.", accountNumber: "0994 478 0740", qrCode: "/gcash-qr2.png" },
+          { id: null, accountName: "J***y P.", accountNumber: "0915 520 9950", qrCode: "/gcash-qr1.png" },
+          { id: null, accountName: "J***y P.", accountNumber: "0994 478 0740", qrCode: "/gcash-qr2.png" },
         ]);
       } catch (err) {
         setGcashAccounts([
-          { accountName: "J***y P.", accountNumber: "0915 520 9950", qrCode: "/gcash-qr1.png" },
-          { accountName: "J***y P.", accountNumber: "0994 478 0740", qrCode: "/gcash-qr2.png" },
+          { id: null, accountName: "J***y P.", accountNumber: "0915 520 9950", qrCode: "/gcash-qr1.png" },
+          { id: null, accountName: "J***y P.", accountNumber: "0994 478 0740", qrCode: "/gcash-qr2.png" },
         ]);
       } finally {
         setLoadingAccounts(false);
@@ -58,6 +59,7 @@ export default function CashInScreen({ onBack }: any) {
     if (!referenceNo.trim()) { alert("Please enter your GCash reference number."); return; }
     setIsSubmitting(true);
     try {
+      const selectedAccount = gcashAccounts[selectedIdx];
       await addDoc(collection(db, "depositRequests"), {
         userId,
         userName: auth.currentUser?.displayName || "Unknown",
@@ -66,6 +68,9 @@ export default function CashInScreen({ onBack }: any) {
         method: "GCash",
         referenceNo: referenceNo.trim(),
         screenshot: screenshot || null,
+        // Which specific GCash account/QR this deposit was paid to — needed
+        // so a Deposit Admin assigned to that account can find and approve it.
+        gcashAccountId: selectedAccount?.id || null,
         status: "pending",
         createdAt: Timestamp.now(),
       });
@@ -81,6 +86,8 @@ export default function CashInScreen({ onBack }: any) {
       setIsSubmitting(false);
     }
   };
+
+  const acc = gcashAccounts[selectedIdx];
 
   return (
     <div className="min-h-screen bg-brand-black flex flex-col overflow-y-auto pb-32">
@@ -152,50 +159,68 @@ export default function CashInScreen({ onBack }: any) {
             {loadingAccounts ? (
               <p className="text-center text-brand-text/40 font-bold py-4">Loading GCash details...</p>
             ) : (
-              gcashAccounts.map((acc, idx) => (
-                <GlassCard key={idx} className="!p-5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-400 mb-4">GCash Account {idx + 1}</p>
-                  
-                  {/* QR Code */}
-                  <div className="flex flex-col items-center mb-5">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-brand-text/40 mb-3">📷 Scan QR Code to Pay</p>
-                    <div className="w-48 h-48 bg-white rounded-2xl p-3 flex items-center justify-center shadow-lg">
-                      {acc.qrCode ? (
-                        <img src={acc.qrCode} alt="GCash QR Code" className="w-full h-full object-contain" />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                          <div className="w-16 h-16 bg-gray-200 rounded-xl" />
-                          <p className="text-[9px] text-gray-400 font-bold text-center">QR Code not set</p>
-                        </div>
-                      )}
-                    </div>
+              <>
+                {/* Pick ONE account to pay to — the choice is recorded on the
+                    deposit request, so the right Deposit Admin can find it. */}
+                {gcashAccounts.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {gcashAccounts.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedIdx(idx)}
+                        className={"shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all " + (selectedIdx === idx ? "bg-brand-primary text-brand-black border-brand-primary" : "bg-brand-card/20 border-brand-border text-brand-text/60")}
+                      >
+                        Account {idx + 1}
+                      </button>
+                    ))}
                   </div>
+                )}
 
-                  {/* Account Details */}
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-brand-card/20 border border-brand-border">
-                      <div>
-                        <p className="text-[9px] text-brand-text/40 uppercase tracking-widest">Account Name</p>
-                        <p className="text-sm font-black text-brand-text">{acc.accountName}</p>
+                {acc && (
+                  <GlassCard className="!p-5">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-400 mb-4">GCash Account {selectedIdx + 1}</p>
+
+                    {/* QR Code */}
+                    <div className="flex flex-col items-center mb-5">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-brand-text/40 mb-3">📷 Scan QR Code to Pay</p>
+                      <div className="w-48 h-48 bg-white rounded-2xl p-3 flex items-center justify-center shadow-lg">
+                        {acc.qrCode ? (
+                          <img src={acc.qrCode} alt="GCash QR Code" className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                            <div className="w-16 h-16 bg-gray-200 rounded-xl" />
+                            <p className="text-[9px] text-gray-400 font-bold text-center">QR Code not set</p>
+                          </div>
+                        )}
                       </div>
-                      <button onClick={() => handleCopy(acc.accountName, "name" + idx)} className="flex items-center gap-1 text-brand-primary shrink-0">
-                        <Copy className="w-4 h-4" />
-                        {copied === "name" + idx && <span className="text-[9px] font-black">Copied!</span>}
-                      </button>
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-brand-card/20 border border-brand-border">
-                      <div>
-                        <p className="text-[9px] text-brand-text/40 uppercase tracking-widest">GCash Number</p>
-                        <p className="text-sm font-black text-brand-text">{acc.accountNumber}</p>
+
+                    {/* Account Details */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-brand-card/20 border border-brand-border">
+                        <div>
+                          <p className="text-[9px] text-brand-text/40 uppercase tracking-widest">Account Name</p>
+                          <p className="text-sm font-black text-brand-text">{acc.accountName}</p>
+                        </div>
+                        <button onClick={() => handleCopy(acc.accountName, "name" + selectedIdx)} className="flex items-center gap-1 text-brand-primary shrink-0">
+                          <Copy className="w-4 h-4" />
+                          {copied === "name" + selectedIdx && <span className="text-[9px] font-black">Copied!</span>}
+                        </button>
                       </div>
-                      <button onClick={() => handleCopy(acc.accountNumber, "num" + idx)} className="flex items-center gap-1 text-brand-primary shrink-0">
-                        <Copy className="w-4 h-4" />
-                        {copied === "num" + idx && <span className="text-[9px] font-black">Copied!</span>}
-                      </button>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-brand-card/20 border border-brand-border">
+                        <div>
+                          <p className="text-[9px] text-brand-text/40 uppercase tracking-widest">GCash Number</p>
+                          <p className="text-sm font-black text-brand-text">{acc.accountNumber}</p>
+                        </div>
+                        <button onClick={() => handleCopy(acc.accountNumber, "num" + selectedIdx)} className="flex items-center gap-1 text-brand-primary shrink-0">
+                          <Copy className="w-4 h-4" />
+                          {copied === "num" + selectedIdx && <span className="text-[9px] font-black">Copied!</span>}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </GlassCard>
-              ))
+                  </GlassCard>
+                )}
+              </>
             )}
 
             <GlassCard className="!p-4 bg-yellow-500/5 border-yellow-500/20">
