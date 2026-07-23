@@ -40,6 +40,7 @@ import MerchantScreen from "./screens/MerchantScreen";
 import { setupPushNotifications, detectAndSaveInstallStatus } from "./services/notificationService";
 import MerchantAdminScreen from "./screens/MerchantAdminScreen";
 import DepositAdminScreen from "./screens/DepositAdminScreen";
+import GenealogyAdminScreen from "./screens/GenealogyAdminScreen";
 import { MilestoneCertificateModal } from "./screens/DirectsCertificate";
 
 const EMPTY_STATS: UserStats = {
@@ -151,7 +152,7 @@ export default function App() {
     let ref = params.get("ref") || params.get("r");
     const path = window.location.pathname.substring(1).toUpperCase();
     if (!ref && path && (path.startsWith('EJ-') || (path.length >= 3 && path.length <= 15))) {
-      const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE', 'MERCHANT-ADMIN', 'DEPOSIT-ADMIN'];
+      const internalPaths = ['DASHBOARD', 'HOME', 'TRANSACTIONS', 'SETTINGS', 'PROFILE', 'MERCHANT-ADMIN', 'DEPOSIT-ADMIN', 'GENEALOGY-ADMIN'];
       if (!internalPaths.includes(path)) ref = path;
     }
     if (ref) {
@@ -948,6 +949,13 @@ export default function App() {
   // Merchant Dashboard above, for reviewing/approving GCash deposits.
   if (window.location.pathname.substring(1).toUpperCase() === "DEPOSIT-ADMIN") {
     return <DepositAdminScreen />;
+  }
+
+  // ✅ Standalone Genealogy Dashboard — org-chart view of the placement
+  // matrix, restricted to the true main admin only (checked inside the
+  // component itself via isAdmin).
+  if (window.location.pathname.substring(1).toUpperCase() === "GENEALOGY-ADMIN") {
+    return <GenealogyAdminScreen />;
   }
 
   if (!user) return <AuthScreen onLogin={() => {}} />;
