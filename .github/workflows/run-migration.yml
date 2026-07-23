@@ -17,6 +17,8 @@ on:
           - realign-apply
           - backfill-referrals-dry-run
           - backfill-referrals-apply
+          - fix-send-money-dry-run
+          - fix-send-money-apply
 
 jobs:
   run_migration:
@@ -89,6 +91,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'backfill-referrals-apply' }}
         working-directory: scripts
         run: node backfill-referral-codes.mjs --apply
+
+      - name: Fix duplicate Send Money deductions (dry-run)
+        if: ${{ github.event.inputs.mode == 'fix-send-money-dry-run' }}
+        working-directory: scripts
+        run: node fix-duplicate-send-money.mjs
+
+      - name: Fix duplicate Send Money deductions (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'fix-send-money-apply' }}
+        working-directory: scripts
+        run: node fix-duplicate-send-money.mjs --apply
 
       - name: Clean up service account key
         if: always()
