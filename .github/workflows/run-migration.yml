@@ -19,6 +19,7 @@ on:
           - backfill-referrals-apply
           - fix-send-money-dry-run
           - fix-send-money-apply
+          - audit-office-transfers
 
 jobs:
   run_migration:
@@ -101,6 +102,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'fix-send-money-apply' }}
         working-directory: scripts
         run: node fix-duplicate-send-money.mjs --apply
+
+      - name: Audit Office transfers (read-only)
+        if: ${{ github.event.inputs.mode == 'audit-office-transfers' }}
+        working-directory: scripts
+        run: node audit-office-transfers.mjs
 
       - name: Clean up service account key
         if: always()
