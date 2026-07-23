@@ -1,0 +1,43 @@
+name: Send Install Reminder Notifications (Scheduled)
+
+# Runs automatically every day. Also allows manual triggering for testing.
+on:
+  schedule:
+    - cron: "0 4 * * *"   # 4:00 AM UTC = 12:00 PM Philippine Time, daily
+  workflow_dispatch: {}
+
+jobs:
+  send_reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm install firebase-admin
+
+      - name: Write notification sender key from secret
+        working-directory: scripts
+        run: echo "${{ secrets.NOTIFICATION_SENDER_KEY_B64 }}" | base64 -d > serviceAccountKey.json
+
+      - name: Verify key was written correctly
+        working-directory: scripts
+        run: |
+          if [ ! -s serviceAccountKey.json ]; then
+            echo "ERROR: serviceAccountKey.json is empty. The NOTIFICATION_SENDER_KEY_B64 secret may be missing or empty."
+            exit 1
+          fi
+          node -e "JSON.parse(require('fs').readFileSync('serviceAccountKey.json')); console.log('Key file is valid JSON.')"
+
+      - name: Send install reminders
+        working-directory: scripts
+        run: node send-install-reminders.mjs
+
+      - name: Clean up key file
+        if: always()
+        working-directory: scripts
+        run: rm -f serviceAccountKey.json
