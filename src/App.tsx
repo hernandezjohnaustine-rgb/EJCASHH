@@ -955,7 +955,7 @@ export default function App() {
     switch (activeView) {
       case "activation": return <ActivationScreen onActivate={(packageId: string, amount: number) => handleActivationComplete(packageId, amount)} balance={balance} onBack={() => setActiveView(null)} isActivated={userStats.isActivated} currentPackage={userProfile?.activePackage} />;
       case "cashin": return <CashInScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, method: string) => addTransaction({ title: `Cash In via ${method}`, rawAmount: amt, category: "Cash In", type: "in" })} />;
-      case "send": return <SendMoneyScreen onBack={() => { setActiveView(null); setScannedRecipient(null); }} onConfirm={(amt: number, name: string) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }} balance={balance} initialRecipient={scannedRecipient} onScanClick={() => { setActiveView(null); setActiveTab("scan"); }} />;
+      case "send": return <SendMoneyScreen onBack={() => { setActiveView(null); setScannedRecipient(null); }} onConfirm={(amt: number, name: string) => { setShowSuccess(`Sent ₱${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} to ${name}`); setScannedRecipient(null); setActiveView(null); setTimeout(() => { setShowSuccess(null); setActiveTab("history"); }, 2000); }} balance={balance} initialRecipient={scannedRecipient} onScanClick={() => { setActiveView(null); setActiveTab("scan"); }} />;
       case "load": return <BuyLoadScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, provider: string) => addTransaction({ title: `${provider} Load`, rawAmount: amt, category: "Mobile Load", type: "out" })} balance={balance} />;
       case "bank": return <BankTransferScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, bank: string) => addTransaction({ title: `Transfer to ${bank}`, rawAmount: amt, category: "Bank Transfer", type: "out" })} balance={balance} />;
       case "bills": return <PayBillsScreen onBack={() => setActiveView(null)} onConfirm={(amt: number, biller: string) => addTransaction({ title: `Paid ${biller}`, rawAmount: amt, category: "Bills", type: "out" })} balance={balance} />;
@@ -1102,7 +1102,7 @@ achievedMilestones={Object.fromEntries(
             {activeTab === "send" && (
               <motion.div key="send" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
                 <SendMoneyScreen onBack={() => { setActiveTab("home"); setScannedRecipient(null); }} balance={balance}
-                  onConfirm={(amt, name) => { addTransaction({ title: `Sent to ${name}`, rawAmount: amt, category: "Transfer", type: "out" }); setScannedRecipient(null); }}
+                  onConfirm={(amt, name) => { setShowSuccess(`Sent ₱${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} to ${name}`); setScannedRecipient(null); setTimeout(() => { setShowSuccess(null); setActiveTab("history"); }, 2000); }}
                   initialRecipient={scannedRecipient} onScanClick={() => setActiveTab("scan")} />
               </motion.div>
             )}
