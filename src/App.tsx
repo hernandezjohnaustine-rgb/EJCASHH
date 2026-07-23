@@ -37,6 +37,7 @@ import RiderScreen from "./screens/RiderScreen";
 import MarketplaceScreen from "./screens/MarketplaceScreen";
 import AssistantScreen from "./screens/AssistantScreen";
 import MerchantScreen from "./screens/MerchantScreen";
+import { setupPushNotifications, detectAndSaveInstallStatus } from "./services/notificationService";
 import MerchantAdminScreen from "./screens/MerchantAdminScreen";
 import DepositAdminScreen from "./screens/DepositAdminScreen";
 import { MilestoneCertificateModal } from "./screens/DirectsCertificate";
@@ -422,6 +423,11 @@ export default function App() {
         });
 
         setIsLoading(false);
+
+        // ✅ Set up push notifications + PWA install detection (fire-and-forget,
+        // never blocks the app if it fails or the browser doesn't support it)
+        setupPushNotifications(firebaseUser.uid).catch(() => {});
+        detectAndSaveInstallStatus(firebaseUser.uid).catch(() => {});
 
         // ✅ Auto logout when app goes to background for more than 1 minute
         let inactivityTimer: ReturnType<typeof setTimeout>;
