@@ -3,6 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { getMessaging, isSupported } from "firebase/messaging";
 import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -27,3 +28,14 @@ if (import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+// ── Cloud Messaging (push notifications) ────────────────────────────────────
+// Lazily initialized and only in browsers that actually support it (Messaging
+// isn't available during server-side rendering or in some older browsers) —
+// calling getMessaging() unconditionally would throw in unsupported contexts.
+export async function getMessagingIfSupported() {
+  if (await isSupported()) {
+    return getMessaging(app);
+  }
+  return null;
+}
