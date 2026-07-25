@@ -85,6 +85,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   // Settings state
   const [tradingEnabled, setTradingEnabled] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Product form state
@@ -158,6 +159,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   }, []);
 
   useEffect(() => {
+    getDoc(doc(db, "settings", "maintenance"))
+      .then(snap => { if (snap.exists()) setMaintenanceMode(snap.data().enabled === true); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const q = query(collection(db, "withdrawalRequests"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -215,6 +222,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       alert((!tradingEnabled ? "Trading Bot ENABLED" : "Trading Bot DISABLED") + " successfully!");
     } catch {
       alert("Failed to update trading status");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleToggleMaintenance = async () => {
+    setSavingSettings(true);
+    try {
+      await setDoc(doc(db, "settings", "maintenance"), { enabled: !maintenanceMode }, { merge: true });
+      setMaintenanceMode(!maintenanceMode);
+      alert((!maintenanceMode ? "Maintenance Mode ENABLED — regular users will see the maintenance screen." : "Maintenance Mode DISABLED — app is back to normal for everyone.") + "");
+    } catch {
+      alert("Failed to update maintenance mode");
     } finally {
       setSavingSettings(false);
     }
@@ -1087,6 +1107,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   </div>
                   <button onClick={handleToggleTrading} disabled={savingSettings} className={tradingEnabled ? "bg-brand-primary text-brand-black px-4 py-2 rounded-xl text-xs font-black uppercase" : "bg-brand-card/20 border border-brand-border text-brand-text/60 px-4 py-2 rounded-xl text-xs font-black uppercase"}>
                     {savingSettings ? "Saving..." : tradingEnabled ? "ENABLED" : "DISABLED"}
+                  </button>
+                </div>
+                <div className={"border rounded-2xl p-5 flex items-center justify-between " + (maintenanceMode ? "bg-red-500/10 border-red-500/30" : "bg-brand-card/5 border-brand-border")}>
+                  <div>
+                    <p className="text-sm font-black text-brand-text">Maintenance Mode</p>
+                    <p className="text-[10px] text-brand-text/40">Regular users see a maintenance screen. You (admin) can still access everything.</p>
+                  </div>
+                  <button onClick={handleToggleMaintenance} disabled={savingSettings} className={maintenanceMode ? "bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase" : "bg-brand-card/20 border border-brand-border text-brand-text/60 px-4 py-2 rounded-xl text-xs font-black uppercase"}>
+                    {savingSettings ? "Saving..." : maintenanceMode ? "ON" : "OFF"}
                   </button>
                 </div>
               </div>
