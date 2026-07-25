@@ -15,6 +15,17 @@ export default defineConfig(({ mode }) => {
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png'],
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
+          // Never precache version.json — our own custom update-check
+          // mechanism (App.tsx) needs this file to always be fetched fresh
+          // from the network, not served from the service worker's cache,
+          // or "New update available" would never detect real changes.
+          globIgnores: ['version.json'],
+          runtimeCaching: [
+            {
+              urlPattern: /\/version\.json$/,
+              handler: 'NetworkOnly',
+            },
+          ],
         },
         manifest: {
           name: 'EJCASHH',
