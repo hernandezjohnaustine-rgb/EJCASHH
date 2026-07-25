@@ -78,6 +78,16 @@ export default function App() {
   const [showMilestoneCertificate, setShowMilestoneCertificate] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
   const [newVersionAvailable, setNewVersionAvailable] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  // ✅ Live maintenance mode listener — updates instantly for anyone with the
+  // app open if the admin flips the switch, without needing a page refresh.
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "maintenance"), (snap) => {
+      setMaintenanceMode(snap.exists() && snap.data().enabled === true);
+    }, () => {});
+    return () => unsub();
+  }, []);
 
   // ✅ Auto-recover from stale-build errors. When a new deploy replaces the
   // hashed JS chunk filenames, a browser tab that's still running the OLD
@@ -959,6 +969,34 @@ export default function App() {
   }
 
   if (!user) return <AuthScreen onLogin={() => {}} />;
+
+  // ✅ Maintenance Mode — regular users see a friendly "back soon" screen;
+  // admins pass through untouched so they can keep testing changes live.
+  if (maintenanceMode && !userProfile?.isAdmin) {
+    return (
+      <div className="min-h-screen bg-brand-black flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+        <div className="absolute top-[-100px] left-[-100px] w-[400px] h-[400px] bg-brand-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-20 h-20 rounded-3xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center mb-8 relative z-10"
+        >
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
+            <ShieldCheck className="w-10 h-10 text-brand-primary" />
+          </motion.div>
+        </motion.div>
+        <h2 className="text-2xl font-display font-black text-brand-text mb-3 relative z-10">We'll be right back!</h2>
+        <p className="text-brand-text/60 max-w-xs mb-2 relative z-10">EJCASHH is currently undergoing scheduled maintenance to make things even better.</p>
+        <p className="text-[10px] text-brand-text/30 font-black uppercase tracking-widest relative z-10">Please check back shortly</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-8 px-6 py-3 bg-brand-card/10 border border-brand-border rounded-2xl text-xs font-black uppercase tracking-widest text-brand-text/60 hover:text-brand-text transition-colors relative z-10"
+        >
+          Refresh
+        </button>
+      </div>
+    );
+  }
 
   const renderActiveView = () => {
     const currentUid = auth.currentUser?.uid || user.uid;
