@@ -14,6 +14,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { toPng } from "html-to-image";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, query, where, limit, Timestamp } from "firebase/firestore";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile, User as FirebaseUser } from "firebase/auth";
 import { initializeApp, deleteApp } from "firebase/app";
@@ -596,8 +597,53 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: Tree
     setExpandedIds(new Set([root.id]));
   };
 
+  const handleExportPng = async () => {
+    const viewportEl = document.querySelector(".react-flow__viewport") as HTMLElement | null;
+    if (!viewportEl) return;
+    try {
+      const dataUrl = await toPng(viewportEl, { backgroundColor: "#020617", cacheBust: true });
+      const link = document.createElement("a");
+      link.download = `genealogy-tree-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("PNG export failed:", err);
+      alert("Failed to export image.");
+    }
+  };
+
+  const handleExportCsv = () => {
+    const header = ["Name", "Email", "Status", "Package", "VIP Rank", "Direct", "Team Size"];
+    const rows = flatList.map((n) => [
+      n.displayName,
+      n.email || "",
+      n.isActivated ? "Activated" : "Not Activated",
+      n.activePackage || "",
+      String(n.vipLevel || 1),
+      String(n.children.length),
+      String(n.teamSize || 0),
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `genealogy-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  };
+
+  const handlePrint = () => window.print();
+
+  const handleFullscreen = () => {
+    const el = document.getElementById("genealogy-canvas-container");
+    if (!document.fullscreenElement && el) {
+      el.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
   return (
-    <div className="relative w-full h-full">
+    <div id="genealogy-canvas-container" className="relative w-full h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -678,6 +724,19 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: Tree
               )}
             </AnimatePresence>
           </div>
+
+          <button onClick={handleExportPng} className="px-3 py-2 rounded-lg bg-slate-900/90 backdrop-blur border border-slate-800 text-xs font-semibold text-slate-300 hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
+            Export PNG
+          </button>
+          <button onClick={handleExportCsv} className="px-3 py-2 rounded-lg bg-slate-900/90 backdrop-blur border border-slate-800 text-xs font-semibold text-slate-300 hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
+            Export Excel
+          </button>
+          <button onClick={handlePrint} className="px-3 py-2 rounded-lg bg-slate-900/90 backdrop-blur border border-slate-800 text-xs font-semibold text-slate-300 hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
+            Print / PDF
+          </button>
+          <button onClick={handleFullscreen} className="px-3 py-2 rounded-lg bg-slate-900/90 backdrop-blur border border-slate-800 text-xs font-semibold text-slate-300 hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
+            Fullscreen
+          </button>
         </div>
 
         <div className="relative w-64 pointer-events-auto">
