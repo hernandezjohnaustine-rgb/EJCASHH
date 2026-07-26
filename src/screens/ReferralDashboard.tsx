@@ -24,20 +24,22 @@ import { shortenUrl } from "../lib/shortener";
 
 const MLM_LEVELS = [
   { level: 1, reward: "₱100", income: "Direct", label: "Direct" },
-  { level: 2, reward: "₱3", income: "Indirect", label: "Indirect" },
-  { level: 3, reward: "₱3", income: "Indirect", label: "Indirect" },
-  { level: 4, reward: "₱3", income: "Indirect", label: "Indirect" },
-  { level: 5, reward: "₱3", income: "Indirect", label: "Indirect" },
-  { level: "6-10", reward: "₱3", income: "Indirect", label: "Indirect" },
+  { level: 2, reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
+  { level: 3, reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
+  { level: 4, reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
+  { level: 5, reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
+  { level: "6-10", reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
+  { level: "11-20", reward: "₱3", income: "Team Matrix", label: "Team Matrix" },
 ];
 
 const MLM_LEVELS_P2 = [
   { level: 1, reward: "₱1,000", income: "Direct", label: "Direct" },
-  { level: 2, reward: "₱30", income: "Indirect", label: "Indirect" },
-  { level: 3, reward: "₱30", income: "Indirect", label: "Indirect" },
-  { level: 4, reward: "₱30", income: "Indirect", label: "Indirect" },
-  { level: 5, reward: "₱30", income: "Indirect", label: "Indirect" },
-  { level: "6-10", reward: "₱30", income: "Indirect", label: "Indirect" },
+  { level: 2, reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
+  { level: 3, reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
+  { level: 4, reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
+  { level: 5, reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
+  { level: "6-10", reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
+  { level: "11-20", reward: "₱10", income: "Team Matrix", label: "Team Matrix" },
 ];
 
 export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode, referralLinkEnabled, onClaimDaily, isDailyClaimed }: { 
