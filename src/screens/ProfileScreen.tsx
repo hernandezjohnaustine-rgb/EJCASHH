@@ -1,4 +1,4 @@
-﻿import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useEffect } from "react";
 import {
   User, Shield, CreditCard, Bell, HelpCircle, LogOut,
@@ -48,6 +48,10 @@ type PendingAvatar =
 
 const DEFAULT_AVATAR: AvatarData = { type: "dicebear", style: "avataaars" };
 const CACHE_KEY = "user_avatar_v2";
+
+// AI proxy — same Netlify function used by AssistantScreen.tsx / geminiService.ts.
+// Replace with your actual Netlify function URL once deployed.
+const AI_PROXY_URL = "https://ejcashh.netlify.app/.netlify/functions/askAssistant";
 
 // Compress to max 200x200 JPEG at quality 0.6 — safe well under Firestore's 1MB doc limit
 function compressImage(file: File): Promise<string> {
@@ -433,6 +437,8 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
   const [helpInput, setHelpInput] = useState("");
   const [helpLoading, setHelpLoading] = useState(false);
 
+  // Calls the SAME secure Netlify proxy used by AssistantScreen.tsx (Gemini
+  // under the hood) — no API key is ever present in this browser code.
   const handleSendHelp = async () => {
     if (!helpInput.trim() || helpLoading) return;
     const userMsg = helpInput.trim();
@@ -440,18 +446,18 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
     setHelpMessages(prev => [...prev, { role: "user", content: userMsg }]);
     setHelpLoading(true);
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch(AI_PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          system: "You are the EJCASHH AI Support Assistant. EJCASHH is a fintech MLM platform in the Philippines. Help users with: Package 1 (₱360 Subscription - L1 gets ₱100, L2-L10 gets ₱3 each), Package 2 (₱3,600 Livelihood Program - L1 gets ₱1,000, L2-L10 gets ₱30 each), Combined Package (₱3,960), referral system, commissions, Credits wallet (locked L2-L10 earnings), Main Balance (withdrawable), certificate milestones, trading bot, marketplace, withdrawals, and account settings. Be helpful, friendly and concise. If you cannot resolve an issue, tell the user to contact admin support.",
-          messages: helpMessages.concat({ role: "user", content: userMsg }).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+          message: userMsg,
+          history: helpMessages,
+          systemInstruction: "You are the EJCASHH AI Support Assistant. EJCASHH is a fintech MLM platform in the Philippines. Help users with: Package 1 (₱360 Subscription - L1 gets ₱100, L2-L10 gets ₱3 each), Package 2 (₱3,600 Livelihood Program - L1 gets ₱1,000, L2-L10 gets ₱30 each), Combined Package (₱3,960), referral system, commissions, Credits wallet (locked L2-L10 earnings), Main Balance (withdrawable), certificate milestones, trading bot, marketplace, withdrawals, and account settings. Be helpful, friendly and concise. If you cannot resolve an issue, tell the user to contact admin support.",
         }),
       });
+      if (!response.ok) throw new Error("Proxy request failed: " + response.status);
       const data = await response.json();
-      const reply = data.content?.[0]?.text || "Sorry, I could not process your request. Please try again.";
+      const reply = data.reply || "Sorry, I could not process your request. Please try again.";
       setHelpMessages(prev => [...prev, { role: "assistant", content: reply }]);
     } catch (err) {
       setHelpMessages(prev => [...prev, { role: "assistant", content: "Sorry, I am having trouble connecting. Please try again later or contact admin support." }]);
@@ -1219,4 +1225,3 @@ export default function ProfileScreen({ onLogout, theme, onToggleTheme, user, on
     </>
   );
 }
-
