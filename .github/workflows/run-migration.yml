@@ -20,6 +20,8 @@ on:
           - fix-send-money-dry-run
           - fix-send-money-apply
           - audit-office-transfers
+          - add-referral-chain-dry-run
+          - add-referral-chain-apply
 
 jobs:
   run_migration:
@@ -107,6 +109,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'audit-office-transfers' }}
         working-directory: scripts
         run: node audit-office-transfers.mjs
+
+      - name: Add referral chain (Level 2-10) + relabel matrix to 11-20 (dry-run)
+        if: ${{ github.event.inputs.mode == 'add-referral-chain-dry-run' }}
+        working-directory: scripts
+        run: node add-referral-chain-and-relabel-matrix.mjs
+
+      - name: Add referral chain (Level 2-10) + relabel matrix to 11-20 (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'add-referral-chain-apply' }}
+        working-directory: scripts
+        run: node add-referral-chain-and-relabel-matrix.mjs --apply
 
       - name: Clean up service account key
         if: always()
