@@ -1,4 +1,4 @@
-const admin = require("firebase-admin");
+import admin from "firebase-admin";
 
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(
@@ -9,7 +9,7 @@ if (!admin.apps.length) {
   });
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -46,4 +46,4 @@ module.exports = async (req, res) => {
     console.error("Password update error:", err);
     return res.status(500).json({ error: err.message || "Failed to update password" });
   }
-};
+}
