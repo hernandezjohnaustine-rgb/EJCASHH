@@ -1,8 +1,8 @@
-const { GoogleGenAI } = require("@google/genai");
+import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -43,4 +43,4 @@ module.exports = async (req, res) => {
     console.error("Gemini proxy error:", err);
     return res.status(500).json({ error: "Failed to get AI response" });
   }
-};
+}
