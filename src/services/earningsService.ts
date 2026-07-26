@@ -12,10 +12,10 @@ function getCommission(level: number, packageId: string): number {
   if (packageId === "package_1") {
     return level === 1 ? 100 : 3;
   } else if (packageId === "package_2") {
-    return level === 1 ? 1000 : 30;
+    return level === 1 ? 1000 : 10;
   } else if (packageId === "combined") {
     const p1 = level === 1 ? 100 : 3;
-    const p2 = level === 1 ? 1000 : 30;
+    const p2 = level === 1 ? 1000 : 10;
     return p1 + p2;
   }
   return 0;
@@ -94,42 +94,43 @@ export async function processActivation(
     console.error("L1 commission error:", error);
   }
 
-  // STEP 2: Levels 2-10 follow the GLOBAL PLACEMENT chain (not the literal
-  // referral chain). Two sub-steps:
-  //   Credits are paid to whoever occupies each position (Level 2-10) in
-  //   the GLOBAL PLACEMENT chain, unconditionally — same simple rule as
-  //   before, just walking the new global-matrix chain instead of the old
-  //   subtree-scoped one. No team-size gate or roll-up: the global
-  //   placement structure itself already prevents anyone from occupying a
-  //   deep level (e.g. Level 6) without the whole network actually being
-  //   large enough to have filled every shallower level first.
-  if (!placementSponsorId) return;
-
-  let currentUid: string | null = placementSponsorId;
+  // STEP 2: Levels 2-10 — the REFERRAL CHAIN tier. Walks up each person's
+  // TRUE direct referrer (originalReferrerId) one link at a time: your
+  // referrer, their referrer, their referrer's referrer, and so on, nine
+  // levels deep. Only ONE direct connection needed to link each level —
+  // unlike the placement matrix below, this doesn't require 10 people to
+  // fill a level before the next unlocks. Paid in Credits (same shared
+  // creditsBalance that Certificate Rewards already draws from).
+  // Level 2 here starts at the SAME person who received the Level 1 cash
+  // commission above — they now additionally receive Level 2 Credits too.
+  let chainUid: string | null = referrerId;
 
   for (let level = 2; level <= 10; level++) {
-    if (!currentUid) break;
+    if (!chainUid) break;
     try {
-      const sponsorDoc = await getDoc(doc(db, "users", currentUid));
-      if (!sponsorDoc.exists()) break;
+      const chainDoc = await getDoc(doc(db, "users", chainUid));
+      if (!chainDoc.exists()) break;
 
-      const sponsorData = sponsorDoc.data();
+      const chainData = chainDoc.data();
       const commission = getCommission(level, packageId);
 
-      await setDoc(doc(db, "users", currentUid), {
-        creditsBalance: (sponsorData.creditsBalance || 0) + commission,
+      await setDoc(doc(db, "users", chainUid), {
+        creditsBalance: (chainData.creditsBalance || 0) + commission,
         stats: {
-          ...sponsorData.stats,
-          totalEarnings: (sponsorData.stats?.totalEarnings || 0) + commission,
-          teamSize: (sponsorData.stats?.teamSize || 0) + (isFirstActivation ? 1 : 0),
-          totalReferrals: (sponsorData.stats?.totalReferrals || 0) + (isFirstActivation ? 1 : 0),
+          ...chainData.stats,
+          totalEarnings: (chainData.stats?.totalEarnings || 0) + commission,
+          // Intentionally NOT incrementing teamSize/totalReferrals here —
+          // this same activation already counts toward those stats via
+          // Step 3's placement walk below. Counting again here would
+          // silently inflate team size and could break Certificate Reward
+          // gating (which checks teamSize thresholds).
         }
       }, { merge: true });
 
       await addDoc(collection(db, "transactions"), {
-        userId: currentUid,
+        userId: chainUid,
         type: "in",
-        title: "Level " + level + " Indirect Commission",
+        title: "Level " + level + " Referral Commission",
         amount: commission,
         isCredits: true,
         category: "Commission",
@@ -142,22 +143,87 @@ export async function processActivation(
         commissionLevel: level,
       });
 
-      console.log("L" + level + " commission credited (Credits) to:", currentUid, "amount:", commission);
+      console.log("L" + level + " referral-chain commission credited (Credits) to:", chainUid, "amount:", commission);
 
-      await addDoc(collection(db, "users", currentUid, "notifications"), {
-        title: "Level " + level + " Matrix Commission",
+      await addDoc(collection(db, "users", chainUid, "notifications"), {
+        title: "Level " + level + " Referral Commission",
         message: commission.toLocaleString() + " Credits added to your Credits balance (Level " + level + ")",
         type: "credits",
         read: false,
         createdAt: Timestamp.now(),
       });
 
-      const nextUid = sponsorData.sponsorId || null;
+      const nextUid = chainData.originalReferrerId || null;
       if (!nextUid) break;
-      currentUid = nextUid;
+      chainUid = nextUid;
 
     } catch (error) {
-      console.error("L" + level + " commission error:", error);
+      console.error("L" + level + " referral-chain commission error:", error);
+    }
+  }
+
+  // STEP 3: Levels 11-20 — the TEAM MATRIX tier (previously labeled 2-10).
+  // Follows the GLOBAL PLACEMENT chain (not the literal referral chain).
+  // Credits are paid to whoever occupies each position in the GLOBAL
+  // PLACEMENT chain, unconditionally — no team-size gate or roll-up: the
+  // global placement structure itself already prevents anyone from
+  // occupying a deep level without the whole network actually being large
+  // enough to have filled every shallower level first.
+  if (placementSponsorId) {
+    let currentUid: string | null = placementSponsorId;
+
+    for (let level = 11; level <= 20; level++) {
+      if (!currentUid) break;
+      try {
+        const sponsorDoc = await getDoc(doc(db, "users", currentUid));
+        if (!sponsorDoc.exists()) break;
+
+        const sponsorData = sponsorDoc.data();
+        const commission = getCommission(level, packageId);
+
+        await setDoc(doc(db, "users", currentUid), {
+          creditsBalance: (sponsorData.creditsBalance || 0) + commission,
+          stats: {
+            ...sponsorData.stats,
+            totalEarnings: (sponsorData.stats?.totalEarnings || 0) + commission,
+            teamSize: (sponsorData.stats?.teamSize || 0) + (isFirstActivation ? 1 : 0),
+            totalReferrals: (sponsorData.stats?.totalReferrals || 0) + (isFirstActivation ? 1 : 0),
+          }
+        }, { merge: true });
+
+        await addDoc(collection(db, "transactions"), {
+          userId: currentUid,
+          type: "in",
+          title: "Level " + level + " Indirect Commission",
+          amount: commission,
+          isCredits: true,
+          category: "Commission",
+          status: "Completed",
+          referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+          paymentMethod: "MLM Commission",
+          timestamp: Timestamp.now(),
+          packageId,
+          fromUserId: userId,
+          commissionLevel: level,
+        });
+
+        console.log("L" + level + " matrix commission credited (Credits) to:", currentUid, "amount:", commission);
+
+        await addDoc(collection(db, "users", currentUid, "notifications"), {
+          title: "Level " + level + " Matrix Commission",
+          message: commission.toLocaleString() + " Credits added to your Credits balance (Level " + level + ")",
+          type: "credits",
+          read: false,
+          createdAt: Timestamp.now(),
+        });
+
+        const nextUid = sponsorData.sponsorId || null;
+        if (!nextUid) break;
+        currentUid = nextUid;
+
+      } catch (error) {
+        console.error("L" + level + " matrix commission error:", error);
+      }
     }
   }
 
