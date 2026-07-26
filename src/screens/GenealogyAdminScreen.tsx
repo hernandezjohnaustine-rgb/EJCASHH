@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -906,6 +907,14 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [totalNodes, setTotalNodes] = useState(0);
   const [treeMode, setTreeMode] = useState<"referral" | "matrix">("referral");
+  const [viewMode, setViewMode] = useState<"tree" | "analytics">("tree");
+  const [analyticsData, setAnalyticsData] = useState<{
+    dailyRegistrations: { date: string; count: number }[];
+    incomeByDay: { date: string; income: number; deposits: number; withdrawals: number }[];
+    topEarners: { name: string; amount: number }[];
+    topRecruiters: { name: string; count: number }[];
+  }>({ dailyRegistrations: [], incomeByDay: [], topEarners: [], topRecruiters: [] });
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [headerStats, setHeaderStats] = useState({ activeMembers: 0, newToday: 0, revenue: 0 });
   const [maintenanceOn, setMaintenanceOn] = useState(false);
 
@@ -978,6 +987,80 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
 
   useEffect(() => { loadFullTree(treeMode); }, [treeMode]);
 
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const usersSnap = await getDocs(collection(db, "users"));
+      const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
+
+      // Daily registrations, last 14 days
+      const dayLabels: string[] = [];
+      const dayKeys: string[] = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dayKeys.push(d.toDateString());
+        dayLabels.push(d.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+      }
+      const regCounts = new Map(dayKeys.map((k) => [k, 0]));
+      allUsers.forEach((u) => {
+        if (!u.createdAt) return;
+        const key = new Date(u.createdAt).toDateString();
+        if (regCounts.has(key)) regCounts.set(key, (regCounts.get(key) || 0) + 1);
+      });
+      const dailyRegistrations = dayKeys.map((k, i) => ({ date: dayLabels[i], count: regCounts.get(k) || 0 }));
+
+      // Income (activations) / Deposits (approved) / Withdrawals (approved), last 14 days
+      const incomeMap = new Map(dayKeys.map((k) => [k, { income: 0, deposits: 0, withdrawals: 0 }]));
+      const [activationTxSnap, depositsSnap, withdrawalsSnap] = await Promise.all([
+        getDocs(query(collection(db, "transactions"), where("category", "==", "Activation"))),
+        getDocs(query(collection(db, "depositRequests"), where("status", "==", "approved"))),
+        getDocs(query(collection(db, "withdrawalRequests"), where("status", "==", "approved"))),
+      ]);
+      activationTxSnap.forEach((d) => {
+        const tx = d.data();
+        const ts = tx.timestamp?.toDate ? tx.timestamp.toDate() : null;
+        if (!ts) return;
+        const key = ts.toDateString();
+        if (incomeMap.has(key)) incomeMap.get(key)!.income += tx.amount || 0;
+      });
+      depositsSnap.forEach((d) => {
+        const dep = d.data();
+        const ts = dep.createdAt?.toDate ? dep.createdAt.toDate() : null;
+        if (!ts) return;
+        const key = ts.toDateString();
+        if (incomeMap.has(key)) incomeMap.get(key)!.deposits += dep.amount || 0;
+      });
+      withdrawalsSnap.forEach((d) => {
+        const w = d.data();
+        const ts = w.createdAt?.toDate ? w.createdAt.toDate() : null;
+        if (!ts) return;
+        const key = ts.toDateString();
+        if (incomeMap.has(key)) incomeMap.get(key)!.withdrawals += w.amount || 0;
+      });
+      const incomeByDay = dayKeys.map((k, i) => ({ date: dayLabels[i], ...(incomeMap.get(k) || { income: 0, deposits: 0, withdrawals: 0 }) }));
+
+      // Top Earners & Top Recruiters
+      const topEarners = [...allUsers]
+        .sort((a, b) => (b.stats?.totalEarnings || 0) - (a.stats?.totalEarnings || 0))
+        .slice(0, 8)
+        .map((u) => ({ name: u.displayName || "Unknown", amount: u.stats?.totalEarnings || 0 }));
+
+      const topRecruiters = [...allUsers]
+        .sort((a, b) => (b.stats?.directReferrals || 0) - (a.stats?.directReferrals || 0))
+        .slice(0, 8)
+        .map((u) => ({ name: u.displayName || "Unknown", count: u.stats?.directReferrals || 0 }));
+
+      setAnalyticsData({ dailyRegistrations, incomeByDay, topEarners, topRecruiters });
+    } catch (err) {
+      console.error("Failed to load analytics:", err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  useEffect(() => { if (viewMode === "analytics") loadAnalytics(); }, [viewMode]);
+
 
   return (
     <div className="h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 flex flex-col">
@@ -995,18 +1078,35 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
 
           <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1">
             <button
-              onClick={() => setTreeMode("referral")}
-              className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "referral" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
+              onClick={() => setViewMode("tree")}
+              className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (viewMode === "tree" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
             >
-              Referral Chain (1-10)
+              Genealogy Tree
             </button>
             <button
-              onClick={() => setTreeMode("matrix")}
-              className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "matrix" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
+              onClick={() => setViewMode("analytics")}
+              className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (viewMode === "analytics" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
             >
-              Team Matrix (11-20)
+              Analytics
             </button>
           </div>
+
+          {viewMode === "tree" && (
+            <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1">
+              <button
+                onClick={() => setTreeMode("referral")}
+                className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "referral" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
+              >
+                Referral Chain (1-10)
+              </button>
+              <button
+                onClick={() => setTreeMode("matrix")}
+                className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "matrix" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
+              >
+                Team Matrix (11-20)
+              </button>
+            </div>
+          )}
 
           <button onClick={onSignOut} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-800 text-slate-400 text-sm font-semibold hover:border-red-500/40 hover:text-red-400 transition-colors" title="Sign out">
             <LogOut className="w-4 h-4" />
@@ -1040,8 +1140,71 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
         </div>
       </header>
 
-      <div className="flex-1 relative">
-        {isLoading || !tree ? (
+      <div className="flex-1 relative overflow-y-auto">
+        {viewMode === "analytics" ? (
+          loadingAnalytics ? (
+            <div className="flex flex-col items-center justify-center gap-4 h-full">
+              <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+              <p className="text-xs text-slate-500">Crunching numbers...</p>
+            </div>
+          ) : (
+            <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col gap-8">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h3 className="text-sm font-bold text-slate-200 mb-4">Daily Registrations (Last 14 Days)</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={analyticsData.dailyRegistrations}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="date" stroke="#64748b" fontSize={10} />
+                    <YAxis stroke="#64748b" fontSize={10} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }} />
+                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} name="New Signups" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h3 className="text-sm font-bold text-slate-200 mb-4">Income, Deposits & Withdrawals (Last 14 Days)</h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={analyticsData.incomeByDay}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="date" stroke="#64748b" fontSize={10} />
+                    <YAxis stroke="#64748b" fontSize={10} />
+                    <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line type="monotone" dataKey="income" stroke="#f59e0b" strokeWidth={2} name="Activation Income" dot={false} />
+                    <Line type="monotone" dataKey="deposits" stroke="#10b981" strokeWidth={2} name="Deposits" dot={false} />
+                    <Line type="monotone" dataKey="withdrawals" stroke="#ef4444" strokeWidth={2} name="Withdrawals" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-slate-200 mb-4">Top Earners</h3>
+                  <div className="flex flex-col gap-2">
+                    {analyticsData.topEarners.map((e, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400"><span className="text-slate-600 mr-2">#{i + 1}</span>{e.name}</span>
+                        <span className="font-bold text-amber-400">₱{e.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-slate-200 mb-4">Top Recruiters</h3>
+                  <div className="flex flex-col gap-2">
+                    {analyticsData.topRecruiters.map((r, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400"><span className="text-slate-600 mr-2">#{i + 1}</span>{r.name}</span>
+                        <span className="font-bold text-emerald-400">{r.count} direct</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        ) : isLoading || !tree ? (
           <div className="flex flex-col items-center justify-center gap-4 h-full">
             <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
             <p className="text-xs text-slate-500">Building tree...</p>
