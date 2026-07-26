@@ -211,7 +211,7 @@ function buildFlowElements(
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  function walk(node: TreeUser) {
+  function walk(node: TreeUser, level: number) {
     const pos = positions.get(node.id) || { x: 0, y: 0 };
     nodes.push({
       id: node.id,
@@ -225,6 +225,7 @@ function buildFlowElements(
         hasChildren: node.children.length > 0,
         expanded: expandedIds.has(node.id),
         highlighted: node.id === highlightedId,
+        level,
         onToggle: () => onToggle(node.id),
         onAddUser: onAddUser ? () => onAddUser(node) : undefined,
         onOpenDetails: () => onOpenDetails(node),
@@ -240,12 +241,12 @@ function buildFlowElements(
           type: "smoothstep",
           style: { stroke: "#334155", strokeWidth: 1.5 },
         });
-        walk(child);
+        walk(child, level + 1);
       }
     }
   }
 
-  walk(root);
+  walk(root, 1);
   return { nodes, edges };
 }
 
@@ -263,6 +264,9 @@ function GenealogyNode({ data }: any) {
       }
     >
       <Handle type="target" position={Position.Top} style={{ background: "#475569", border: 0, width: 6, height: 6 }} />
+      <div className="absolute -top-2.5 -left-2.5 min-w-[22px] h-[22px] px-1 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-black text-emerald-400 z-10">
+        L{data.level}
+      </div>
       {data.onAddUser && (
         <button
           onClick={(e) => { e.stopPropagation(); data.onAddUser(); }}
