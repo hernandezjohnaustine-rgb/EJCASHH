@@ -205,7 +205,7 @@ function buildFlowElements(
   positions: Map<string, { x: number; y: number }>,
   highlightedId: string | null,
   onToggle: (id: string) => void,
-  onAddUser: (node: TreeUser) => void,
+  onAddUser: ((node: TreeUser) => void) | undefined,
   onOpenDetails: (node: TreeUser) => void
 ) {
   const nodes: Node[] = [];
@@ -226,7 +226,7 @@ function buildFlowElements(
         expanded: expandedIds.has(node.id),
         highlighted: node.id === highlightedId,
         onToggle: () => onToggle(node.id),
-        onAddUser: () => onAddUser(node),
+        onAddUser: onAddUser ? () => onAddUser(node) : undefined,
         onOpenDetails: () => onOpenDetails(node),
       },
       draggable: false,
@@ -263,13 +263,15 @@ function GenealogyNode({ data }: any) {
       }
     >
       <Handle type="target" position={Position.Top} style={{ background: "#475569", border: 0, width: 6, height: 6 }} />
-      <button
-        onClick={(e) => { e.stopPropagation(); data.onAddUser(); }}
-        title="Add user under this person"
-        className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-md hover:bg-emerald-400 transition-colors z-10"
-      >
-        <Plus className="w-3.5 h-3.5" />
-      </button>
+      {data.onAddUser && (
+        <button
+          onClick={(e) => { e.stopPropagation(); data.onAddUser(); }}
+          title="Add user under this person"
+          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-md hover:bg-emerald-400 transition-colors z-10"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      )}
       <div className="flex items-center gap-2 mb-1.5">
         <div className={"w-2 h-2 rounded-full shrink-0 " + (data.isActivated ? "bg-emerald-400" : "bg-slate-600")} />
         <span className="text-xs font-bold text-slate-100 truncate">{data.displayName}</span>
@@ -350,7 +352,7 @@ function GenealogyLogin({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ── The actual React Flow canvas (needs to be inside ReactFlowProvider to use useReactFlow) ──
-function TreeCanvas({ root, allById, onRefresh }: { root: TreeUser; allById: Map<string, TreeUser>; onRefresh: () => void }) {
+function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: TreeUser; allById: Map<string, TreeUser>; onRefresh: () => void; canEditPlacement: boolean }) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const s = new Set<string>([root.id]);
     root.children.forEach((c) => s.add(c.id));
@@ -475,8 +477,8 @@ function TreeCanvas({ root, allById, onRefresh }: { root: TreeUser; allById: Map
 
   const positions = useMemo(() => computeLayout(root, expandedIds), [root, expandedIds]);
   const { nodes, edges } = useMemo(
-    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails),
-    [root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails]
+    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode, canEditPlacement ? openAddUser : undefined, openDetails),
+    [root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails, canEditPlacement]
   );
 
   const flatList = useMemo(() => {
@@ -707,21 +709,25 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
   const [allById, setAllById] = useState<Map<string, TreeUser>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [totalNodes, setTotalNodes] = useState(0);
+  const [treeMode, setTreeMode] = useState<"referral" | "matrix">("referral");
 
-  const loadFullTree = async () => {
+  const loadFullTree = async (mode: "referral" | "matrix" = treeMode) => {
     setIsLoading(true);
     try {
       const usersSnap = await getDocs(collection(db, "users"));
       const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
 
-      // This tree follows the REFERRAL CHAIN (originalReferrerId) — the
-      // new Level 2-10 tier — not the placement matrix (sponsorId, Level
-      // 11-20). Each person's true direct referrer is their parent here.
+      // "referral" = the REFERRAL CHAIN (originalReferrerId) — the new
+      // Level 2-10 tier, one direct connection per level.
+      // "matrix" = the TEAM MATRIX (sponsorId) — the original Level 11-20
+      // tier, 10-wide global placement.
+      const linkField = mode === "referral" ? "originalReferrerId" : "sponsorId";
       const childrenOf = new Map<string, any[]>();
       for (const u of allUsers) {
-        if (u.originalReferrerId) {
-          if (!childrenOf.has(u.originalReferrerId)) childrenOf.set(u.originalReferrerId, []);
-          childrenOf.get(u.originalReferrerId)!.push(u);
+        const parentId = u[linkField];
+        if (parentId) {
+          if (!childrenOf.has(parentId)) childrenOf.set(parentId, []);
+          childrenOf.get(parentId)!.push(u);
         }
       }
 
@@ -754,7 +760,8 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
     }
   };
 
-  useEffect(() => { loadFullTree(); }, []);
+  useEffect(() => { loadFullTree(treeMode); }, [treeMode]);
+
 
   return (
     <div className="h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 flex flex-col">
@@ -769,6 +776,22 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
               <p className="text-xs text-slate-500">{totalNodes} total accounts in the network</p>
             </div>
           </div>
+
+          <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => setTreeMode("referral")}
+              className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "referral" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
+            >
+              Referral Chain (1-10)
+            </button>
+            <button
+              onClick={() => setTreeMode("matrix")}
+              className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "matrix" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
+            >
+              Team Matrix (11-20)
+            </button>
+          </div>
+
           <button onClick={onSignOut} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-800 text-slate-400 text-sm font-semibold hover:border-red-500/40 hover:text-red-400 transition-colors" title="Sign out">
             <LogOut className="w-4 h-4" />
           </button>
@@ -783,7 +806,7 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
           </div>
         ) : (
           <ReactFlowProvider>
-            <TreeCanvas root={tree} allById={allById} onRefresh={loadFullTree} />
+            <TreeCanvas root={tree} allById={allById} onRefresh={() => loadFullTree(treeMode)} canEditPlacement={treeMode === "referral"} />
           </ReactFlowProvider>
         )}
       </div>
