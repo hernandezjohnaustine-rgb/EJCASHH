@@ -22,7 +22,7 @@ import firebaseConfig from "../../firebase-applet-config.json";
 import { Network, Loader2, ShieldAlert, LogOut, Search, ChevronDown, Users, Maximize, Plus, X, Edit3, Key, Mail, Zap } from "lucide-react";
 
 // Replace with your actual Netlify function URL once deployed.
-const PASSWORD_UPDATE_URL = "https://ejcashh.netlify.app/.netlify/functions/updateUserPassword";
+const PASSWORD_UPDATE_URL = "https://ejcashh.vercel.app/api/updateUserPassword";
 
 // Creates a new user account placed directly into the referral chain under
 // a given node, without disrupting the currently logged-in admin's session
