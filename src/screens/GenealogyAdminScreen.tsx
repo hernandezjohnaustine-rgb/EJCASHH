@@ -906,12 +906,32 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [totalNodes, setTotalNodes] = useState(0);
   const [treeMode, setTreeMode] = useState<"referral" | "matrix">("referral");
+  const [headerStats, setHeaderStats] = useState({ activeMembers: 0, newToday: 0, revenue: 0 });
+  const [maintenanceOn, setMaintenanceOn] = useState(false);
 
   const loadFullTree = async (mode: "referral" | "matrix" = treeMode) => {
     setIsLoading(true);
     try {
       const usersSnap = await getDocs(collection(db, "users"));
       const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
+
+      // ── Header stats ──
+      const todayStr = new Date().toDateString();
+      const activeMembers = allUsers.filter((u) => u.isActivated === true).length;
+      const newToday = allUsers.filter((u) => u.createdAt && new Date(u.createdAt).toDateString() === todayStr).length;
+
+      let revenue = 0;
+      try {
+        const activationTxSnap = await getDocs(query(collection(db, "transactions"), where("category", "==", "Activation")));
+        activationTxSnap.forEach((d) => { revenue += d.data().amount || 0; });
+      } catch (e) { console.error("Failed to compute revenue:", e); }
+
+      setHeaderStats({ activeMembers, newToday, revenue });
+
+      try {
+        const maintenanceSnap = await getDoc(doc(db, "settings", "maintenance"));
+        setMaintenanceOn(maintenanceSnap.exists() && maintenanceSnap.data().enabled === true);
+      } catch (e) { /* non-critical */ }
 
       // "referral" = the REFERRAL CHAIN (originalReferrerId) — the new
       // Level 2-10 tier, one direct connection per level.
@@ -991,6 +1011,32 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
           <button onClick={onSignOut} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-800 text-slate-400 text-sm font-semibold hover:border-red-500/40 hover:text-red-400 transition-colors" title="Sign out">
             <LogOut className="w-4 h-4" />
           </button>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 pb-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5">
+            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total Members</p>
+            <p className="text-lg font-bold text-slate-100">{totalNodes.toLocaleString()}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5">
+            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Active Members</p>
+            <p className="text-lg font-bold text-emerald-400">{headerStats.activeMembers.toLocaleString()}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5">
+            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">New Today</p>
+            <p className="text-lg font-bold text-sky-400">{headerStats.newToday.toLocaleString()}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5">
+            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Revenue</p>
+            <p className="text-lg font-bold text-amber-400">₱{headerStats.revenue.toLocaleString()}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 flex flex-col justify-center">
+            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">System Status</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className={"w-1.5 h-1.5 rounded-full " + (maintenanceOn ? "bg-red-400" : "bg-emerald-400")} />
+              <span className={"text-sm font-bold " + (maintenanceOn ? "text-red-400" : "text-emerald-400")}>{maintenanceOn ? "Maintenance" : "Operational"}</span>
+            </div>
+          </div>
         </div>
       </header>
 
