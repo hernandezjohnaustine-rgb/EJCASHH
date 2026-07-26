@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ReactFlow,
@@ -13,10 +13,148 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser } from "firebase/auth";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, query, where, limit, Timestamp } from "firebase/firestore";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile, User as FirebaseUser } from "firebase/auth";
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
-import { Network, Loader2, ShieldAlert, LogOut, Search, ChevronDown, Users, Maximize } from "lucide-react";
+import firebaseConfig from "../../firebase-applet-config.json";
+import { Network, Loader2, ShieldAlert, LogOut, Search, ChevronDown, Users, Maximize, Plus, X, Edit3, Key, Mail, Zap } from "lucide-react";
+
+// Replace with your actual Netlify function URL once deployed.
+const PASSWORD_UPDATE_URL = "https://ejcashh.netlify.app/.netlify/functions/updateUserPassword";
+
+// Creates a new user account placed directly into the referral chain under
+// a given node, without disrupting the currently logged-in admin's session
+// (same secondary-app pattern used for Merchant/Deposit Admin accounts).
+async function createPlacedUser(name: string, username: string, email: string, password: string, referrerId: string) {
+  const secondaryApp = initializeApp(firebaseConfig, "genealogy-user-creation-" + Date.now());
+  const secondaryAuth = getAuth(secondaryApp);
+  try {
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await updateProfile(cred.user, { displayName: name });
+
+    const generatedReferralCode = username ? username.toUpperCase() : ("EJ-" + cred.user.uid.substring(0, 6).toUpperCase());
+
+    await setDoc(doc(db, "users", cred.user.uid), {
+      uid: cred.user.uid,
+      email,
+      displayName: name,
+      username: username || null,
+      isActivated: false,
+      referralLinkEnabled: true,
+      balance: 0,
+      earningsWallet: 0,
+      creditsBalance: 0,
+      tradingInvested: 0,
+      tradingEarnings: 0,
+      tradingActive: false,
+      tradingClaimedToday: false,
+      tradingDaysCompleted: 0,
+      referralCode: generatedReferralCode,
+      referredBy: null,
+      originalReferrerId: referrerId, // places them in the referral chain directly under this node
+      sponsorId: null, // NOT auto-placed in the team matrix — that happens normally on activation
+      createdAt: new Date().toISOString(),
+      stats: { vipLevel: 1, directReferrals: 0, totalReferrals: 0, teamSize: 0, totalEarnings: 0 },
+    });
+
+    try {
+      await setDoc(doc(db, "referralCodes", generatedReferralCode), { uid: cred.user.uid });
+    } catch (e) {
+      console.error("Failed to create referralCodes lookup doc:", e);
+    }
+
+    await secondaryAuth.signOut();
+    return cred.user.uid;
+  } finally {
+    await deleteApp(secondaryApp);
+  }
+}
+
+// Calls the secure Netlify function to change another user's password —
+// verified server-side against the caller's own admin status.
+async function changeUserPassword(targetUserId: string, newPassword: string) {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error("Not signed in");
+  const res = await fetch(PASSWORD_UPDATE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ targetUserId, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update password");
+}
+
+// Performs a REAL activation for the target user — balance deduction,
+// referrer resolution, matrix placement (first activation only), and full
+// commission distribution (L1 cash, L2-10 referral chain, L11-20 matrix).
+// Mirrors handleActivationComplete in App.tsx step-for-step, but kept as
+// its own separate copy here rather than importing/refactoring App.tsx —
+// so this new admin capability can never risk regressing the existing,
+// already-tested normal in-app activation flow.
+async function activateUserPackage(userId: string, packageId: string) {
+  const amount = packageId === "package_1" ? 360 : packageId === "package_2" ? 3600 : 3960;
+  const userDocRef = doc(db, "users", userId);
+  const freshDoc = await getDoc(userDocRef);
+  if (!freshDoc.exists()) throw new Error("User not found");
+  const freshData = freshDoc.data();
+  const freshBalance = freshData.balance || 0;
+  const wasAlreadyActivated = freshData.isActivated === true;
+
+  if (freshBalance < amount) {
+    throw new Error(`Insufficient balance. Needs ₱${amount.toLocaleString()} but has ₱${freshBalance.toLocaleString()}`);
+  }
+
+  let originalReferrerId: string | null = freshData.originalReferrerId || null;
+  if (!originalReferrerId) {
+    originalReferrerId = freshData.sponsorId || null;
+    if (freshData.referredBy) {
+      const refQuery = query(collection(db, "users"), where("referralCode", "==", freshData.referredBy), limit(1));
+      const refSnap = await getDocs(refQuery);
+      if (!refSnap.empty) originalReferrerId = refSnap.docs[0].id;
+    }
+    await setDoc(userDocRef, { originalReferrerId }, { merge: true });
+  }
+
+  const sponsorId = originalReferrerId;
+  if (!wasAlreadyActivated && sponsorId) {
+    const { autoPlaceUser } = await import("../services/autoPlacementService");
+    await autoPlaceUser(userId, sponsorId);
+  }
+
+  const freshDoc2 = await getDoc(userDocRef);
+  const updatedSponsorId = freshDoc2.data()?.sponsorId || originalReferrerId;
+  const actualReferrerId = originalReferrerId;
+
+  const packageMultiplier = packageId === "package_1" ? 1 : 10;
+  const packageName = packageId === "package_1" ? "EJCASHH Subscription" : packageId === "package_2" ? "Activation Livelihood Program" : "Complete Activation Bundle";
+
+  await setDoc(userDocRef, {
+    balance: freshBalance - amount,
+    isActivated: true,
+    activatedAt: new Date().toISOString(),
+    activePackage: packageId,
+    packageMultiplier,
+    hasPackage1: packageId === "package_1" || packageId === "combined",
+    hasPackage2: packageId === "package_2" || packageId === "combined",
+  }, { merge: true });
+
+  const { processActivation } = await import("../services/earningsService");
+  await processActivation(userId, updatedSponsorId, packageId, actualReferrerId, !wasAlreadyActivated);
+
+  await addDoc(collection(db, "transactions"), {
+    userId,
+    type: "out",
+    title: `${packageName} Activation (Admin)`,
+    amount,
+    category: "Activation",
+    status: "Completed",
+    referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+    paymentMethod: "Admin Panel",
+    timestamp: Timestamp.now(),
+  });
+}
 
 const MASTER_EMAIL = "austinejohnter17@gmail.com";
 
@@ -66,7 +204,9 @@ function buildFlowElements(
   expandedIds: Set<string>,
   positions: Map<string, { x: number; y: number }>,
   highlightedId: string | null,
-  onToggle: (id: string) => void
+  onToggle: (id: string) => void,
+  onAddUser: (node: TreeUser) => void,
+  onOpenDetails: (node: TreeUser) => void
 ) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -86,6 +226,8 @@ function buildFlowElements(
         expanded: expandedIds.has(node.id),
         highlighted: node.id === highlightedId,
         onToggle: () => onToggle(node.id),
+        onAddUser: () => onAddUser(node),
+        onOpenDetails: () => onOpenDetails(node),
       },
       draggable: false,
     });
@@ -112,14 +254,22 @@ function GenealogyNode({ data }: any) {
   return (
     <div
       style={{ width: NODE_W }}
+      onClick={data.onOpenDetails}
       className={
-        "relative px-4 py-3 rounded-2xl border shadow-lg transition-all " +
+        "relative px-4 py-3 rounded-2xl border shadow-lg transition-all cursor-pointer " +
         (data.highlighted
           ? "border-emerald-400 bg-emerald-500/20 shadow-emerald-500/40 scale-105"
           : "border-slate-700 bg-slate-900/95 hover:border-slate-600")
       }
     >
       <Handle type="target" position={Position.Top} style={{ background: "#475569", border: 0, width: 6, height: 6 }} />
+      <button
+        onClick={(e) => { e.stopPropagation(); data.onAddUser(); }}
+        title="Add user under this person"
+        className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-md hover:bg-emerald-400 transition-colors z-10"
+      >
+        <Plus className="w-3.5 h-3.5" />
+      </button>
       <div className="flex items-center gap-2 mb-1.5">
         <div className={"w-2 h-2 rounded-full shrink-0 " + (data.isActivated ? "bg-emerald-400" : "bg-slate-600")} />
         <span className="text-xs font-bold text-slate-100 truncate">{data.displayName}</span>
@@ -130,7 +280,7 @@ function GenealogyNode({ data }: any) {
       </div>
       {data.hasChildren && (
         <button
-          onClick={data.onToggle}
+          onClick={(e) => { e.stopPropagation(); data.onToggle(); }}
           className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 transition-colors z-10"
         >
           <ChevronDown className={"w-3 h-3 transition-transform " + (data.expanded ? "" : "-rotate-90")} />
@@ -200,7 +350,7 @@ function GenealogyLogin({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ── The actual React Flow canvas (needs to be inside ReactFlowProvider to use useReactFlow) ──
-function TreeCanvas({ root, allById }: { root: TreeUser; allById: Map<string, TreeUser> }) {
+function TreeCanvas({ root, allById, onRefresh }: { root: TreeUser; allById: Map<string, TreeUser>; onRefresh: () => void }) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const s = new Set<string>([root.id]);
     root.children.forEach((c) => s.add(c.id));
@@ -211,6 +361,23 @@ function TreeCanvas({ root, allById }: { root: TreeUser; allById: Map<string, Tr
   const [searchResults, setSearchResults] = useState<TreeUser[]>([]);
   const { setCenter, fitView } = useReactFlow();
 
+  // Add User modal
+  const [addUserParent, setAddUserParent] = useState<TreeUser | null>(null);
+  const [addUserForm, setAddUserForm] = useState({ name: "", username: "", email: "", password: "" });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [addUserError, setAddUserError] = useState<string | null>(null);
+
+  // Detail drawer
+  const [selectedNode, setSelectedNode] = useState<TreeUser | null>(null);
+  const [editName, setEditName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState("package_1");
+  const [activating, setActivating] = useState(false);
+  const [activationMessage, setActivationMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   const toggleNode = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -220,10 +387,96 @@ function TreeCanvas({ root, allById }: { root: TreeUser; allById: Map<string, Tr
     });
   }, []);
 
+  const openAddUser = useCallback((node: TreeUser) => {
+    setAddUserError(null);
+    setAddUserForm({ name: "", username: "", email: "", password: "" });
+    setAddUserParent(node);
+  }, []);
+
+  const openDetails = useCallback((node: TreeUser) => {
+    setSelectedNode(node);
+    setEditName(node.displayName);
+    setNewPasswordInput("");
+    setPasswordMessage(null);
+    setSelectedPackage("package_1");
+    setActivationMessage(null);
+  }, []);
+
+  const handleCreateUser = async () => {
+    if (!addUserParent) return;
+    if (!addUserForm.name || !addUserForm.email || addUserForm.password.length < 6) {
+      setAddUserError("Fill in name, email, and a password of at least 6 characters.");
+      return;
+    }
+    setCreatingUser(true);
+    setAddUserError(null);
+    try {
+      await createPlacedUser(addUserForm.name, addUserForm.username, addUserForm.email, addUserForm.password, addUserParent.id);
+      setAddUserParent(null);
+      setExpandedIds((prev) => new Set([...prev, addUserParent.id]));
+      onRefresh();
+    } catch (err: any) {
+      setAddUserError(err.code === "auth/email-already-in-use" ? "This email is already registered." : "Failed to create account.");
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!selectedNode || !editName.trim()) return;
+    setSavingName(true);
+    try {
+      await updateDoc(doc(db, "users", selectedNode.id), { displayName: editName.trim() });
+      onRefresh();
+      setSelectedNode({ ...selectedNode, displayName: editName.trim() });
+    } catch (err) {
+      alert("Failed to save name.");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!selectedNode || newPasswordInput.length < 6) {
+      setPasswordMessage({ type: "error", text: "Password must be at least 6 characters." });
+      return;
+    }
+    setChangingPassword(true);
+    setPasswordMessage(null);
+    try {
+      await changeUserPassword(selectedNode.id, newPasswordInput);
+      setPasswordMessage({ type: "success", text: "Password updated successfully." });
+      setNewPasswordInput("");
+    } catch (err: any) {
+      setPasswordMessage({ type: "error", text: err.message || "Failed to update password." });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleActivatePackage = async () => {
+    if (!selectedNode) return;
+    const amount = selectedPackage === "package_1" ? 360 : selectedPackage === "package_2" ? 3600 : 3960;
+    if (!confirm(`This will deduct ₱${amount.toLocaleString()} from ${selectedNode.displayName}'s balance and distribute real commissions up the chain, exactly like a normal activation. Continue?`)) {
+      return;
+    }
+    setActivating(true);
+    setActivationMessage(null);
+    try {
+      await activateUserPackage(selectedNode.id, selectedPackage);
+      setActivationMessage({ type: "success", text: "Activation completed — balance deducted and commissions distributed." });
+      onRefresh();
+    } catch (err: any) {
+      setActivationMessage({ type: "error", text: err.message || "Activation failed." });
+    } finally {
+      setActivating(false);
+    }
+  };
+
   const positions = useMemo(() => computeLayout(root, expandedIds), [root, expandedIds]);
   const { nodes, edges } = useMemo(
-    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode),
-    [root, expandedIds, positions, highlightedId, toggleNode]
+    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails),
+    [root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails]
   );
 
   const flatList = useMemo(() => {
@@ -340,6 +593,110 @@ function TreeCanvas({ root, allById }: { root: TreeUser; allById: Map<string, Tr
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Add User Modal */}
+      <AnimatePresence>
+        {addUserParent && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && !creatingUser && setAddUserParent(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-bold text-slate-100">Add User</h3>
+                <button onClick={() => setAddUserParent(null)} className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mb-5">Placed directly under <span className="text-emerald-400 font-semibold">{addUserParent.displayName}</span> in the referral chain.</p>
+              <div className="flex flex-col gap-3">
+                <input type="text" placeholder="Full Name" value={addUserForm.name} onChange={(e) => setAddUserForm((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2.5 px-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
+                <input type="text" placeholder="Username (optional)" value={addUserForm.username} onChange={(e) => setAddUserForm((p) => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, "") }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2.5 px-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
+                <input type="email" placeholder="Email" value={addUserForm.email} onChange={(e) => setAddUserForm((p) => ({ ...p, email: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2.5 px-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
+                <input type="password" placeholder="Password (min. 6 characters)" value={addUserForm.password} onChange={(e) => setAddUserForm((p) => ({ ...p, password: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2.5 px-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
+                {addUserError && <p className="text-red-400 text-xs font-medium">{addUserError}</p>}
+                <button onClick={handleCreateUser} disabled={creatingUser}
+                  className="w-full py-3 rounded-lg bg-emerald-500 text-slate-950 font-bold text-sm hover:bg-emerald-400 transition-colors disabled:opacity-60 mt-1">
+                  {creatingUser ? "Creating..." : "Create & Place User"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Detail Drawer */}
+      <AnimatePresence>
+        {selectedNode && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end"
+            onClick={(e) => e.target === e.currentTarget && setSelectedNode(null)}>
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="w-full max-w-sm h-full bg-slate-900 border-l border-slate-800 p-6 overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-base font-bold text-slate-100">Edit Member</h3>
+                <button onClick={() => setSelectedNode(null)} className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-6">
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 mb-1.5 flex items-center gap-1.5"><Edit3 className="w-3 h-3" /> Display Name</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg py-2.5 px-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
+                    <button onClick={handleSaveName} disabled={savingName} className="px-4 py-2.5 rounded-lg bg-emerald-500 text-slate-950 text-xs font-bold hover:bg-emerald-400 transition-colors disabled:opacity-60">
+                      {savingName ? "..." : "Save"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-800 pt-5">
+                  <label className="text-xs font-semibold text-slate-400 mb-1.5 flex items-center gap-1.5"><Key className="w-3 h-3" /> Change Password</label>
+                  <p className="text-[10px] text-slate-500 mb-2">Sets a brand-new password for this account directly.</p>
+                  <input type="password" placeholder="New password (min. 6 characters)" value={newPasswordInput} onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2.5 px-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50 mb-2" />
+                  {passwordMessage && (
+                    <p className={"text-xs font-medium mb-2 " + (passwordMessage.type === "success" ? "text-emerald-400" : "text-red-400")}>{passwordMessage.text}</p>
+                  )}
+                  <button onClick={handleChangePassword} disabled={changingPassword}
+                    className="w-full py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold hover:border-emerald-500/40 hover:text-emerald-400 transition-colors disabled:opacity-60">
+                    {changingPassword ? "Updating..." : "Update Password"}
+                  </button>
+                </div>
+
+                <div className="border-t border-slate-800 pt-5">
+                  <label className="text-xs font-semibold text-slate-400 mb-1.5 flex items-center gap-1.5"><Zap className="w-3 h-3" /> Activate Package</label>
+                  <p className="text-[10px] text-slate-500 mb-2">Deducts real balance and distributes real commissions, same as a normal activation.</p>
+                  <select value={selectedPackage} onChange={(e) => setSelectedPackage(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2.5 px-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50 mb-2">
+                    <option value="package_1">Package 1 — ₱360</option>
+                    <option value="package_2">Package 2 — ₱3,600</option>
+                    <option value="combined">Combined — ₱3,960</option>
+                  </select>
+                  {activationMessage && (
+                    <p className={"text-xs font-medium mb-2 " + (activationMessage.type === "success" ? "text-emerald-400" : "text-red-400")}>{activationMessage.text}</p>
+                  )}
+                  <button onClick={handleActivatePackage} disabled={activating}
+                    className="w-full py-2.5 rounded-lg bg-emerald-500 text-slate-950 text-xs font-bold hover:bg-emerald-400 transition-colors disabled:opacity-60">
+                    {activating ? "Processing..." : "Activate"}
+                  </button>
+                </div>
+
+                <div className="border-t border-slate-800 pt-5 flex flex-col gap-1.5 text-xs text-slate-400">
+                  <div className="flex items-center gap-1.5"><Mail className="w-3 h-3" /> {selectedNode.email || "No email on file"}</div>
+                  <div className="flex items-center gap-1.5"><Users className="w-3 h-3" /> {selectedNode.children.length} direct · {selectedNode.teamSize || 0} team</div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -351,51 +708,53 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [totalNodes, setTotalNodes] = useState(0);
 
-  useEffect(() => {
-    async function loadFullTree() {
-      setIsLoading(true);
-      try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
+  const loadFullTree = async () => {
+    setIsLoading(true);
+    try {
+      const usersSnap = await getDocs(collection(db, "users"));
+      const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
 
-        const childrenOf = new Map<string, any[]>();
-        for (const u of allUsers) {
-          if (u.sponsorId) {
-            if (!childrenOf.has(u.sponsorId)) childrenOf.set(u.sponsorId, []);
-            childrenOf.get(u.sponsorId)!.push(u);
-          }
+      // This tree follows the REFERRAL CHAIN (originalReferrerId) — the
+      // new Level 2-10 tier — not the placement matrix (sponsorId, Level
+      // 11-20). Each person's true direct referrer is their parent here.
+      const childrenOf = new Map<string, any[]>();
+      for (const u of allUsers) {
+        if (u.originalReferrerId) {
+          if (!childrenOf.has(u.originalReferrerId)) childrenOf.set(u.originalReferrerId, []);
+          childrenOf.get(u.originalReferrerId)!.push(u);
         }
-
-        const master = allUsers.find((u) => u.email === MASTER_EMAIL);
-        if (!master) { setIsLoading(false); return; }
-
-        const byId = new Map<string, TreeUser>();
-        function buildNode(u: any): TreeUser {
-          const kids = (childrenOf.get(u.id) || []).map(buildNode);
-          const node: TreeUser = {
-            id: u.id,
-            displayName: u.displayName || "Unknown",
-            email: u.email,
-            isActivated: u.isActivated,
-            teamSize: u.stats?.teamSize || 0,
-            children: kids,
-          };
-          byId.set(u.id, node);
-          return node;
-        }
-
-        const rootNode = buildNode(master);
-        setTree(rootNode);
-        setAllById(byId);
-        setTotalNodes(allUsers.length);
-      } catch (err) {
-        console.error("Failed to load genealogy tree:", err);
-      } finally {
-        setIsLoading(false);
       }
+
+      const master = allUsers.find((u) => u.email === MASTER_EMAIL);
+      if (!master) { setIsLoading(false); return; }
+
+      const byId = new Map<string, TreeUser>();
+      function buildNode(u: any): TreeUser {
+        const kids = (childrenOf.get(u.id) || []).map(buildNode);
+        const node: TreeUser = {
+          id: u.id,
+          displayName: u.displayName || "Unknown",
+          email: u.email,
+          isActivated: u.isActivated,
+          teamSize: u.stats?.teamSize || 0,
+          children: kids,
+        };
+        byId.set(u.id, node);
+        return node;
+      }
+
+      const rootNode = buildNode(master);
+      setTree(rootNode);
+      setAllById(byId);
+      setTotalNodes(allUsers.length);
+    } catch (err) {
+      console.error("Failed to load genealogy tree:", err);
+    } finally {
+      setIsLoading(false);
     }
-    loadFullTree();
-  }, []);
+  };
+
+  useEffect(() => { loadFullTree(); }, []);
 
   return (
     <div className="h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 flex flex-col">
@@ -424,7 +783,7 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
           </div>
         ) : (
           <ReactFlowProvider>
-            <TreeCanvas root={tree} allById={allById} />
+            <TreeCanvas root={tree} allById={allById} onRefresh={loadFullTree} />
           </ReactFlowProvider>
         )}
       </div>
