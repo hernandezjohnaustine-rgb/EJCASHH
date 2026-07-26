@@ -1,6 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Uses Groq (https://console.groq.com) instead of Gemini — a genuinely free
+// tier with no credit card requirement, unlike Gemini's 2026 prepaid billing
+// changes. OpenAI-compatible REST API, called via plain fetch (no extra
+// npm dependency needed).
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -20,27 +21,40 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing 'message' field" });
     }
 
-    const contents = [
+    const messages = [
+      { role: "system", content: systemInstruction || "You are a helpful assistant." },
       ...(Array.isArray(history)
         ? history.map((h) => ({
-            role: h.role === "assistant" ? "model" : "user",
-            parts: [{ text: h.content }],
+            role: h.role === "assistant" ? "assistant" : "user",
+            content: h.content,
           }))
         : []),
-      { role: "user", parts: [{ text: message }] },
+      { role: "user", content: message },
     ];
 
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-      contents,
-      config: {
-        systemInstruction: systemInstruction || "You are a helpful assistant.",
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
+      body: JSON.stringify({
+        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        messages,
+      }),
     });
 
-    return res.status(200).json({ reply: response.text || "Sorry, no response was generated." });
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Groq API error:", data);
+      return res.status(500).json({ error: data.error?.message || "Failed to get AI response" });
+    }
+
+    const reply = data.choices?.[0]?.message?.content || "Sorry, no response was generated.";
+    return res.status(200).json({ reply });
   } catch (err) {
-    console.error("Gemini proxy error:", err);
+    console.error("Groq proxy error:", err);
     return res.status(500).json({ error: "Failed to get AI response" });
   }
 }
