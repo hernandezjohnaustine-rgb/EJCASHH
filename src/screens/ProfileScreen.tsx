@@ -51,7 +51,7 @@ const CACHE_KEY = "user_avatar_v2";
 
 // AI proxy — same Netlify function used by AssistantScreen.tsx / geminiService.ts.
 // Replace with your actual Netlify function URL once deployed.
-const AI_PROXY_URL = "https://ejcashh.netlify.app/.netlify/functions/askAssistant";
+const AI_PROXY_URL = "https://ejcashh.vercel.app/api/askAssistant";
 
 // Compress to max 200x200 JPEG at quality 0.6 — safe well under Firestore's 1MB doc limit
 function compressImage(file: File): Promise<string> {
