@@ -1,6 +1,6 @@
 // IMPORTANT: replace this with your actual Netlify function URL once deployed
 // (Site settings will show it, e.g. https://your-site-name.netlify.app/.netlify/functions/askAssistant)
-const AI_PROXY_URL = "https://ejcashh.netlify.app/.netlify/functions/askAssistant";
+const AI_PROXY_URL = "https://ejcashh.vercel.app/api/askAssistant";
 
 export async function askAssistant(prompt: string) {
   try {
