@@ -20,7 +20,7 @@ import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import firebaseConfig from "../../firebase-applet-config.json";
-import { Network, Loader2, ShieldAlert, LogOut, Search, ChevronDown, Users, Maximize, Plus, X, Edit3, Key, Mail, Zap, Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, Smartphone, Phone, Hash, Calendar } from "lucide-react";
+import { Network, Loader2, ShieldAlert, LogOut, Search, ChevronDown, Users, Maximize, Plus, X, Edit3, Key, Mail, Zap, Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, Smartphone, Phone, Hash, Calendar, Filter } from "lucide-react";
 
 // Replace with your actual Netlify function URL once deployed.
 const PASSWORD_UPDATE_URL = "https://ejcashh.vercel.app/api/updateUserPassword";
@@ -165,6 +165,8 @@ interface TreeUser {
   email?: string;
   isActivated?: boolean;
   teamSize?: number;
+  activePackage?: string;
+  vipLevel?: number;
   children: TreeUser[];
 }
 
@@ -207,7 +209,8 @@ function buildFlowElements(
   highlightedId: string | null,
   onToggle: (id: string) => void,
   onAddUser: ((node: TreeUser) => void) | undefined,
-  onOpenDetails: (node: TreeUser) => void
+  onOpenDetails: (node: TreeUser) => void,
+  matchedIds: Set<string> | null
 ) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -226,6 +229,7 @@ function buildFlowElements(
         hasChildren: node.children.length > 0,
         expanded: expandedIds.has(node.id),
         highlighted: node.id === highlightedId,
+        dimmed: matchedIds ? !matchedIds.has(node.id) : false,
         level,
         onToggle: () => onToggle(node.id),
         onAddUser: onAddUser ? () => onAddUser(node) : undefined,
@@ -255,7 +259,7 @@ function buildFlowElements(
 function GenealogyNode({ data }: any) {
   return (
     <div
-      style={{ width: NODE_W }}
+      style={{ width: NODE_W, opacity: data.dimmed ? 0.25 : 1 }}
       onClick={data.onOpenDetails}
       className={
         "relative px-4 py-3 rounded-2xl border shadow-lg transition-all cursor-pointer " +
@@ -366,6 +370,8 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: Tree
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<TreeUser[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({ activePackage: "", status: "", minTeamSize: "", vipLevel: "" });
   const { setCenter, fitView } = useReactFlow();
 
   // Add User modal
@@ -512,10 +518,6 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: Tree
   };
 
   const positions = useMemo(() => computeLayout(root, expandedIds), [root, expandedIds]);
-  const { nodes, edges } = useMemo(
-    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode, canEditPlacement ? openAddUser : undefined, openDetails),
-    [root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails, canEditPlacement]
-  );
 
   const flatList = useMemo(() => {
     const list: TreeUser[] = [];
@@ -523,6 +525,26 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: Tree
     walk(root);
     return list;
   }, [root]);
+
+  const filtersActive = !!(filters.activePackage || filters.status || filters.minTeamSize || filters.vipLevel);
+  const matchedIds = useMemo(() => {
+    if (!filtersActive) return null;
+    const s = new Set<string>();
+    for (const n of flatList) {
+      if (filters.activePackage && n.activePackage !== filters.activePackage) continue;
+      if (filters.status === "activated" && !n.isActivated) continue;
+      if (filters.status === "not_activated" && n.isActivated) continue;
+      if (filters.minTeamSize && (n.teamSize || 0) < parseInt(filters.minTeamSize, 10)) continue;
+      if (filters.vipLevel && String(n.vipLevel || 1) !== filters.vipLevel) continue;
+      s.add(n.id);
+    }
+    return s;
+  }, [flatList, filters, filtersActive]);
+
+  const { nodes, edges } = useMemo(
+    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode, canEditPlacement ? openAddUser : undefined, openDetails, matchedIds),
+    [root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails, canEditPlacement, matchedIds]
+  );
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -606,6 +628,56 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: Tree
           <button onClick={() => fitView({ duration: 500 })} className="px-3 py-2 rounded-lg bg-slate-900/90 backdrop-blur border border-slate-800 text-xs font-semibold text-slate-300 hover:border-emerald-500/40 hover:text-emerald-400 transition-colors flex items-center gap-1.5">
             <Maximize className="w-3 h-3" /> Fit
           </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className={"px-3 py-2 rounded-lg backdrop-blur border text-xs font-semibold transition-colors flex items-center gap-1.5 " + (filtersActive ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-slate-900/90 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-400")}
+            >
+              <Filter className="w-3 h-3" /> Filters {filtersActive && `(${matchedIds?.size || 0})`}
+            </button>
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="absolute top-full mt-1 w-56 bg-slate-900 border border-slate-800 rounded-lg p-3 shadow-xl flex flex-col gap-2.5 z-20">
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold mb-1 block">Package</label>
+                    <select value={filters.activePackage} onChange={(e) => setFilters((f) => ({ ...f, activePackage: e.target.value }))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md py-1.5 px-2 text-xs text-slate-100">
+                      <option value="">All</option>
+                      <option value="package_1">Package 1</option>
+                      <option value="package_2">Package 2</option>
+                      <option value="combined">Combined</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold mb-1 block">Status</label>
+                    <select value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md py-1.5 px-2 text-xs text-slate-100">
+                      <option value="">All</option>
+                      <option value="activated">Activated</option>
+                      <option value="not_activated">Not Activated</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold mb-1 block">Min. Team Size</label>
+                    <input type="number" value={filters.minTeamSize} onChange={(e) => setFilters((f) => ({ ...f, minTeamSize: e.target.value }))}
+                      placeholder="e.g. 10" className="w-full bg-slate-800 border border-slate-700 rounded-md py-1.5 px-2 text-xs text-slate-100" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold mb-1 block">VIP Rank</label>
+                    <input type="number" value={filters.vipLevel} onChange={(e) => setFilters((f) => ({ ...f, vipLevel: e.target.value }))}
+                      placeholder="e.g. 1" className="w-full bg-slate-800 border border-slate-700 rounded-md py-1.5 px-2 text-xs text-slate-100" />
+                  </div>
+                  {filtersActive && (
+                    <button onClick={() => setFilters({ activePackage: "", status: "", minTeamSize: "", vipLevel: "" })}
+                      className="mt-1 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 hover:text-red-400 hover:border-red-500/40 transition-colors">
+                      Clear Filters
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <div className="relative w-64 pointer-events-auto">
@@ -968,6 +1040,8 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
           email: u.email,
           isActivated: u.isActivated,
           teamSize: u.stats?.teamSize || 0,
+          activePackage: u.activePackage,
+          vipLevel: u.stats?.vipLevel || 1,
           children: kids,
         };
         byId.set(u.id, node);
