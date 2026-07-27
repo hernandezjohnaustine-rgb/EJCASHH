@@ -29,6 +29,8 @@ on:
           - reroot-matrix-dry-run
           - reroot-matrix-apply
           - check-matrix-width-violations
+          - fix-matrix-width-dry-run
+          - fix-matrix-width-apply
 
 jobs:
   run_migration:
@@ -161,6 +163,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-matrix-width-violations' }}
         working-directory: scripts
         run: node check-matrix-width-violations.mjs
+
+      - name: Fix matrix width violations (dry-run)
+        if: ${{ github.event.inputs.mode == 'fix-matrix-width-dry-run' }}
+        working-directory: scripts
+        run: node fix-matrix-width-violations.mjs
+
+      - name: Fix matrix width violations (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'fix-matrix-width-apply' }}
+        working-directory: scripts
+        run: node fix-matrix-width-violations.mjs --apply
 
       - name: Clean up service account key
         if: always()
