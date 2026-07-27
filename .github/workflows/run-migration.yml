@@ -39,6 +39,8 @@ on:
           - backfill-original-referrer-dry-run
           - backfill-original-referrer-apply
           - check-jpower03-chain
+          - connect-jpower03-dry-run
+          - connect-jpower03-apply
 
 jobs:
   run_migration:
@@ -221,6 +223,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-jpower03-chain' }}
         working-directory: scripts
         run: node check-jpower03-chain.mjs
+
+      - name: Connect JPOWER03 to EJCASHH11 (dry-run)
+        if: ${{ github.event.inputs.mode == 'connect-jpower03-dry-run' }}
+        working-directory: scripts
+        run: node connect-jpower03-to-ejcashh11.mjs
+
+      - name: Connect JPOWER03 to EJCASHH11 (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'connect-jpower03-apply' }}
+        working-directory: scripts
+        run: node connect-jpower03-to-ejcashh11.mjs --apply
 
       - name: Clean up service account key
         if: always()
