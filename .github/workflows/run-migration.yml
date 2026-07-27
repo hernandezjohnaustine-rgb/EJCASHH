@@ -38,6 +38,7 @@ on:
           - exclude-backbone-apply
           - backfill-original-referrer-dry-run
           - backfill-original-referrer-apply
+          - check-jpower03-chain
 
 jobs:
   run_migration:
@@ -215,6 +216,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'backfill-original-referrer-apply' }}
         working-directory: scripts
         run: node backfill-original-referrer-id.mjs --apply
+
+      - name: Check JPOWER03 chain (read-only)
+        if: ${{ github.event.inputs.mode == 'check-jpower03-chain' }}
+        working-directory: scripts
+        run: node check-jpower03-chain.mjs
 
       - name: Clean up service account key
         if: always()
