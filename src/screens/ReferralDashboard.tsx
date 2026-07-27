@@ -28,8 +28,8 @@ const MLM_LEVELS = [
   { level: 3, reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
   { level: 4, reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
   { level: 5, reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
-  { level: "6-10", reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
-  { level: "11-20", reward: "₱3", income: "Team Matrix", label: "Team Matrix" },
+  { level: "6-11", reward: "₱3", income: "Referral Chain", label: "Referral Chain" },
+  { level: "12-20", reward: "₱3", income: "Team Matrix", label: "Team Matrix" },
 ];
 
 const MLM_LEVELS_P2 = [
@@ -38,8 +38,8 @@ const MLM_LEVELS_P2 = [
   { level: 3, reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
   { level: 4, reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
   { level: 5, reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
-  { level: "6-10", reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
-  { level: "11-20", reward: "₱10", income: "Team Matrix", label: "Team Matrix" },
+  { level: "6-11", reward: "₱10", income: "Referral Chain", label: "Referral Chain" },
+  { level: "12-20", reward: "₱10", income: "Team Matrix", label: "Team Matrix" },
 ];
 
 export default function ReferralDashboard({ stats, onWithdraw, onViewNetwork, referralCode, referralLinkEnabled, onClaimDaily, isDailyClaimed }: { 
