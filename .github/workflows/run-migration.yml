@@ -41,6 +41,7 @@ on:
           - check-jpower03-chain
           - connect-jpower03-dry-run
           - connect-jpower03-apply
+          - check-ejcashh02-collision
 
 jobs:
   run_migration:
@@ -233,6 +234,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'connect-jpower03-apply' }}
         working-directory: scripts
         run: node connect-jpower03-to-ejcashh11.mjs --apply
+
+      - name: Check EJCASHH02 collision (read-only)
+        if: ${{ github.event.inputs.mode == 'check-ejcashh02-collision' }}
+        working-directory: scripts
+        run: node check-ejcashh02-collision.mjs
 
       - name: Clean up service account key
         if: always()
