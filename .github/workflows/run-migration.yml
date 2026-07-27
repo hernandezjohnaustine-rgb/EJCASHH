@@ -22,6 +22,9 @@ on:
           - audit-office-transfers
           - add-referral-chain-dry-run
           - add-referral-chain-apply
+          - check-original-referrer-gaps
+          - extend-referral-chain-dry-run
+          - extend-referral-chain-apply
 
 jobs:
   run_migration:
@@ -119,6 +122,21 @@ jobs:
         if: ${{ github.event.inputs.mode == 'add-referral-chain-apply' }}
         working-directory: scripts
         run: node add-referral-chain-and-relabel-matrix.mjs --apply
+
+      - name: Check originalReferrerId gaps (read-only)
+        if: ${{ github.event.inputs.mode == 'check-original-referrer-gaps' }}
+        working-directory: scripts
+        run: node check-original-referrer-gaps.mjs
+
+      - name: Extend referral chain to Level 11 (dry-run)
+        if: ${{ github.event.inputs.mode == 'extend-referral-chain-dry-run' }}
+        working-directory: scripts
+        run: node extend-referral-chain-to-11.mjs
+
+      - name: Extend referral chain to Level 11 (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'extend-referral-chain-apply' }}
+        working-directory: scripts
+        run: node extend-referral-chain-to-11.mjs --apply
 
       - name: Clean up service account key
         if: always()
