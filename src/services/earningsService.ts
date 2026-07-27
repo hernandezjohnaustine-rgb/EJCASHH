@@ -162,6 +162,72 @@ export async function processActivation(
     }
   }
 
+  // STEP 2B: Levels 12-20 — REFERRAL CHAIN BONUS. Continues the EXACT SAME
+  // originalReferrerId walk from where Step 2 left off, all the way to
+  // Level 20. This runs independently of — and in ADDITION to — Step 3's
+  // Team Matrix below. It exists specifically so people who are
+  // deliberately excluded from the Team Matrix (like the dedicated
+  // EJCASHH01-11 referral-chain backbone, which only ever has ONE direct
+  // connection each and never gets auto-placed) can still earn at these
+  // levels, without affecting the separate, sponsorId-based Team Matrix
+  // payouts in Step 3. Titled "Referral Chain Bonus" (not "Indirect
+  // Commission") specifically so these transactions are never confused
+  // with real Team Matrix Level 12-20 payouts in reports or exports.
+  for (let level = 12; level <= 20; level++) {
+    if (!chainUid) break;
+    try {
+      const chainDoc = await getDoc(doc(db, "users", chainUid));
+      if (!chainDoc.exists()) break;
+
+      const chainData = chainDoc.data();
+      const commission = getCommission(level, packageId);
+
+      await setDoc(doc(db, "users", chainUid), {
+        creditsBalance: (chainData.creditsBalance || 0) + commission,
+        stats: {
+          ...chainData.stats,
+          totalEarnings: (chainData.stats?.totalEarnings || 0) + commission,
+          // Intentionally NOT incrementing teamSize/totalReferrals here,
+          // same reasoning as Step 2 above.
+        }
+      }, { merge: true });
+
+      await addDoc(collection(db, "transactions"), {
+        userId: chainUid,
+        type: "in",
+        title: "Level " + level + " Referral Chain Bonus",
+        amount: commission,
+        isCredits: true,
+        category: "Commission",
+        status: "Completed",
+        referenceNo: "EJ-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        paymentMethod: "MLM Commission",
+        timestamp: Timestamp.now(),
+        packageId,
+        fromUserId: userId,
+        commissionLevel: level,
+        chainType: "referral", // distinguishes from Step 3's Team Matrix payouts at the same level numbers
+      });
+
+      console.log("L" + level + " referral-chain BONUS credited (Credits) to:", chainUid, "amount:", commission);
+
+      await addDoc(collection(db, "users", chainUid, "notifications"), {
+        title: "Level " + level + " Referral Chain Bonus",
+        message: commission.toLocaleString() + " Credits added to your Credits balance (Level " + level + " Referral Chain Bonus)",
+        type: "credits",
+        read: false,
+        createdAt: Timestamp.now(),
+      });
+
+      const nextUid2 = chainData.originalReferrerId || null;
+      if (!nextUid2) break;
+      chainUid = nextUid2;
+
+    } catch (error) {
+      console.error("L" + level + " referral-chain bonus error:", error);
+    }
+  }
+
   // STEP 3: Levels 11-20 — the TEAM MATRIX tier (previously labeled 2-10).
   // Follows the GLOBAL PLACEMENT chain (not the literal referral chain).
   // Credits are paid to whoever occupies each position in the GLOBAL
