@@ -34,6 +34,8 @@ on:
           - check-matrix-depth-map
           - reflow-matrix-dry-run
           - reflow-matrix-apply
+          - exclude-backbone-dry-run
+          - exclude-backbone-apply
 
 jobs:
   run_migration:
@@ -191,6 +193,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'reflow-matrix-apply' }}
         working-directory: scripts
         run: node reflow-matrix-full-bfs.mjs --apply
+
+      - name: Exclude EJCASHH backbone from matrix (dry-run)
+        if: ${{ github.event.inputs.mode == 'exclude-backbone-dry-run' }}
+        working-directory: scripts
+        run: node exclude-ejcashh-backbone-from-matrix.mjs
+
+      - name: Exclude EJCASHH backbone from matrix (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'exclude-backbone-apply' }}
+        working-directory: scripts
+        run: node exclude-ejcashh-backbone-from-matrix.mjs --apply
 
       - name: Clean up service account key
         if: always()
