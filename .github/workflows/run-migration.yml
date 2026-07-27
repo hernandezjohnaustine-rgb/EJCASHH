@@ -42,6 +42,7 @@ on:
           - connect-jpower03-dry-run
           - connect-jpower03-apply
           - check-ejcashh02-collision
+          - check-jerry-pendoro-status
 
 jobs:
   run_migration:
@@ -239,6 +240,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-ejcashh02-collision' }}
         working-directory: scripts
         run: node check-ejcashh02-collision.mjs
+
+      - name: Check Jerry Pendoro status (read-only)
+        if: ${{ github.event.inputs.mode == 'check-jerry-pendoro-status' }}
+        working-directory: scripts
+        run: node check-jerry-pendoro-status.mjs
 
       - name: Clean up service account key
         if: always()
