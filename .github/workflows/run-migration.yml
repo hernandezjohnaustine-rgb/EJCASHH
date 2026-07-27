@@ -32,6 +32,8 @@ on:
           - fix-matrix-width-dry-run
           - fix-matrix-width-apply
           - check-matrix-depth-map
+          - reflow-matrix-dry-run
+          - reflow-matrix-apply
 
 jobs:
   run_migration:
@@ -179,6 +181,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-matrix-depth-map' }}
         working-directory: scripts
         run: node check-matrix-depth-map.mjs
+
+      - name: Reflow matrix with full BFS (dry-run)
+        if: ${{ github.event.inputs.mode == 'reflow-matrix-dry-run' }}
+        working-directory: scripts
+        run: node reflow-matrix-full-bfs.mjs
+
+      - name: Reflow matrix with full BFS (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'reflow-matrix-apply' }}
+        working-directory: scripts
+        run: node reflow-matrix-full-bfs.mjs --apply
 
       - name: Clean up service account key
         if: always()
