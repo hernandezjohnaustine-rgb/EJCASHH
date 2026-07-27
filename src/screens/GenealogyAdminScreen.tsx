@@ -171,6 +171,15 @@ interface TreeUser {
   children: TreeUser[];
 }
 
+// Capacity/scale reference per level — Levels 1-11 (Referral Chain) are
+// unilevel (just 1 direct connection needed), Levels 12-20 (Team Matrix)
+// grow 10x per level, matching the Milestone Certificate teamSize
+// thresholds already used elsewhere in the app.
+const LEVEL_CAPACITY: Record<number, string> = {
+  1: "1", 2: "1", 3: "1", 4: "1", 5: "1", 6: "1", 7: "1", 8: "1", 9: "1", 10: "1", 11: "1",
+  12: "10", 13: "100", 14: "1K", 15: "10K", 16: "100K", 17: "1M", 18: "10M", 19: "100M", 20: "1B",
+};
+
 const NODE_W = 200;
 const NODE_H = 92;
 const H_GAP = 32;
@@ -270,8 +279,15 @@ function GenealogyNode({ data }: any) {
       }
     >
       <Handle type="target" position={Position.Top} style={{ background: "#475569", border: 0, width: 6, height: 6 }} />
-      <div className="absolute -top-2.5 -left-2.5 min-w-[22px] h-[22px] px-1 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-black text-emerald-400 z-10">
-        L{data.level}
+      <div className="absolute -top-2.5 -left-2.5 flex items-center gap-0.5 z-10">
+        <div className="min-w-[22px] h-[22px] px-1 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-black text-emerald-400">
+          L{data.level}
+        </div>
+        {LEVEL_CAPACITY[data.level] && (
+          <div className="h-[22px] px-1.5 rounded-full bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-[8px] font-bold text-slate-500">
+            {LEVEL_CAPACITY[data.level]}
+          </div>
+        )}
       </div>
       {data.onAddUser && (
         <button
@@ -1230,13 +1246,13 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
                 onClick={() => setTreeMode("referral")}
                 className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "referral" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
               >
-                Referral Chain (1-10)
+                Referral Chain (1-11)
               </button>
               <button
                 onClick={() => setTreeMode("matrix")}
                 className={"px-3.5 py-1.5 rounded-md text-xs font-bold transition-colors " + (treeMode === "matrix" ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-slate-200")}
               >
-                Team Matrix (11-20)
+                Team Matrix (12-20)
               </button>
             </div>
           )}
