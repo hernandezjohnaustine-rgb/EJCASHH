@@ -45,6 +45,8 @@ on:
           - check-jerry-pendoro-status
           - move-jerry-pendoro-dry-run
           - move-jerry-pendoro-apply
+          - referral-bonus-12-20-dry-run
+          - referral-bonus-12-20-apply
 
 jobs:
   run_migration:
@@ -257,6 +259,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'move-jerry-pendoro-apply' }}
         working-directory: scripts
         run: node move-jerry-pendoro-to-jpower03.mjs --apply
+
+      - name: Add Referral Chain Bonus Level 12-20 (dry-run)
+        if: ${{ github.event.inputs.mode == 'referral-bonus-12-20-dry-run' }}
+        working-directory: scripts
+        run: node add-referral-chain-bonus-12-20.mjs
+
+      - name: Add Referral Chain Bonus Level 12-20 (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'referral-bonus-12-20-apply' }}
+        working-directory: scripts
+        run: node add-referral-chain-bonus-12-20.mjs --apply
 
       - name: Clean up service account key
         if: always()
