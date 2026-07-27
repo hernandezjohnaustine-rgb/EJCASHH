@@ -4,19 +4,18 @@ import { db } from "../lib/firebase";
 /**
  * Global Unilevel Matrix — Breadth-First Placement
  * -----------------------------------------------------------------------
- * There is exactly ONE matrix for the entire platform, rooted at the
- * master account below. Every activated user — regardless of who
- * literally referred them — is placed via breadth-first search into the
- * next open slot in THIS global tree. Level 1 (10 slots) fills completely
- * before Level 2 (100 total slots) starts, Level 2 fills completely
- * before Level 3 (1,000 slots) starts, and so on up to Level 10
- * (10,000,000,000 slots) — matching the Milestone team-size thresholds.
+ * There is exactly ONE matrix for the entire platform, rooted at
+ * JPOWER03 (not the master account — the master account and the 11
+ * accounts above JPOWER03 form a separate, dedicated Referral Chain
+ * backbone, outside the matrix). Every activated user — regardless of
+ * who literally referred them — is placed via breadth-first search into
+ * the next open slot in THIS global tree, starting from JPOWER03.
  *
- * IMPORTANT: this placement is used ONLY for indirect (Level 2-10) Credits
- * commission and for Milestone/team-size tracking. The Level 1 CASH
- * commission always goes to the person's true, literal direct referrer
- * (tracked separately as originalReferrerId in earningsService.ts) and is
- * never affected by this placement.
+ * IMPORTANT: this placement is used ONLY for indirect (Level 12-20)
+ * Credits commission and for Milestone/team-size tracking. The Level 1
+ * CASH commission always goes to the person's true, literal direct
+ * referrer (tracked separately as originalReferrerId in
+ * earningsService.ts) and is never affected by this placement.
  *
  * SCALABILITY NOTE: this does a live BFS over Firestore on every new
  * activation. That's cheap while the network is small, but as it grows
@@ -25,16 +24,16 @@ import { db } from "../lib/firebase";
  * denormalized "next open slot per level" pointer instead of searching
  * from scratch each time.
  */
-const MASTER_EMAIL = "austinejohnter17@gmail.com";
+const MATRIX_ROOT_CODE = "JPOWER03";
 
 let cachedMasterUid: string | null = null;
 
 async function getMasterUid(): Promise<string | null> {
   if (cachedMasterUid) return cachedMasterUid;
-  const q = query(collection(db, "users"), where("email", "==", MASTER_EMAIL), limit(1));
+  const q = query(collection(db, "users"), where("referralCode", "==", MATRIX_ROOT_CODE), limit(1));
   const snap = await getDocs(q);
   if (snap.empty) {
-    console.error("Master account not found for email:", MASTER_EMAIL);
+    console.error("Matrix root account not found for referralCode:", MATRIX_ROOT_CODE);
     return null;
   }
   cachedMasterUid = snap.docs[0].id;
