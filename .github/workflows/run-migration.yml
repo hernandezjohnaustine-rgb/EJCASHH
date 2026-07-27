@@ -26,6 +26,9 @@ on:
           - extend-referral-chain-dry-run
           - extend-referral-chain-apply
           - check-reroot-to-jpower03
+          - reroot-matrix-dry-run
+          - reroot-matrix-apply
+          - check-matrix-width-violations
 
 jobs:
   run_migration:
@@ -143,6 +146,21 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-reroot-to-jpower03' }}
         working-directory: scripts
         run: node check-reroot-to-jpower03.mjs
+
+      - name: Re-root matrix to JPOWER03 (dry-run)
+        if: ${{ github.event.inputs.mode == 'reroot-matrix-dry-run' }}
+        working-directory: scripts
+        run: node reroot-matrix-to-jpower03.mjs
+
+      - name: Re-root matrix to JPOWER03 (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'reroot-matrix-apply' }}
+        working-directory: scripts
+        run: node reroot-matrix-to-jpower03.mjs --apply
+
+      - name: Check matrix width violations (read-only)
+        if: ${{ github.event.inputs.mode == 'check-matrix-width-violations' }}
+        working-directory: scripts
+        run: node check-matrix-width-violations.mjs
 
       - name: Clean up service account key
         if: always()
