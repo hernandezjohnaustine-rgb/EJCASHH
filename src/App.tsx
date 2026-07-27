@@ -83,11 +83,16 @@ export default function App() {
   // ✅ Live maintenance mode listener — updates instantly for anyone with the
   // app open if the admin flips the switch, without needing a page refresh.
   useEffect(() => {
+    // Re-subscribes whenever auth state changes. This listener requires
+    // isSignedIn() per Firestore rules — if it attaches before login
+    // finishes, Firestore denies it once and never auto-retries, so it
+    // must be tied to `user` rather than running only on initial mount.
+    if (!user) { setMaintenanceMode(false); return; }
     const unsub = onSnapshot(doc(db, "settings", "maintenance"), (snap) => {
       setMaintenanceMode(snap.exists() && snap.data().enabled === true);
     }, () => {});
     return () => unsub();
-  }, []);
+  }, [user]);
 
   // ✅ Auto-recover from stale-build errors. When a new deploy replaces the
   // hashed JS chunk filenames, a browser tab that's still running the OLD
