@@ -105,7 +105,7 @@ export async function processActivation(
   // commission above — they now additionally receive Level 2 Credits too.
   let chainUid: string | null = referrerId;
 
-  for (let level = 2; level <= 10; level++) {
+  for (let level = 2; level <= 11; level++) {
     if (!chainUid) break;
     try {
       const chainDoc = await getDoc(doc(db, "users", chainUid));
@@ -172,7 +172,7 @@ export async function processActivation(
   if (placementSponsorId) {
     let currentUid: string | null = placementSponsorId;
 
-    for (let level = 11; level <= 20; level++) {
+    for (let level = 12; level <= 20; level++) {
       if (!currentUid) break;
       try {
         const sponsorDoc = await getDoc(doc(db, "users", currentUid));
