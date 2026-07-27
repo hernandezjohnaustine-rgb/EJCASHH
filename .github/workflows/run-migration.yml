@@ -31,6 +31,7 @@ on:
           - check-matrix-width-violations
           - fix-matrix-width-dry-run
           - fix-matrix-width-apply
+          - check-matrix-depth-map
 
 jobs:
   run_migration:
@@ -173,6 +174,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'fix-matrix-width-apply' }}
         working-directory: scripts
         run: node fix-matrix-width-violations.mjs --apply
+
+      - name: Check matrix depth map (read-only)
+        if: ${{ github.event.inputs.mode == 'check-matrix-depth-map' }}
+        working-directory: scripts
+        run: node check-matrix-depth-map.mjs
 
       - name: Clean up service account key
         if: always()
