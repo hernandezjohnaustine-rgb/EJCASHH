@@ -220,7 +220,8 @@ function buildFlowElements(
   onToggle: (id: string) => void,
   onAddUser: ((node: TreeUser) => void) | undefined,
   onOpenDetails: (node: TreeUser) => void,
-  matchedIds: Set<string> | null
+  matchedIds: Set<string> | null,
+  startLevel: number
 ) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -261,7 +262,7 @@ function buildFlowElements(
     }
   }
 
-  walk(root, 1);
+  walk(root, startLevel);
   return { nodes, edges };
 }
 
@@ -378,7 +379,7 @@ function GenealogyLogin({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ── The actual React Flow canvas (needs to be inside ReactFlowProvider to use useReactFlow) ──
-function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: TreeUser; allById: Map<string, TreeUser>; onRefresh: () => void; canEditPlacement: boolean }) {
+function TreeCanvas({ root, allById, onRefresh, canEditPlacement, startLevel }: { root: TreeUser; allById: Map<string, TreeUser>; onRefresh: () => void; canEditPlacement: boolean; startLevel: number }) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const s = new Set<string>([root.id]);
     root.children.forEach((c) => s.add(c.id));
@@ -559,8 +560,8 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement }: { root: Tree
   }, [flatList, filters, filtersActive]);
 
   const { nodes, edges } = useMemo(
-    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode, canEditPlacement ? openAddUser : undefined, openDetails, matchedIds),
-    [root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails, canEditPlacement, matchedIds]
+    () => buildFlowElements(root, expandedIds, positions, highlightedId, toggleNode, canEditPlacement ? openAddUser : undefined, openDetails, matchedIds, startLevel),
+    [root, expandedIds, positions, highlightedId, toggleNode, openAddUser, openDetails, canEditPlacement, matchedIds, startLevel]
   );
 
   const handleSearch = (term: string) => {
@@ -1103,8 +1104,13 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
         }
       }
 
-      const master = allUsers.find((u) => u.email === MASTER_EMAIL);
-      if (!master) { setIsLoading(false); return; }
+      // In "matrix" mode, JPOWER03 is the displayed root (Office is
+      // excluded from the matrix view entirely) — matches how Level 12
+      // is the first actual matrix position, right under Office.
+      const rootUser = mode === "matrix"
+        ? allUsers.find((u) => u.referralCode === "JPOWER03" || u.displayName === "JPOWER03")
+        : allUsers.find((u) => u.email === MASTER_EMAIL);
+      if (!rootUser) { setIsLoading(false); return; }
 
       const byId = new Map<string, TreeUser>();
       function buildNode(u: any): TreeUser {
@@ -1123,7 +1129,7 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
         return node;
       }
 
-      const rootNode = buildNode(master);
+      const rootNode = buildNode(rootUser);
       setTree(rootNode);
       setAllById(byId);
       setTotalNodes(allUsers.length);
@@ -1360,7 +1366,7 @@ function GenealogyDashboard({ onSignOut }: { onSignOut: () => void }) {
           </div>
         ) : (
           <ReactFlowProvider>
-            <TreeCanvas root={tree} allById={allById} onRefresh={() => loadFullTree(treeMode)} canEditPlacement={treeMode === "referral"} />
+            <TreeCanvas root={tree} allById={allById} onRefresh={() => loadFullTree(treeMode)} canEditPlacement={treeMode === "referral"} startLevel={treeMode === "matrix" ? 12 : 1} />
           </ReactFlowProvider>
         )}
       </div>
