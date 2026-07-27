@@ -36,6 +36,8 @@ on:
           - reflow-matrix-apply
           - exclude-backbone-dry-run
           - exclude-backbone-apply
+          - backfill-original-referrer-dry-run
+          - backfill-original-referrer-apply
 
 jobs:
   run_migration:
@@ -203,6 +205,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'exclude-backbone-apply' }}
         working-directory: scripts
         run: node exclude-ejcashh-backbone-from-matrix.mjs --apply
+
+      - name: Backfill originalReferrerId (dry-run)
+        if: ${{ github.event.inputs.mode == 'backfill-original-referrer-dry-run' }}
+        working-directory: scripts
+        run: node backfill-original-referrer-id.mjs
+
+      - name: Backfill originalReferrerId (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'backfill-original-referrer-apply' }}
+        working-directory: scripts
+        run: node backfill-original-referrer-id.mjs --apply
 
       - name: Clean up service account key
         if: always()
