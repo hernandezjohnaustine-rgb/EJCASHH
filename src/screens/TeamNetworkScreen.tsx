@@ -5,22 +5,27 @@ import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import GlassCard from "../components/GlassCard";
 
-// NOTE: this shows PLACEMENT team members (people whose sponsorId points to
-// the currently-viewed person in the global matrix — up to 10 slots), not
-// literal direct referrals. Clicking a member drills down into THEIR own
-// placement team, so you can see how filled each person's 10 slots are,
-// level by level, without leaving this screen.
+// Shows the user's network in TWO different ways, switchable via a toggle:
+//   "matrix"   — PLACEMENT team (sponsorId) — people placed under this
+//                person in the global 10-wide matrix (Level 12-20 Credits).
+//   "referral" — REFERRAL CHAIN (originalReferrerId) — this person's true,
+//                literal direct referrals, one connection per level
+//                (Level 1 cash + Level 2-11 Credits).
+// Clicking a member drills down into THEIR own team in the same mode,
+// without leaving this screen.
 interface StackEntry {
   id: string;
   displayName: string;
 }
 
 export default function TeamNetworkScreen({ onBack, userId, displayName }: { onBack: () => void, userId: string, displayName?: string }) {
+  const [viewMode, setViewMode] = useState<"matrix" | "referral">("matrix");
   const [stack, setStack] = useState<StackEntry[]>([{ id: userId, displayName: displayName || "You" }]);
   const [members, setMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const current = stack[stack.length - 1];
+  const linkField = viewMode === "matrix" ? "sponsorId" : "originalReferrerId";
 
   useEffect(() => {
     async function fetchTeam() {
@@ -29,7 +34,7 @@ export default function TeamNetworkScreen({ onBack, userId, displayName }: { onB
       try {
         const q = query(
           collection(db, "users"),
-          where("sponsorId", "==", current.id),
+          where(linkField, "==", current.id),
           limit(50)
         );
         const snap = await getDocs(q);
@@ -45,7 +50,7 @@ export default function TeamNetworkScreen({ onBack, userId, displayName }: { onB
       }
     }
     fetchTeam();
-  }, [current?.id]);
+  }, [current?.id, linkField]);
 
   function handleMemberClick(member: any) {
     setStack(prev => [...prev, { id: member.id, displayName: member.displayName || "Member" }]);
@@ -59,6 +64,11 @@ export default function TeamNetworkScreen({ onBack, userId, displayName }: { onB
     }
   }
 
+  function handleViewModeChange(mode: "matrix" | "referral") {
+    setViewMode(mode);
+    setStack([{ id: userId, displayName: displayName || "You" }]); // reset drill-down when switching modes
+  }
+
   const isViewingSelf = stack.length === 1;
 
   return (
@@ -67,9 +77,31 @@ export default function TeamNetworkScreen({ onBack, userId, displayName }: { onB
         <button onClick={handleBack} className="p-2 hover:bg-brand-card/10 rounded-2xl transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h2 className="text-lg font-display font-bold tracking-tight uppercase">Placement Team</h2>
+        <h2 className="text-lg font-display font-bold tracking-tight uppercase">
+          {viewMode === "matrix" ? "Placement Team" : "Referral Team"}
+        </h2>
         <div className="w-10"></div>
       </header>
+
+      {/* View mode toggle */}
+      <div className="flex bg-brand-card/5 border border-brand-border rounded-2xl p-1 gap-1 mb-6">
+        <button
+          onClick={() => handleViewModeChange("matrix")}
+          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors ${
+            viewMode === "matrix" ? "bg-brand-primary text-brand-black" : "text-brand-text/40"
+          }`}
+        >
+          Team Matrix
+        </button>
+        <button
+          onClick={() => handleViewModeChange("referral")}
+          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors ${
+            viewMode === "referral" ? "bg-brand-primary text-brand-black" : "text-brand-text/40"
+          }`}
+        >
+          Referral Chain
+        </button>
+      </div>
 
       {/* Breadcrumb showing how deep we've drilled down */}
       {stack.length > 1 && (
@@ -92,7 +124,7 @@ export default function TeamNetworkScreen({ onBack, userId, displayName }: { onB
 
       {!isViewingSelf && (
         <p className="text-[10px] text-brand-text/30 font-bold uppercase tracking-widest mb-4 px-1">
-          Viewing {current.displayName}'s placement team
+          Viewing {current.displayName}'s {viewMode === "matrix" ? "placement team" : "referral chain"}
         </p>
       )}
 
@@ -109,7 +141,9 @@ export default function TeamNetworkScreen({ onBack, userId, displayName }: { onB
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-2">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/30">Level 1 Slots ({members.length}/10)</h3>
+           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-text/30">
+             {viewMode === "matrix" ? `Level 1 Slots (${members.length}/10)` : `Direct Referrals (${members.length})`}
+           </h3>
            <button className="p-2 bg-brand-card/5 rounded-xl">
              <Filter className="w-4 h-4 text-brand-text/40" />
            </button>
@@ -125,7 +159,7 @@ export default function TeamNetworkScreen({ onBack, userId, displayName }: { onB
             ) : members.length === 0 ? (
               <motion.div key="empty" className="py-20 text-center">
                  <p className="text-sm font-medium text-brand-text/40">
-                   {isViewingSelf ? "No team members placed here yet." : `${current.displayName} has no placement slots filled yet.`}
+                   {isViewingSelf ? "No team members here yet." : `${current.displayName} has no members here yet.`}
                  </p>
                  {isViewingSelf && (
                    <p className="text-[10px] text-brand-primary font-bold uppercase tracking-widest mt-2 cursor-pointer" onClick={onBack}>Share your code now</p>
