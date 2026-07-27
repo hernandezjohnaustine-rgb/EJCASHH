@@ -25,6 +25,7 @@ on:
           - check-original-referrer-gaps
           - extend-referral-chain-dry-run
           - extend-referral-chain-apply
+          - check-reroot-to-jpower03
 
 jobs:
   run_migration:
@@ -137,6 +138,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'extend-referral-chain-apply' }}
         working-directory: scripts
         run: node extend-referral-chain-to-11.mjs --apply
+
+      - name: Check re-root to JPOWER03 feasibility (read-only)
+        if: ${{ github.event.inputs.mode == 'check-reroot-to-jpower03' }}
+        working-directory: scripts
+        run: node check-reroot-to-jpower03.mjs
 
       - name: Clean up service account key
         if: always()
