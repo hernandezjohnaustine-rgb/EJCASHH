@@ -10,6 +10,17 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
+    function isMerchantAccount() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isMerchantAccount == true;
+    }
+    function isDepositAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isDepositAdmin == true;
+    }
+
     match /test/connection {
       allow get: if true;
     }
@@ -28,7 +39,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if true;
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow update: if isSignedIn();
     }
     match /transactions/{transactionId} {
@@ -62,16 +73,36 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
     match /users/{userId}/devices/{deviceId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
-    match /gcashSettings/{id} {
+    match /settings/{id} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    match /merchants/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || (isMerchantAccount() && (resource == null || resource.data.ownerId == request.auth.uid) && request.resource.data.ownerId == request.auth.uid);
+    }
+    match /unlockedMerchants/{docId} {
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+    }
+    match /gcashSettings/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || (isDepositAdmin() && (resource == null || resource.data.ownerId == request.auth.uid) && request.resource.data.ownerId == request.auth.uid);
+    }
     match /depositRequests/{id} {
       allow create: if isSignedIn();
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow update: if isAdmin();
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        (isDepositAdmin() && exists(/databases/$(database)/documents/gcashSettings/$(resource.data.gcashAccountId)) &&
+          get(/databases/$(database)/documents/gcashSettings/$(resource.data.gcashAccountId)).data.ownerId == request.auth.uid)
+      );
+      allow update: if isAdmin() ||
+        (isDepositAdmin() && exists(/databases/$(database)/documents/gcashSettings/$(resource.data.gcashAccountId)) &&
+          get(/databases/$(database)/documents/gcashSettings/$(resource.data.gcashAccountId)).data.ownerId == request.auth.uid);
     }
     match /orders/{id} {
       allow create: if isSignedIn();
