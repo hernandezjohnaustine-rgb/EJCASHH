@@ -153,12 +153,17 @@ export async function processActivation(
         createdAt: Timestamp.now(),
       });
 
-      const nextUid = chainData.originalReferrerId || null;
-      if (!nextUid) break;
-      chainUid = nextUid;
+      // Always update chainUid to the TRUE next value in the chain — even
+      // if that's null (chain genuinely ended here). Previously this broke
+      // out of the loop WITHOUT updating chainUid when the chain ended,
+      // leaving the stale uid of the last-paid person behind. Step 2B
+      // below then reused that stale value and paid the SAME person again
+      // under a "Level 12" label — a real double-payment bug.
+      chainUid = chainData.originalReferrerId || null;
 
     } catch (error) {
       console.error("L" + level + " referral-chain commission error:", error);
+      chainUid = null; // don't let a stale uid leak into Step 2B on error either
     }
   }
 
