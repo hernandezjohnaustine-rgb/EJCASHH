@@ -186,6 +186,19 @@ export default function App() {
 
   // Main auth + Firestore effect
   useEffect(() => {
+    // Standalone admin dashboards (Merchant/Deposit/Genealogy Admin) run
+    // their own completely independent auth flow and Firestore reads.
+    // Running THIS effect's listeners too — on the same shared `auth`
+    // object — caused race conditions where they'd fire with stale/
+    // not-yet-authenticated state and throw permission errors. Since none
+    // of these standalone routes need App's main data at all, skip this
+    // entire effect on those routes.
+    const standaloneAdminRoutes = ["MERCHANT-ADMIN", "DEPOSIT-ADMIN", "GENEALOGY-ADMIN"];
+    if (standaloneAdminRoutes.includes(window.location.pathname.substring(1).toUpperCase())) {
+      setIsLoading(false);
+      return;
+    }
+
     const testConnection = async (retries = 3) => {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
