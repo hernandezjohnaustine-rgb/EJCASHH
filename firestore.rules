@@ -84,9 +84,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || (isMerchantAccount() && (resource == null || resource.data.ownerId == request.auth.uid) && request.resource.data.ownerId == request.auth.uid);
     }
-    match /unlockedMerchants/{docId} {
-      allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+    match /users/{userId}/unlockedMerchants/{merchantId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
     match /gcashSettings/{id} {
       allow read: if isSignedIn();
