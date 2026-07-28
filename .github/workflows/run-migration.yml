@@ -49,6 +49,7 @@ on:
           - referral-bonus-12-20-apply
           - fix-duplicate-chain-bonus-dry-run
           - fix-duplicate-chain-bonus-apply
+          - check-cristita-activation
 
 jobs:
   run_migration:
@@ -281,6 +282,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'fix-duplicate-chain-bonus-apply' }}
         working-directory: scripts
         run: node fix-duplicate-chain-bonus.mjs --apply
+
+      - name: Check Cristita activation (read-only)
+        if: ${{ github.event.inputs.mode == 'check-cristita-activation' }}
+        working-directory: scripts
+        run: node check-cristita-activation.mjs
 
       - name: Clean up service account key
         if: always()
