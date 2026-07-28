@@ -44,7 +44,7 @@ async function main() {
 
   const txSnap = await db.collection("transactions")
     .where("category", "==", "Commission")
-    .where("chainType", "==", "referral")
+    .where("isCredits", "==", true)
     .get();
 
   // Build a lookup of Level 2-11 "Referral Commission" payments, keyed by
@@ -58,7 +58,7 @@ async function main() {
     const key = `${tx.userId}|${tx.fromUserId}`;
     if (tx.commissionLevel >= 2 && tx.commissionLevel <= 11) {
       shortChainPayments.add(key);
-    } else if (tx.commissionLevel >= 12 && tx.commissionLevel <= 20 && !tx.retroLevelMigrationTag) {
+    } else if (tx.commissionLevel >= 12 && tx.commissionLevel <= 20 && !tx.retroLevelMigrationTag && (tx.title || "").includes("Referral Chain Bonus")) {
       bonusPayments.push({ id: d.id, ...tx, key });
     }
   });
