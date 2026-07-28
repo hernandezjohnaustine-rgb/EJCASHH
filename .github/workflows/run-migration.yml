@@ -47,6 +47,8 @@ on:
           - move-jerry-pendoro-apply
           - referral-bonus-12-20-dry-run
           - referral-bonus-12-20-apply
+          - fix-duplicate-chain-bonus-dry-run
+          - fix-duplicate-chain-bonus-apply
 
 jobs:
   run_migration:
@@ -269,6 +271,16 @@ jobs:
         if: ${{ github.event.inputs.mode == 'referral-bonus-12-20-apply' }}
         working-directory: scripts
         run: node add-referral-chain-bonus-12-20.mjs --apply
+
+      - name: Fix duplicate chain bonus (dry-run)
+        if: ${{ github.event.inputs.mode == 'fix-duplicate-chain-bonus-dry-run' }}
+        working-directory: scripts
+        run: node fix-duplicate-chain-bonus.mjs
+
+      - name: Fix duplicate chain bonus (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'fix-duplicate-chain-bonus-apply' }}
+        working-directory: scripts
+        run: node fix-duplicate-chain-bonus.mjs --apply
 
       - name: Clean up service account key
         if: always()
