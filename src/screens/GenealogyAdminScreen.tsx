@@ -445,22 +445,38 @@ function TreeCanvas({ root, allById, onRefresh, canEditPlacement, startLevel }: 
 
     setLoadingDrawerData(true);
     (async () => {
-      try {
-        const [userSnap, depositsSnap, withdrawalsSnap, devicesSnap] = await Promise.all([
-          getDoc(doc(db, "users", node.id)),
-          getDocs(query(collection(db, "depositRequests"), where("userId", "==", node.id))),
-          getDocs(query(collection(db, "withdrawalRequests"), where("userId", "==", node.id))),
-          getDocs(collection(db, "users", node.id, "devices")),
-        ]);
-        if (userSnap.exists()) setFullUserData(userSnap.data());
-        setMemberDeposits(depositsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setMemberWithdrawals(withdrawalsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setMemberDevices(devicesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (err) {
-        console.error("Failed to load member details:", err);
-      } finally {
-        setLoadingDrawerData(false);
+      const [userResult, depositsResult, withdrawalsResult, devicesResult] = await Promise.allSettled([
+        getDoc(doc(db, "users", node.id)),
+        getDocs(query(collection(db, "depositRequests"), where("userId", "==", node.id))),
+        getDocs(query(collection(db, "withdrawalRequests"), where("userId", "==", node.id))),
+        getDocs(collection(db, "users", node.id, "devices")),
+      ]);
+
+      if (userResult.status === "fulfilled" && userResult.value.exists()) {
+        setFullUserData(userResult.value.data());
+      } else if (userResult.status === "rejected") {
+        console.error("Failed to load user profile:", userResult.reason);
       }
+
+      if (depositsResult.status === "fulfilled") {
+        setMemberDeposits(depositsResult.value.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } else {
+        console.error("Failed to load deposits:", depositsResult.reason);
+      }
+
+      if (withdrawalsResult.status === "fulfilled") {
+        setMemberWithdrawals(withdrawalsResult.value.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } else {
+        console.error("Failed to load withdrawals:", withdrawalsResult.reason);
+      }
+
+      if (devicesResult.status === "fulfilled") {
+        setMemberDevices(devicesResult.value.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } else {
+        console.error("Failed to load devices:", devicesResult.reason);
+      }
+
+      setLoadingDrawerData(false);
     })();
   }, []);
 
