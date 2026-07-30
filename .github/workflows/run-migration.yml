@@ -50,6 +50,9 @@ on:
           - fix-duplicate-chain-bonus-dry-run
           - fix-duplicate-chain-bonus-apply
           - check-cristita-activation
+          - fix-cristita-dry-run
+          - fix-cristita-apply
+          - check-all-broken-directs
 
 jobs:
   run_migration:
@@ -287,6 +290,21 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-cristita-activation' }}
         working-directory: scripts
         run: node check-cristita-activation.mjs
+
+      - name: Fix Cristita missing commissions (dry-run)
+        if: ${{ github.event.inputs.mode == 'fix-cristita-dry-run' }}
+        working-directory: scripts
+        run: node fix-cristita-missing-commissions.mjs
+
+      - name: Fix Cristita missing commissions (APPLY — writes real changes)
+        if: ${{ github.event.inputs.mode == 'fix-cristita-apply' }}
+        working-directory: scripts
+        run: node fix-cristita-missing-commissions.mjs --apply
+
+      - name: Check all broken directs (read-only)
+        if: ${{ github.event.inputs.mode == 'check-all-broken-directs' }}
+        working-directory: scripts
+        run: node check-all-broken-directs.mjs
 
       - name: Clean up service account key
         if: always()
