@@ -54,6 +54,7 @@ on:
           - fix-cristita-apply
           - check-all-broken-directs
           - check-activated-with-missing-referrer
+          - check-juanita-connections
 
 jobs:
   run_migration:
@@ -311,6 +312,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-activated-with-missing-referrer' }}
         working-directory: scripts
         run: node check-activated-with-missing-referrer.mjs
+
+      - name: Check Juanita connections (read-only)
+        if: ${{ github.event.inputs.mode == 'check-juanita-connections' }}
+        working-directory: scripts
+        run: node check-juanita-connections.mjs
 
       - name: Clean up service account key
         if: always()
