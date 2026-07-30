@@ -55,6 +55,7 @@ on:
           - check-all-broken-directs
           - check-activated-with-missing-referrer
           - check-juanita-connections
+          - check-jerry-gomez-slots
 
 jobs:
   run_migration:
@@ -317,6 +318,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-juanita-connections' }}
         working-directory: scripts
         run: node check-juanita-connections.mjs
+
+      - name: Check Jerry Gomez slots (read-only)
+        if: ${{ github.event.inputs.mode == 'check-jerry-gomez-slots' }}
+        working-directory: scripts
+        run: node check-jerry-gomez-slots.mjs
 
       - name: Clean up service account key
         if: always()
