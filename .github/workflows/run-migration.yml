@@ -53,6 +53,7 @@ on:
           - fix-cristita-dry-run
           - fix-cristita-apply
           - check-all-broken-directs
+          - check-activated-with-missing-referrer
 
 jobs:
   run_migration:
@@ -305,6 +306,11 @@ jobs:
         if: ${{ github.event.inputs.mode == 'check-all-broken-directs' }}
         working-directory: scripts
         run: node check-all-broken-directs.mjs
+
+      - name: Check activated with missing referrer (read-only)
+        if: ${{ github.event.inputs.mode == 'check-activated-with-missing-referrer' }}
+        working-directory: scripts
+        run: node check-activated-with-missing-referrer.mjs
 
       - name: Clean up service account key
         if: always()
