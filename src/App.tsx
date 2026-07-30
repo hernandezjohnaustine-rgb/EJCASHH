@@ -290,14 +290,6 @@ export default function App() {
                 referralCode: generatedReferralCode,
                 referredBy,
                 sponsorId,
-                // Set immediately at registration (mirroring sponsorId
-                // above), NOT deferred until activation — otherwise
-                // unactivated new signups have no originalReferrerId at
-                // all and don't show up in the Referral Chain view until
-                // they activate. handleActivationComplete() further down
-                // still re-resolves this at activation time as a safety
-                // net, but that should rarely be needed now.
-                originalReferrerId: sponsorId,
                 createdAt: new Date().toISOString(),
                 stats: { vipLevel: 1, directReferrals: 0, totalReferrals: 0, teamSize: 0, totalEarnings: 0 }
               };
@@ -803,15 +795,19 @@ export default function App() {
           await setDoc(userDocRef, { originalReferrerId: originalReferrerId }, { merge: true });
         }
 
-        // ✅ Auto-placement decides unilevel TREE POSITION. This is a
-        // one-time decision made when the account first activates — running
-        // it again on a Package 2 upgrade could silently move the user to a
-        // different slot (since the referrer's downline may have filled up
-        // in the meantime), which would also shift who L2-10 credits.
-        const sponsorId = originalReferrerId;
-        if (!wasAlreadyActivated && sponsorId) {
+        // ✅ Auto-placement decides MATRIX tree position, using the
+        // account's TRUE sponsorId (set at registration) — never
+        // originalReferrerId, which is a completely separate concept (the
+        // Referral Chain parent). Conflating the two here caused accounts
+        // deliberately excluded from the matrix (sponsorId: null, e.g.
+        // the EJCASHH01-11 referral-chain backbone) to get incorrectly
+        // auto-placed into the matrix whenever they activated, since
+        // originalReferrerId was always truthy for them even though
+        // sponsorId wasn't. Only run auto-placement if this account
+        // actually HAS a sponsorId to place from.
+        if (!wasAlreadyActivated && freshData.sponsorId) {
           const { autoPlaceUser } = await import("./services/autoPlacementService");
-          await autoPlaceUser(currentUser.uid, sponsorId);
+          await autoPlaceUser(currentUser.uid, freshData.sponsorId);
         }
 
         // ✅ Get updated sponsorId after auto-placement (unchanged on upgrades).
