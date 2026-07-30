@@ -290,6 +290,14 @@ export default function App() {
                 referralCode: generatedReferralCode,
                 referredBy,
                 sponsorId,
+                // Set immediately at registration (mirroring sponsorId
+                // above), NOT deferred until activation — otherwise
+                // unactivated new signups have no originalReferrerId at
+                // all and don't show up in the Referral Chain view until
+                // they activate. handleActivationComplete() further down
+                // still re-resolves this at activation time as a safety
+                // net, but that should rarely be needed now.
+                originalReferrerId: sponsorId,
                 createdAt: new Date().toISOString(),
                 stats: { vipLevel: 1, directReferrals: 0, totalReferrals: 0, teamSize: 0, totalEarnings: 0 }
               };
