@@ -119,14 +119,21 @@ async function activateUserPackage(userId: string, packageId: string) {
     await setDoc(userDocRef, { originalReferrerId }, { merge: true });
   }
 
-  const sponsorId = originalReferrerId;
-  if (!wasAlreadyActivated && sponsorId) {
+  // Auto-placement decides MATRIX tree position, using the account's
+  // TRUE sponsorId (set at registration) — never originalReferrerId,
+  // which is a separate concept (the Referral Chain parent). Conflating
+  // the two here caused accounts deliberately excluded from the matrix
+  // (sponsorId: null, e.g. the EJCASHH01-11 referral-chain backbone) to
+  // get incorrectly auto-placed into the matrix whenever an admin
+  // activated them here, since originalReferrerId was always truthy for
+  // them even though sponsorId wasn't.
+  if (!wasAlreadyActivated && freshData.sponsorId) {
     const { autoPlaceUser } = await import("../services/autoPlacementService");
-    await autoPlaceUser(userId, sponsorId);
+    await autoPlaceUser(userId, freshData.sponsorId);
   }
 
   const freshDoc2 = await getDoc(userDocRef);
-  const updatedSponsorId = freshDoc2.data()?.sponsorId || originalReferrerId;
+  const updatedSponsorId = freshDoc2.data()?.sponsorId || null;
   const actualReferrerId = originalReferrerId;
 
   const packageMultiplier = packageId === "package_1" ? 1 : 10;
